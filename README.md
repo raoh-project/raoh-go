@@ -1,0 +1,302 @@
+# raoh
+
+Go port of [Raoh](https://github.com/kawasima/raoh), a decoder library for turning untyped
+boundary input into typed domain values.
+
+It is built around a parse-don't-validate approach:
+
+- decode at the boundary
+- keep invalid states out of the domain model
+- return failures as values, through Go's `error`
+- attach structured errors to precise paths
+
+`encoding/json` turns JSON text into structs whose fields anyone can set. raoh turns input into
+domain values whose fields stay unexported, and when the input is wrong it reports every problem it
+found, each with the JSON Pointer of where it was, instead of stopping at the first one.
+
+```text
+JSON text --raoh.DecodeJSON--> domain values
+                          \--> *raoh.Issues (path, code, message, meta)
+```
+
+The only dependency is the standard library. Go 1.27 or later is required, for generic methods.
+
+## Installation
+
+```sh
+go get github.com/kawasima/raoh-go
+```
+
+## Quick start
+
+```go
+type Email struct{ value string }
+type Age int
+type User struct {
+	email Email
+	age   Age
+}
+
+func NewUser(e Email, a Age) User { return User{e, a} }
+
+var userDecoder = raoh.Object(
+	raoh.Fields().
+		Field("email", raoh.String().Trim().ToLower().Email().
+			Map(func(s string) Email { return Email{s} })).
+		Field("age", raoh.Int().Range(0, 150).
+			Map(func(n int) Age { return Age(n) })),
+).Map(NewUser)
+
+func createUser(w http.ResponseWriter, r *http.Request) error {
+	user, err := raoh.DecodeJSONFrom(r.Body, userDecoder)
+	if issues, ok := errors.AsType[*raoh.Issues](err); ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return json.NewEncoder(w).Encode(issues.Render(raoh.English))
+	} else if err != nil {
+		return err
+	}
+	return service.CreateUser(r.Context(), user)
+}
+```
+
+For `{"email": "not an email", "age": 200}` the response body is:
+
+```json
+[
+  {"path": "/email", "code": "invalid_format", "message": "not a valid email", "meta": {}},
+  {"path": "/age", "code": "out_of_range", "message": "must be between 0 and 150",
+   "meta": {"actual": 200, "max": 150, "min": 0}}
+]
+```
+
+## The model
+
+### `Decoder`
+
+```go
+type Decoder[I, T any] struct{ /* ... */ }
+
+func (d Decoder[I, T]) Decode(in I) (T, error)
+func (d Decoder[I, T]) Map[U any](f func(T) U) Decoder[I, U]
+func (d Decoder[I, T]) AndThen[U any](f func(T) (U, error)) Decoder[I, U]
+func (d Decoder[I, T]) Pipe[U any](next Decoder[T, U]) Decoder[I, U]
+// Refine, Default, Fallback
+```
+
+A decoder is a value that describes how to read an input. It holds no state and can be reused and
+shared between goroutines. The built-in decoders, such as `raoh.String()`, embed a
+`Decoder[any, T]` and add their own constraints, so `raoh.String().Trim().Email().Map(...)` reads
+as one chain.
+
+The input a decoder reads is what `encoding/json` gives when it decodes into an `any`: `nil`,
+`bool`, `string`, `float64` or `json.Number`, `[]any` and `map[string]any`. `DecodeJSON` and
+`DecodeJSONFrom` read JSON text into the same shapes, but keep each number as written and each
+object's members in the order written, so a large integer or a decimal is read exactly and
+unknown members are reported in input order. Text that is not JSON is one `invalid_format` issue
+at the root, under the message key `invalid_format.json`, with the `line` and `column` where it
+stopped being JSON.
+
+### `error`, `Issues` and failures of the program
+
+`Decode` returns an `error`. When the error holds an `*Issues`, the whole error means the input
+was invalid, and `errors.AsType[*raoh.Issues](err)` finds it. Any other error is a failure of the
+program itself and is returned as the function that produced it returned it.
+
+A function given to `AndThen` returns `(U, error)`, so an existing constructor such as
+`NewPeriod(start, end time.Time) (Period, error)` can be passed as it is. What it returns decides
+what the error means:
+
+- an error made of issues only, as `raoh.Invalid(...)` returns, reports the input as invalid; its
+  issues are gathered with those of the other fields, read as relative to where the decoder is
+- any other error, such as a lost database connection, stops the decode and is returned from
+  `Decode`
+- an error that mixes issues with any other error is a failure of the program too, and the issues
+  in it are hidden, so `errors.AsType[*raoh.Issues]` never takes it for invalid input
+
+### `Issue` and `Issues`
+
+Each issue has:
+
+- `Path()`: a JSON Pointer (RFC 6901), such as `/items/0/name`
+- `Code()`: what kind of problem it is, such as `required` or `out_of_range`
+- `MessageKey()`: the code, or a refinement of it such as `out_of_range.minimum`
+- `Meta()`: what else the code says, such as `min`, `max` and `actual`
+
+An issue carries no sentence of its own. `issue.Message(raoh.English)` writes one from the
+English catalogue, and `issue.Message(raoh.Japanese)` from another. The only sentence an issue
+carries is one its creator gave with `WithMessage(...)`, which every language then shows as
+written.
+
+The codes, message keys and meta keys are the same as in Raoh for Java from 0.8 on, and in its
+Rust and PHP ports, so the same client-side handling works for all of them, and a catalogue
+written for Raoh for Java resolves these issues too. `compat_test.go` holds the decoders to what
+Raoh for Java gives for the same inputs; the cases where it differs on purpose are listed there and
+under [Differences from Raoh for Java](#differences-from-raoh-for-java).
+
+`Issues` keeps them in the order they were found. `Render(r)` gives the
+`[{"path", "code", "message", "meta"}]` form, ready for `json.Marshal`, and `Flatten(r)` groups
+the messages by path. `Error()` writes each issue as its path and English message. `Issues` does
+not implement `json.Marshaler`, because which language to write it in is the caller's choice.
+
+## Objects
+
+An object is decoded from a set of fields. `raoh.Fields()` is an empty set, each `.Field(name,
+source)` adds one, and `raoh.Object(set)` gives the builder whose `Map` or `AndThen` takes a
+function of the fields' values, in the order they were added:
+
+```go
+var period = raoh.Object(
+	raoh.Fields().
+		Field("start", raoh.String().AndThen(parseDate)).
+		Field("end", raoh.String().AndThen(parseDate)),
+).AndThen(NewPeriod)
+```
+
+The compiler checks that the function takes the fields' types in that order, and that each field
+is read by a decoder of the input values; a `Decoder[string, T]` is not accepted as a field. A set
+holds up to 16 fields; a larger object groups some of its fields into a nested one.
+
+`Object` requires its input to be an object. Anything else is one issue at the object's own path:
+`required` for missing or `null`, `type_mismatch` otherwise. Every field is read and the issues of
+all of them are reported. `.Strict()` also reports every member the fields do not declare as
+`unknown_field`, after the fields' own issues.
+
+A field is read with one of:
+
+- a decoder: a member that must be there; a missing one is `required`
+- `raoh.Optional(d)`: `*T`, `nil` when the member is missing
+- `raoh.PresenceOf(d)`: `Presence[T]`, telling a missing member, a `null` one and one with a
+  value apart, as a PATCH request needs
+
+`raoh.Nullable(d)` is a decoder of `*T` that accepts `null`. A missing member and a `null` one are
+different inputs: `Field("note", raoh.Nullable(raoh.String()))` accepts `null` but reports a
+missing member as `required`, while `raoh.Optional` accepts a missing member but not `null`.
+
+## Built-in decoders
+
+Missing or `null` input is `required` for every one of them, and a value of another type is
+`type_mismatch`. The constraints of one decoder run in the order written, and the first to fail is
+reported.
+
+`raoh.String()`: `Trim`, `ToLower`, `ToUpper`, `NonBlank`, `MinLength`, `MaxLength`, `Length`,
+`StartsWith`, `EndsWith`, `Contains`, `OneOf`, `Email`, `IP`, `IPv4`, `IPv6`, `ULID`, `CUID`,
+`Pattern`, and the conversions `UUID()` and `URL()`. Lengths count characters, not bytes.
+
+`raoh.Int()`, `Int32()`, `Int64()`, `Uint()`, `Uint32()`, `Uint64()`: `Min`, `Max`, `Range`,
+`Positive`, `Negative`, `NonNegative`, `NonPositive`, `MultipleOf`, `OneOf`. In JSON text a number
+with a fraction or an exponent is not an integer (`type_mismatch`), and one the type cannot hold
+is `type_mismatch` under `type_mismatch.numeric_range`. Issues name the type in `expected` as Raoh
+for Java names the type of the same width: `integer` for 32 bits and `long` for 64, so a Go `int`
+is a `long`.
+
+`raoh.Float64()`: `Min`, `Max`, `Range`, `Positive`, `Negative`, `NonNegative`, `NonPositive`,
+`OneOf`.
+
+`raoh.DecimalNumber()`: the numeric constraints plus `MultipleOf` and `Scale`, decoding into
+`raoh.Decimal`, which holds a number as written as Java's `BigDecimal` does: `1.20` keeps its
+scale of 2.
+
+`raoh.Bool()`: `IsTrue`, `IsFalse`.
+
+`raoh.List(d)`: `[]T`, with `NonEmpty`, `MinSize`, `MaxSize`, `Size` and `Unique`. Every element
+is decoded and its issues reported under its index.
+
+`raoh.Dict(d)`: a `map[string]T` from an object used as a map.
+
+Every built-in decoder takes `.Message("...")`, which gives the most recent constraint written
+before it a custom message. Transformations such as `Trim` cannot fail and are passed over, so
+`raoh.String().Trim().Message("...")` gives the message to the type check.
+
+Whitespace, character counts, string order, case mapping and number formatting follow Raoh for
+Java 0.8: `Trim` and `NonBlank` use Unicode's `White_Space`, lengths count code points, `OneOf`,
+`Discriminate` and `EnumOf` sort by code point, `EnumOf` folds ASCII case only, `ToLower` and
+`ToUpper` use Unicode's full case mapping as `Locale.ROOT` does (`ß` becomes `SS`, a final `Σ`
+becomes `ς`), and a fractional bound appears in a message as `Double.toString` writes it, such as
+`1.0E7`. `Email`, `IP`, `URL` and `UUID` accept the text Raoh for Java accepts, decided by the
+same grammar rather than by a parser of the platform.
+
+## Choices
+
+- `raoh.EnumOf(map[string]T{...})`: a string naming one of the values, ignoring ASCII case
+- `raoh.Literal("v1")`: exactly that string
+- `raoh.OneOf(a, b, ...)`: the first alternative that decodes, or `one_of_failed` with each
+  alternative's issues in `meta.candidates`
+- `raoh.Discriminate("type", raoh.Variant("a", da), raoh.Variant("b", db), ...)`: the variant the
+  member `type` names
+
+## Defaults and recovery
+
+`d.Default(v)` gives `v` when the input is missing or `null`, and still reports any other problem.
+`d.Fallback(v)` gives `v` whatever issues `d` reports. Neither hides a failure of the program.
+
+## Recursive structures
+
+A decoder that refers to itself does so through `raoh.Lazy`:
+
+```go
+func categoryDecoder() raoh.Decoder[any, Category] {
+	return raoh.Object(raoh.Fields().
+		Field("name", raoh.String().NonBlank()).
+		Field("children", raoh.List(raoh.Lazy(categoryDecoder))),
+	).Map(NewCategory)
+}
+```
+
+## Messages in other languages
+
+`raoh.English` and `raoh.Japanese` hold the catalogues Raoh for Java ships, word for word, plus a
+template for `invalid_format.json`. A catalogue is a stack of layers, as a locale's `.properties`
+file sits over its parent's: `Japanese` is a layer over `English`, `WithOverrides` puts a layer of
+your own on top, and `FallingBackTo` puts another catalogue beneath. An issue is looked up one
+layer at a time, by message key and then by code, so a layer that translates only
+`invalid_format` wins over the refined `invalid_format.email` beneath it, as in Raoh for Java.
+`raoh.ParseProperties` reads a `.properties` file as Java's `Properties.load` does, `\uXXXX`
+escapes included, so an existing Raoh for Java catalogue can be used as it is. A template's
+`{name}` placeholders are filled from `meta`.
+
+```go
+ours := raoh.English.WithOverrides(map[string]string{"too_short": "{min} characters or more"})
+issue.Message(ours) // "3 characters or more"
+```
+
+Any `func(raoh.Issue) string` is a resolver too, as a `raoh.ResolverFunc`.
+
+## Differences from Raoh for Java
+
+In what it reports:
+
+- `Object` checks once that its input is an object and reports one issue at its own path when it
+  is not. Raoh for Java checks in each field, reporting `type_mismatch` at every field's path and
+  reading a non-object as an object without any optional field.
+- A Go float given as input, as `encoding/json` gives every number, is an integer when it holds
+  one. In JSON text read by `DecodeJSON`, `1.0` is not an integer, as in Raoh for Java.
+- `DecodeJSON` refuses an object that names a member twice, as `invalid_format.json`.
+
+In the API:
+
+- Combining is done with `Object(Fields().Field(...)...)`, not `combine`.
+- `flatMap` is `AndThen`, and `recover` is `Fallback`, since `recover` means panic recovery in Go.
+  There are no `Result`, `Ok` or `Err` types: decoding gives `(T, error)`.
+- There is no encoder. There are no date and time decoders yet; `raoh.String().AndThen(parse)`
+  reads any type a function parses.
+- There is no domain construction guard (`raoh-gsh`). Unexported fields and package boundaries
+  stop a domain value from being built outside its package, but the zero value of a struct can
+  still be made anywhere.
+
+## Development
+
+```sh
+go test ./...
+```
+
+`go generate ./...` writes `fields_gen.go`, the field sets and object builders for up to 16
+fields, and `casing_table.go`, the code points where Java's case mapping differs from Go's.
+
+`scripts/compat/generate.sh` regenerates `testdata/compat/expected.json` and copies the message
+catalogues from the Raoh for Java version `scripts/compat/pom.xml` names.
+`scripts/casing/generate.sh` regenerates the case-mapping data from the Java on the `PATH`. Both
+need Java 25; the first also needs Maven.
+
+## License
+
+Apache License 2.0
