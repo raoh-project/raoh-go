@@ -198,6 +198,18 @@ scale of 2.
 
 `raoh.Bool()`: `IsTrue`, `IsFalse`.
 
+`raoh.String().Instant()`, `.Date()`, `.Time()`, `.DateTime()`, `.OffsetDateTime()`: the ISO 8601
+forms Java's `Instant`, `LocalDate`, `LocalTime`, `LocalDateTime` and `OffsetDateTime` read, with
+`Before`, `After` and `Between`. Each gives a `time.Time`. The kinds without an offset give it in
+UTC, as `time.Parse` does for text without one: a date is its midnight, and a clock time is on
+January 1 of year 0. An offset date-time keeps its offset as a fixed zone, and an instant is given
+in UTC. The text accepted is the text Raoh for Java accepts: a year outside 0000 to 9999 takes a
+sign, `T` and `Z` are upper case only, a date that does not exist is refused, and an instant
+refuses second 60 and reads `24:00:00` as the start of the next day. Bounds are compared by the
+fields the kind has, so a date bound is compared by its date alone. In an issue, a bound is
+written in a message as the Java type's `toString` writes it (`09:00`) and in JSON as Jackson
+writes it (`09:00:00`), as Raoh for Java gives them.
+
 `raoh.List(d)`: `[]T`, with `NonEmpty`, `MinSize`, `MaxSize`, `Size` and `Unique`. Every element
 is decoded and its issues reported under its index.
 
@@ -242,6 +254,38 @@ func categoryDecoder() raoh.Decoder[any, Category] {
 }
 ```
 
+## Encoders
+
+Package `encode` turns domain values back into the `map[string]any`, `[]any` and scalar values
+that the decoders read and `encoding/json` writes. `encoding/json` cannot write a domain type whose
+fields are unexported; an encoder reads it through its accessors, and is written next to its
+decoder:
+
+```go
+var userEncoder = encode.Object(
+	encode.Property("email", User.Email, encode.String().Contramap(Email.String)),
+	encode.Property("age", User.Age, encode.Int()),
+	encode.OptionalProperty("nickname", User.Nickname, encode.String()),
+	encode.PresenceProperty("note", User.Note, encode.String()),
+)
+
+body, err := json.Marshal(userEncoder.Encode(user))
+```
+
+- `Property`, `NullableProperty` (writes `null` for `nil`), `OptionalProperty` (leaves the member
+  out for `nil`) and `PresenceProperty` are the counterparts of a field, `raoh.Nullable`,
+  `raoh.Optional` and `raoh.PresenceOf`, so what one decodes the other writes back.
+- `Object`, `List`, `Dict`, `Lazy` and `Discriminate` are the counterparts of the decoders of the
+  same name. `Discriminate` picks the variant by the value's dynamic type and writes its tag.
+- `String`, `Int` and the other scalars give a value as it is; `Decimal` gives a `json.Number`
+  that keeps the scale; `UUID`, `URL` and the temporal encoders `Instant`, `Date`, `Time`,
+  `DateTime` and `OffsetDateTime` give text as Raoh for Java's encoders do. `EnumOf` takes the
+  map `raoh.EnumOf` decodes with.
+- `Contramap` and `AndThen` adapt an encoder on either side.
+
+An encoder cannot fail. A definition that does not cover a value, such as a `Discriminate` given a
+type none of its variants names, is a mistake in the program and panics.
+
 ## Messages in other languages
 
 `raoh.English` and `raoh.Japanese` hold the catalogues Raoh for Java ships, word for word, plus a
@@ -277,8 +321,10 @@ In the API:
 - Combining is done with `Object(Fields().Field(...)...)`, not `combine`.
 - `flatMap` is `AndThen`, and `recover` is `Fallback`, since `recover` means panic recovery in Go.
   There are no `Result`, `Ok` or `Err` types: decoding gives `(T, error)`.
-- There is no encoder. There are no date and time decoders yet; `raoh.String().AndThen(parse)`
-  reads any type a function parses.
+- The temporal decoders give a `time.Time` for every kind, as Go has no separate date and time
+  types, and there is no `Year`, `YearMonth` or `ZonedDateTime` decoder.
+- Encoders write `map[string]any`, whose members `encoding/json` writes in sorted order, where Raoh
+  for Java's keep the order the entries are written in.
 - There is no domain construction guard (`raoh-gsh`). Unexported fields and package boundaries
   stop a domain value from being built outside its package, but the zero value of a struct can
   still be made anywhere.
@@ -288,6 +334,8 @@ In the API:
 ```sh
 go test ./...
 ```
+
+`compat_test.go` also covers the temporal decoders, with cases raoh-rust does not have.
 
 `go generate ./...` writes `fields_gen.go`, the field sets and object builders for up to 16
 fields, and `casing_table.go`, the code points where Java's case mapping differs from Go's.

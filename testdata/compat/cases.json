@@ -869,5 +869,333 @@
   {
     "decoder": "int",
     "input_json": "3000000000"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00.5+09:00"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00.123456789Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15t10:30:00z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T23:59:60Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T24:00:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T24:00:01Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "+10000-01-01T00:00:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "-0001-01-01T00:00:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "-0000-01-01T00:00:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "+2024-01-15T10:30:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-02-30T00:00:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00+18:00"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00+18:01"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00+05:30:15"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00.Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "2024-01-15T10:30:00.1234567890Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "+1000000000-12-31T23:59:59.999999999Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "+1000000001-01-01T00:00:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": "-1000000000-01-01T00:00:00Z"
+  },
+  {
+    "decoder": "instant",
+    "input": 1
+  },
+  {
+    "decoder": "instant",
+    "input": null
+  },
+  {
+    "decoder": "instant_after",
+    "input": "2023-12-31T23:59:59Z"
+  },
+  {
+    "decoder": "instant_after",
+    "input": "2024-01-01T09:00:00+09:00"
+  },
+  {
+    "decoder": "instant_after",
+    "input": "2024-01-01T00:00:00.001Z"
+  },
+  {
+    "decoder": "date",
+    "input": "2024-01-15"
+  },
+  {
+    "decoder": "date",
+    "input": "2023-02-29"
+  },
+  {
+    "decoder": "date",
+    "input": "2024-02-29"
+  },
+  {
+    "decoder": "date",
+    "input": "+10000-01-01"
+  },
+  {
+    "decoder": "date",
+    "input": "-0001-12-31"
+  },
+  {
+    "decoder": "date",
+    "input": "-0000-01-01"
+  },
+  {
+    "decoder": "date",
+    "input": "+2024-01-15"
+  },
+  {
+    "decoder": "date",
+    "input": "02024-01-15"
+  },
+  {
+    "decoder": "date",
+    "input": "2024-1-15"
+  },
+  {
+    "decoder": "date",
+    "input": "2024-13-01"
+  },
+  {
+    "decoder": "date",
+    "input": "+999999999-12-31"
+  },
+  {
+    "decoder": "date",
+    "input": "+1000000000-01-01"
+  },
+  {
+    "decoder": "date",
+    "input": "-999999999-01-01"
+  },
+  {
+    "decoder": "date",
+    "input": " 2024-01-15"
+  },
+  {
+    "decoder": "date",
+    "input": ""
+  },
+  {
+    "decoder": "date_before",
+    "input": "2023-12-31"
+  },
+  {
+    "decoder": "date_before",
+    "input": "2024-01-01"
+  },
+  {
+    "decoder": "date_between",
+    "input": "2024-06-01"
+  },
+  {
+    "decoder": "date_between",
+    "input": "2025-01-01"
+  },
+  {
+    "decoder": "date_between",
+    "input": "2023-12-31"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:00"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:45"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:45.1"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:45.123456"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:45.123456789"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:45.1234"
+  },
+  {
+    "decoder": "time",
+    "input": "00:00:00.000000001"
+  },
+  {
+    "decoder": "time",
+    "input": "24:00"
+  },
+  {
+    "decoder": "time",
+    "input": "23:60"
+  },
+  {
+    "decoder": "time",
+    "input": "23:59:60"
+  },
+  {
+    "decoder": "time",
+    "input": "1:30"
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:45."
+  },
+  {
+    "decoder": "time",
+    "input": "10:30:45.1234567890"
+  },
+  {
+    "decoder": "time_after",
+    "input": "08:59:59"
+  },
+  {
+    "decoder": "time_after",
+    "input": "09:00"
+  },
+  {
+    "decoder": "time_after",
+    "input": "09:00:00.000001"
+  },
+  {
+    "decoder": "date_time",
+    "input": "2024-01-15T10:30"
+  },
+  {
+    "decoder": "date_time",
+    "input": "2024-01-15T10:30:45.123"
+  },
+  {
+    "decoder": "date_time",
+    "input": "2024-01-15 10:30"
+  },
+  {
+    "decoder": "date_time",
+    "input": "2024-01-15T10:30Z"
+  },
+  {
+    "decoder": "date_time",
+    "input": "2024-01-15t10:30"
+  },
+  {
+    "decoder": "date_time",
+    "input": "2024-01-15T24:00"
+  },
+  {
+    "decoder": "date_time_before",
+    "input": "2023-12-31T23:59:59.999"
+  },
+  {
+    "decoder": "date_time_before",
+    "input": "2024-01-01T00:00"
+  },
+  {
+    "decoder": "offset_date_time",
+    "input": "2024-01-15T10:30:00+09:00"
+  },
+  {
+    "decoder": "offset_date_time",
+    "input": "2024-01-15T10:30Z"
+  },
+  {
+    "decoder": "offset_date_time",
+    "input": "2024-01-15T10:30-00:00"
+  },
+  {
+    "decoder": "offset_date_time",
+    "input": "2024-01-15T10:30:00+05:30:15"
+  },
+  {
+    "decoder": "offset_date_time",
+    "input": "2024-01-15T10:30+19:00"
+  },
+  {
+    "decoder": "offset_date_time",
+    "input": "2024-01-15T10:30+0900"
+  },
+  {
+    "decoder": "offset_date_time",
+    "input": "2024-01-15T10:30"
+  },
+  {
+    "decoder": "offset_date_time_after",
+    "input": "2024-01-01T00:00+09:00"
+  },
+  {
+    "decoder": "offset_date_time_after",
+    "input": "2023-12-31T15:00Z"
+  },
+  {
+    "decoder": "offset_date_time_after",
+    "input": "2023-12-31T15:00:00.001Z"
+  },
+  {
+    "decoder": "offset_date_time_after",
+    "input": "2024-01-01T00:00:01+09:00"
   }
 ]

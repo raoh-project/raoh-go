@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/kawasima/raoh-go"
 )
@@ -387,5 +388,37 @@ func TestTheCataloguesCoverEveryCodeAndMessageKey(t *testing.T) {
 				t.Errorf("no %s template for %s", name, k)
 			}
 		}
+	}
+}
+
+func TestTemporalDecoders(t *testing.T) {
+	v, _ := decodeJSON(t, raoh.String().OffsetDateTime(), `"2024-01-15T10:30+09:00"`)
+	if _, offset := v.Zone(); offset != 9*3600 || v.Hour() != 10 {
+		t.Errorf("offset kept: %v", v)
+	}
+	v, _ = decodeJSON(t, raoh.String().Instant(), `"2024-01-15T10:30:00+09:00"`)
+	if v.Location() != time.UTC || v.Hour() != 1 {
+		t.Errorf("instant in UTC: %v", v)
+	}
+	// A date bound is compared by its date alone, whatever its location.
+	tokyo := time.FixedZone("JST", 9*3600)
+	d := raoh.String().Date().Before(time.Date(2024, 1, 1, 8, 0, 0, 0, tokyo))
+	expect(t, d, `"2024-01-01"`, " out_of_range")
+	_, issues := decodeJSON(t, d, `"2024-01-01"`)
+	if got := issues[0].Message(raoh.Japanese); got != "2024-01-01より前で入力してください" {
+		t.Error(got)
+	}
+	_, issues = decodeJSON(t, raoh.String().Trim().Date().Message("give a date"), `"2024-13-01"`)
+	if issues[0].Message(raoh.English) != "give a date" || issues[0].MessageKey() != raoh.KeyInvalidFormatDate {
+		t.Error(issues[0])
+	}
+	_, issues = decodeJSON(t, raoh.String().Date().After(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)).Message("too early"), `"2023-01-01"`)
+	if issues[0].Message(raoh.English) != "too early" {
+		t.Error(issues[0])
+	}
+	if !panics(func() {
+		raoh.String().Time().Between(time.Date(0, 1, 1, 10, 0, 0, 0, time.UTC), time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC))
+	}) {
+		t.Error("Between with from after to")
 	}
 }

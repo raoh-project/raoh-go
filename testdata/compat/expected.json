@@ -1885,4 +1885,637 @@
     },
     "path" : ""
   } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00Z",
+  "ok" : "2024-01-15T10:30:00Z"
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00.5+09:00",
+  "ok" : "2024-01-15T01:30:00.500Z"
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00.123456789Z",
+  "ok" : "2024-01-15T10:30:00.123456789Z"
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15t10:30:00z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T23:59:60Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T24:00:00Z",
+  "ok" : "2024-01-16T00:00:00Z"
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T24:00:01Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "+10000-01-01T00:00:00Z",
+  "ok" : "+10000-01-01T00:00:00Z"
+}, {
+  "decoder" : "instant",
+  "input" : "-0001-01-01T00:00:00Z",
+  "ok" : "-0001-01-01T00:00:00Z"
+}, {
+  "decoder" : "instant",
+  "input" : "-0000-01-01T00:00:00Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "+2024-01-15T10:30:00Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-02-30T00:00:00Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00+18:00",
+  "ok" : "2024-01-14T16:30:00Z"
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00+18:01",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00+05:30:15",
+  "ok" : "2024-01-15T04:59:45Z"
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00.Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "2024-01-15T10:30:00.1234567890Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "+1000000000-12-31T23:59:59.999999999Z",
+  "ok" : "+1000000000-12-31T23:59:59.999999999Z"
+}, {
+  "decoder" : "instant",
+  "input" : "+1000000001-01-01T00:00:00Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO 8601 instant",
+    "message_key" : "invalid_format.instant",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : "-1000000000-01-01T00:00:00Z",
+  "ok" : "-1000000000-01-01T00:00:00Z"
+}, {
+  "decoder" : "instant",
+  "input" : 1,
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected string",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "string"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant",
+  "input" : null,
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant_after",
+  "input" : "2023-12-31T23:59:59Z",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be after 2024-01-01T00:00:00Z",
+    "message_key" : "out_of_range.after",
+    "meta" : {
+      "actual" : "2023-12-31T23:59:59Z",
+      "after" : "2024-01-01T00:00:00Z"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant_after",
+  "input" : "2024-01-01T09:00:00+09:00",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be after 2024-01-01T00:00:00Z",
+    "message_key" : "out_of_range.after",
+    "meta" : {
+      "actual" : "2024-01-01T00:00:00Z",
+      "after" : "2024-01-01T00:00:00Z"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "instant_after",
+  "input" : "2024-01-01T00:00:00.001Z",
+  "ok" : "2024-01-01T00:00:00.001Z"
+}, {
+  "decoder" : "date",
+  "input" : "2024-01-15",
+  "ok" : "2024-01-15"
+}, {
+  "decoder" : "date",
+  "input" : "2023-02-29",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "2024-02-29",
+  "ok" : "2024-02-29"
+}, {
+  "decoder" : "date",
+  "input" : "+10000-01-01",
+  "ok" : "+10000-01-01"
+}, {
+  "decoder" : "date",
+  "input" : "-0001-12-31",
+  "ok" : "-0001-12-31"
+}, {
+  "decoder" : "date",
+  "input" : "-0000-01-01",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "+2024-01-15",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "02024-01-15",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "2024-1-15",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "2024-13-01",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "+999999999-12-31",
+  "ok" : "+999999999-12-31"
+}, {
+  "decoder" : "date",
+  "input" : "+1000000000-01-01",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "-999999999-01-01",
+  "ok" : "-999999999-01-01"
+}, {
+  "decoder" : "date",
+  "input" : " 2024-01-15",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date",
+  "input" : "",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 date (e.g., 2024-01-15)",
+    "message_key" : "invalid_format.date",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date_before",
+  "input" : "2023-12-31",
+  "ok" : "2023-12-31"
+}, {
+  "decoder" : "date_before",
+  "input" : "2024-01-01",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be before 2024-01-01",
+    "message_key" : "out_of_range.before",
+    "meta" : {
+      "actual" : "2024-01-01",
+      "before" : "2024-01-01"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date_between",
+  "input" : "2024-06-01",
+  "ok" : "2024-06-01"
+}, {
+  "decoder" : "date_between",
+  "input" : "2025-01-01",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be between 2024-01-01 and 2024-12-31",
+    "message_key" : "out_of_range.between",
+    "meta" : {
+      "actual" : "2025-01-01",
+      "from" : "2024-01-01",
+      "to" : "2024-12-31"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date_between",
+  "input" : "2023-12-31",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be between 2024-01-01 and 2024-12-31",
+    "message_key" : "out_of_range.between",
+    "meta" : {
+      "actual" : "2023-12-31",
+      "from" : "2024-01-01",
+      "to" : "2024-12-31"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time",
+  "input" : "10:30",
+  "ok" : "10:30"
+}, {
+  "decoder" : "time",
+  "input" : "10:30:00",
+  "ok" : "10:30"
+}, {
+  "decoder" : "time",
+  "input" : "10:30:45",
+  "ok" : "10:30:45"
+}, {
+  "decoder" : "time",
+  "input" : "10:30:45.1",
+  "ok" : "10:30:45.100"
+}, {
+  "decoder" : "time",
+  "input" : "10:30:45.123456",
+  "ok" : "10:30:45.123456"
+}, {
+  "decoder" : "time",
+  "input" : "10:30:45.123456789",
+  "ok" : "10:30:45.123456789"
+}, {
+  "decoder" : "time",
+  "input" : "10:30:45.1234",
+  "ok" : "10:30:45.123400"
+}, {
+  "decoder" : "time",
+  "input" : "00:00:00.000000001",
+  "ok" : "00:00:00.000000001"
+}, {
+  "decoder" : "time",
+  "input" : "24:00",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local time (e.g., 10:30 or 10:30:45)",
+    "message_key" : "invalid_format.time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time",
+  "input" : "23:60",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local time (e.g., 10:30 or 10:30:45)",
+    "message_key" : "invalid_format.time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time",
+  "input" : "23:59:60",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local time (e.g., 10:30 or 10:30:45)",
+    "message_key" : "invalid_format.time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time",
+  "input" : "1:30",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local time (e.g., 10:30 or 10:30:45)",
+    "message_key" : "invalid_format.time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time",
+  "input" : "10:30:45.",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local time (e.g., 10:30 or 10:30:45)",
+    "message_key" : "invalid_format.time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time",
+  "input" : "10:30:45.1234567890",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local time (e.g., 10:30 or 10:30:45)",
+    "message_key" : "invalid_format.time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time_after",
+  "input" : "08:59:59",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be after 09:00",
+    "message_key" : "out_of_range.after",
+    "meta" : {
+      "actual" : "08:59:59",
+      "after" : "09:00:00"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time_after",
+  "input" : "09:00",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be after 09:00",
+    "message_key" : "out_of_range.after",
+    "meta" : {
+      "actual" : "09:00:00",
+      "after" : "09:00:00"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "time_after",
+  "input" : "09:00:00.000001",
+  "ok" : "09:00:00.000001"
+}, {
+  "decoder" : "date_time",
+  "input" : "2024-01-15T10:30",
+  "ok" : "2024-01-15T10:30"
+}, {
+  "decoder" : "date_time",
+  "input" : "2024-01-15T10:30:45.123",
+  "ok" : "2024-01-15T10:30:45.123"
+}, {
+  "decoder" : "date_time",
+  "input" : "2024-01-15 10:30",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local date-time (e.g., 2024-01-15T10:30 or 2024-01-15T10:30:45)",
+    "message_key" : "invalid_format.date_time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date_time",
+  "input" : "2024-01-15T10:30Z",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local date-time (e.g., 2024-01-15T10:30 or 2024-01-15T10:30:45)",
+    "message_key" : "invalid_format.date_time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date_time",
+  "input" : "2024-01-15t10:30",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local date-time (e.g., 2024-01-15T10:30 or 2024-01-15T10:30:45)",
+    "message_key" : "invalid_format.date_time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date_time",
+  "input" : "2024-01-15T24:00",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 local date-time (e.g., 2024-01-15T10:30 or 2024-01-15T10:30:45)",
+    "message_key" : "invalid_format.date_time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "date_time_before",
+  "input" : "2023-12-31T23:59:59.999",
+  "ok" : "2023-12-31T23:59:59.999"
+}, {
+  "decoder" : "date_time_before",
+  "input" : "2024-01-01T00:00",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be before 2024-01-01T00:00",
+    "message_key" : "out_of_range.before",
+    "meta" : {
+      "actual" : "2024-01-01T00:00:00",
+      "before" : "2024-01-01T00:00:00"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "offset_date_time",
+  "input" : "2024-01-15T10:30:00+09:00",
+  "ok" : "2024-01-15T10:30+09:00"
+}, {
+  "decoder" : "offset_date_time",
+  "input" : "2024-01-15T10:30Z",
+  "ok" : "2024-01-15T10:30Z"
+}, {
+  "decoder" : "offset_date_time",
+  "input" : "2024-01-15T10:30-00:00",
+  "ok" : "2024-01-15T10:30Z"
+}, {
+  "decoder" : "offset_date_time",
+  "input" : "2024-01-15T10:30:00+05:30:15",
+  "ok" : "2024-01-15T10:30+05:30:15"
+}, {
+  "decoder" : "offset_date_time",
+  "input" : "2024-01-15T10:30+19:00",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 offset date-time (e.g., 2024-01-15T10:30:00+09:00)",
+    "message_key" : "invalid_format.offset_date_time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "offset_date_time",
+  "input" : "2024-01-15T10:30+0900",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 offset date-time (e.g., 2024-01-15T10:30:00+09:00)",
+    "message_key" : "invalid_format.offset_date_time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "offset_date_time",
+  "input" : "2024-01-15T10:30",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid ISO-8601 offset date-time (e.g., 2024-01-15T10:30:00+09:00)",
+    "message_key" : "invalid_format.offset_date_time",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "offset_date_time_after",
+  "input" : "2024-01-01T00:00+09:00",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be after 2024-01-01T00:00+09:00",
+    "message_key" : "out_of_range.after",
+    "meta" : {
+      "actual" : "2024-01-01T00:00:00+09:00",
+      "after" : "2024-01-01T00:00:00+09:00"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "offset_date_time_after",
+  "input" : "2023-12-31T15:00Z",
+  "issues" : [ {
+    "code" : "out_of_range",
+    "message" : "must be after 2024-01-01T00:00+09:00",
+    "message_key" : "out_of_range.after",
+    "meta" : {
+      "actual" : "2023-12-31T15:00:00Z",
+      "after" : "2024-01-01T00:00:00+09:00"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "offset_date_time_after",
+  "input" : "2023-12-31T15:00:00.001Z",
+  "ok" : "2023-12-31T15:00:00.001Z"
+}, {
+  "decoder" : "offset_date_time_after",
+  "input" : "2024-01-01T00:00:01+09:00",
+  "ok" : "2024-01-01T00:00:01+09:00"
 } ]

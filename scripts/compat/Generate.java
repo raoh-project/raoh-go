@@ -141,6 +141,25 @@ public class Generate {
                             ? Result.ok(List.of(s, e))
                             : Result.fail(net.unit8.raoh.Path.ROOT.append("end"),
                                     "invalid_value", "end is before start"));
+
+            case "instant" -> string().iso8601().map(Object::toString);
+            case "instant_after" -> string().iso8601()
+                    .after(java.time.Instant.parse("2024-01-01T00:00:00Z")).map(Object::toString);
+            case "date" -> string().date().map(Object::toString);
+            case "date_before" -> string().date()
+                    .before(java.time.LocalDate.of(2024, 1, 1)).map(Object::toString);
+            case "date_between" -> string().date()
+                    .between(java.time.LocalDate.of(2024, 1, 1), java.time.LocalDate.of(2024, 12, 31))
+                    .map(Object::toString);
+            case "time" -> string().time().map(Object::toString);
+            case "time_after" -> string().time()
+                    .after(java.time.LocalTime.of(9, 0)).map(Object::toString);
+            case "date_time" -> string().dateTime().map(Object::toString);
+            case "date_time_before" -> string().dateTime()
+                    .before(java.time.LocalDateTime.of(2024, 1, 1, 0, 0)).map(Object::toString);
+            case "offset_date_time" -> string().offsetDateTime().map(Object::toString);
+            case "offset_date_time_after" -> string().offsetDateTime()
+                    .after(java.time.OffsetDateTime.parse("2024-01-01T00:00+09:00")).map(Object::toString);
             default -> throw new IllegalArgumentException("no decoder " + name);
         };
     }

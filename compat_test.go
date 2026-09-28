@@ -19,13 +19,15 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kawasima/raoh-go"
+	"github.com/kawasima/raoh-go/encode"
 )
 
 // out turns a decoder's output into the JSON value the Java counterpart's
 // output serializes to.
-func out[T any](d raoh.DecoderOf[T], f func(T) any) func([]byte) (any, error) {
+func out[T, O any](d raoh.DecoderOf[T], f func(T) O) func([]byte) (any, error) {
 	return func(text []byte) (any, error) {
 		v, err := raoh.DecodeJSON(text, d)
 		if err != nil {
@@ -230,6 +232,30 @@ func compatDecoder(name string) func([]byte) (any, error) {
 	case "recover":
 		return out(raoh.Object(raoh.Fields().Field("id", i().Default(0)).Field("page", i().Fallback(1))).
 			Map(func(id, page int32) any { return list(id, page) }), same)
+	case "instant":
+		return out(s().Instant(), encode.Instant())
+	case "instant_after":
+		return out(s().Instant().After(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)), encode.Instant())
+	case "date":
+		return out(s().Date(), encode.Date())
+	case "date_before":
+		return out(s().Date().Before(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)), encode.Date())
+	case "date_between":
+		return out(s().Date().Between(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			time.Date(2024, 12, 31, 0, 0, 0, 0, time.UTC)), encode.Date())
+	case "time":
+		return out(s().Time(), encode.Time())
+	case "time_after":
+		return out(s().Time().After(time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC)), encode.Time())
+	case "date_time":
+		return out(s().DateTime(), encode.DateTime())
+	case "date_time_before":
+		return out(s().DateTime().Before(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)), encode.DateTime())
+	case "offset_date_time":
+		return out(s().OffsetDateTime(), encode.OffsetDateTime())
+	case "offset_date_time_after":
+		return out(s().OffsetDateTime().After(time.Date(2024, 1, 1, 0, 0, 0, 0, time.FixedZone("", 9*3600))),
+			encode.OffsetDateTime())
 	case "period":
 		return out(raoh.Object(raoh.Fields().Field("start", i()).Field("end", i())).
 			AndThen(func(start, end int32) (any, error) {
@@ -410,6 +436,18 @@ func canonical(v any) any {
 		return n
 	case float32:
 		return canonical(float64(x))
+	case json.Marshaler:
+		text, err := x.MarshalJSON()
+		if err != nil {
+			panic(err)
+		}
+		var parsed any
+		dec := json.NewDecoder(strings.NewReader(string(text)))
+		dec.UseNumber()
+		if err := dec.Decode(&parsed); err != nil {
+			panic(err)
+		}
+		return canonical(parsed)
 	}
 	rv := reflect.ValueOf(v)
 	switch rv.Kind() {
