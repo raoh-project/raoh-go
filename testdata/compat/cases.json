@@ -3358,5 +3358,170 @@
   {
     "decoder": "bytes",
     "input_bytes": null
+  },
+  {
+    "decoder": "strict_discriminate",
+    "input": {
+      "kind": "square",
+      "side": 3
+    }
+  },
+  {
+    "decoder": "strict_discriminate",
+    "input": {
+      "kind": "square",
+      "side": 3,
+      "w": 1
+    }
+  },
+  {
+    "decoder": "strict_discriminate",
+    "input": {
+      "kind": "rect",
+      "w": 2,
+      "h": 3,
+      "side": 1
+    }
+  },
+  {
+    "decoder": "strict_discriminate",
+    "input": {
+      "kind": "rect",
+      "w": "2",
+      "extra": 1,
+      "h": 3
+    }
+  },
+  {
+    "decoder": "strict_discriminate",
+    "input": {
+      "kind": "circle",
+      "extra": 1
+    }
+  },
+  {
+    "decoder": "strict_discriminate",
+    "input": {}
+  },
+  {
+    "decoder": "strict_discriminate",
+    "input": "rect"
+  },
+  {
+    "decoder": "enum_custom_string",
+    "input": " RED "
+  },
+  {
+    "decoder": "enum_custom_string",
+    "input": "Green"
+  },
+  {
+    "decoder": "enum_custom_string",
+    "input": "blue"
+  },
+  {
+    "decoder": "enum_custom_string",
+    "input": 1
+  },
+  {
+    "decoder": "enum_custom_string",
+    "input": null
+  },
+  {
+    "decoder": "literal_custom_string",
+    "input": " V1 "
+  },
+  {
+    "decoder": "literal_custom_string",
+    "input": "v1"
+  },
+  {
+    "decoder": "literal_custom_string",
+    "input": "v2"
+  },
+  {
+    "decoder": "literal_custom_string",
+    "input": null
+  },
+  {
+    "decoder": "literal_custom_string",
+    "input": 1
+  },
+  {
+    "decoder": "discriminate_custom_tag",
+    "input": {
+      "kind": " RECT ",
+      "w": 2,
+      "h": 3
+    }
+  },
+  {
+    "decoder": "discriminate_custom_tag",
+    "input": {
+      "kind": "Square",
+      "side": 3
+    }
+  },
+  {
+    "decoder": "discriminate_custom_tag",
+    "input": {
+      "kind": "circle"
+    }
+  },
+  {
+    "decoder": "discriminate_custom_tag",
+    "input": {
+      "kind": 1
+    }
+  },
+  {
+    "decoder": "discriminate_custom_tag",
+    "input": {
+      "kind": ""
+    }
+  },
+  {
+    "decoder": "discriminate_custom_tag",
+    "input": {}
+  },
+  {
+    "decoder": "discriminate_custom_tag",
+    "input": "rect"
+  },
+  {
+    "decoder": "discriminate_map",
+    "input": {
+      "kind": "square",
+      "side": 3
+    }
+  },
+  {
+    "decoder": "discriminate_map",
+    "input": {
+      "kind": "rect",
+      "w": 2,
+      "h": 3
+    }
+  },
+  {
+    "decoder": "discriminate_map",
+    "input": {
+      "kind": "circle"
+    }
+  },
+  {
+    "decoder": "discriminate_map",
+    "input": {
+      "kind": "rect",
+      "w": "2"
+    }
+  },
+  {
+    "decoder": "discriminate_map",
+    "input": {}
+  },
+  {
+    "decoder": "discriminate_map",
+    "input": "rect"
   }
 ]

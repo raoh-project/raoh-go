@@ -317,6 +317,15 @@ same grammar rather than by a parser of the platform.
 - `raoh.Discriminate("type", raoh.Variant("a", da), raoh.Variant("b", db), ...)`: the variant the
   member `type` names
 
+`EnumOfWith`, `LiteralWith` and `DiscriminateWith` take the decoder that reads the string, such as
+`raoh.String().Trim().ToLower()`, as their second argument. `DiscriminateWith` takes its variants as a
+`map[string]raoh.DecoderOf[T]`, and its tag decoder reads the value of the tag member, not the object.
+The names of the variants and of the enum are not changed by it.
+
+`raoh.Strict(d, "kind", "side")` reports `unknown_field` for each member of the input that is not
+one of the names, after the issues of `d`, for any decoder of an object. It is what `.Strict()` does
+for an `Object`, and can be given to each variant of a `Discriminate`, or to the `Discriminate` itself.
+
 ## Defaults and recovery
 
 `d.Default(v)` gives `v` when the input is missing or `null`, and still reports any other problem.

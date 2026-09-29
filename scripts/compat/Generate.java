@@ -199,6 +199,27 @@ public class Generate {
                             .map((s, k) -> s * s)),
                     variant("rect", combine(field("w", int_()), field("h", int_()))
                             .map((w, h) -> w * h)));
+            case "strict_discriminate" -> strict(discriminate("kind",
+                    variant("square", strict(combine(field("side", int_()), flat((JsonNode in, net.unit8.raoh.Path at) -> Result.ok(in)))
+                            .map((s, n) -> s * s), java.util.Set.of("kind", "side"))),
+                    variant("rect", strict(combine(field("w", int_()), field("h", int_()))
+                            .map((w, h) -> w * h), java.util.Set.of("kind", "w", "h")))),
+                    java.util.Set.of("kind", "side", "w", "h"));
+            case "enum_custom_string" -> Decoders.enumOf(Color.class, string().trim())
+                    .map(c -> c.name().toLowerCase());
+            case "literal_custom_string" -> Decoders.literal("v1", string().trim().toLowerCase());
+            case "discriminate_custom_tag" -> Decoders.discriminate("kind",
+                    combine(field("kind", string().trim().toLowerCase()),
+                            flat((JsonNode in, net.unit8.raoh.Path at) -> Result.ok(in))).map((k, n) -> k),
+                    variant("square", combine(field("side", int_()), field("kind", string()))
+                            .map((s, k) -> s * s)),
+                    variant("rect", combine(field("w", int_()), field("h", int_()))
+                            .map((w, h) -> w * h)));
+            case "discriminate_map" -> discriminate("kind", Map.<String, Decoder<JsonNode, ? extends Integer>>of(
+                    "square", combine(field("side", int_()), field("kind", string()))
+                            .map((s, k) -> s * s),
+                    "rect", combine(field("w", int_()), field("h", int_()))
+                            .map((w, h) -> w * h)));
             case "one_of" -> Decoders.<JsonNode, String>oneOf(
                     int_().map(String::valueOf), string().minLength(3));
             case "with_default" -> combine(field("id", Decoders.withDefault(int_(), 0)),
