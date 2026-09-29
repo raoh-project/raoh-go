@@ -135,8 +135,11 @@ func (m *Messages) Resolve(i Issue) string {
 	return "validation failed: " + i.code
 }
 
-// Interpolate returns template with each {name} replaced by the metadata
-// entry name. A placeholder whose entry is missing is kept as written, and so
+// Interpolate returns template with each {name} replaced by the value of the
+// metadata entry name, written as [Issue] messages write it. A placeholder
+// is "{" followed by a name and "}". A name starts with an ASCII letter or an
+// underscore and goes on with ASCII letters, digits, underscores, dots and
+// hyphens. A placeholder whose entry is missing is kept as written, and so
 // is a brace that does not open a placeholder name. The template is read once:
 // a value that holds "{other}" is not filled in turn.
 func Interpolate(template string, meta map[string]any) string {

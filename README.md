@@ -396,7 +396,8 @@ An `Issues` can be reshaped without being changed: `Add`, `Merge` and `Rebase(pr
 new one, `GroupByPath` groups by JSON Pointer, and `Format(r)` returns Raoh for Java's nested
 `_errors` tree. `_errors` is reserved there, so a member of that name cannot be told from the
 messages; read the issues from `All`, `Render` or `GroupByPath`. `raoh.PathOf("a", "b")` builds a
-path of member names, and `Path.Append` joins two paths. A `Path` is compared with `Equal`, not `==`.
+path from segments, and `Path.Append` joins two paths. A segment is text, so the member `"0"` and the
+index 0 are the same segment. A `Path` is compared with `Equal`, not `==`.
 
 Raoh for Java's `Issues.resolve(resolver)` and `MessageResolver.resolve(key, meta)` have no
 counterpart. An issue here holds no sentence until one is asked for, so `Render`, `Flatten` and

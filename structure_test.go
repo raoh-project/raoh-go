@@ -23,8 +23,15 @@ func TestPathOf(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", tc.segs, got, tc.want)
 		}
 	}
-	if raoh.PathOf("items", "0").Equal(raoh.Path{}.Key("items").Index(0)) {
-		t.Error("a key \"0\" is not the index 0")
+	q := raoh.Path{}.Key("items").Index(0).Key("tags").Index(12)
+	if !q.Equal(raoh.PathOf(q.Segments()...)) {
+		t.Error("Segments then PathOf must give an equal path")
+	}
+	if q.String() != raoh.PathOf(q.Segments()...).String() {
+		t.Error("equal paths write the same JSON Pointer")
+	}
+	if raoh.PathOf("items", "01").Equal(raoh.Path{}.Key("items").Index(1)) {
+		t.Error("\"01\" is not the segment 1")
 	}
 	if !raoh.PathOf("a", "b").Equal(raoh.PathOf("a", "b")) {
 		t.Error("equal paths built apart")
@@ -41,8 +48,16 @@ func TestPathAppend(t *testing.T) {
 	if !got.Equal(root.Key("a").Key("items").Index(2)) {
 		t.Errorf("index kind lost: %s", got)
 	}
-	if got.Equal(root.Key("a").Key("items").Key("2")) {
-		t.Error("index equals key")
+	if !got.Equal(raoh.PathOf("a", "items", "2")) {
+		t.Error("Append changed a segment")
+	}
+}
+
+func TestGroupByPathAgreesWithEqual(t *testing.T) {
+	a, b := raoh.Path{}.Key("items").Index(0), raoh.PathOf("items", "0")
+	g := raoh.Issues{}.Add(raoh.NewIssue("x").At(a), raoh.NewIssue("y").At(b)).GroupByPath()
+	if !a.Equal(b) || len(g) != 1 {
+		t.Errorf("equal paths must share a group: %v", g)
 	}
 }
 

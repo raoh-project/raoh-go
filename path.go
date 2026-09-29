@@ -7,6 +7,10 @@ import (
 
 // Path is where in the input a value was found. The zero value is the root.
 //
+// A path is a sequence of segments, each written as text: a member name, or
+// an index in decimal. [Path.Index] takes an int for convenience; the segment
+// it makes is the same as [Path.Key] with the decimal digits.
+//
 // A Path is not comparable with ==, which would compare where the paths are
 // stored and not what they say. Use [Path.Equal].
 type Path struct {
@@ -32,8 +36,8 @@ func (p Path) Index(i int) Path {
 }
 
 // PathOf returns the path of the members named by segments, from the root
-// down. With none it is the root. A segment is always a member name: "0" is
-// the member "0", not the first element; use [Path.Index] for that.
+// down. With none it is the root. Each segment is taken as text, so
+// PathOf("items", "0") equals the path of [Path.Index](0) below "items".
 func PathOf(segments ...string) Path {
 	var p Path
 	for _, s := range segments {
@@ -42,20 +46,34 @@ func PathOf(segments ...string) Path {
 	return p
 }
 
-// Equal reports whether p and other name the same place, a key never being
-// equal to an index of the same digits.
+// Equal reports whether p and other are the same sequence of segments, as
+// [Path.Segments] and [Path.String] read them: the member "0" and the element
+// at index 0 are the same segment.
 func (p Path) Equal(other Path) bool {
 	a, b := p.node, other.node
 	for a != nil && b != nil {
 		if a == b {
 			return true
 		}
-		if a.isIndex != b.isIndex || a.key != b.key || a.index != b.index {
+		if !sameSegment(a, b) {
 			return false
 		}
 		a, b = a.parent, b.parent
 	}
 	return a == b
+}
+
+func sameSegment(a, b *pathNode) bool {
+	switch {
+	case a.isIndex && b.isIndex:
+		return a.index == b.index
+	case !a.isIndex && !b.isIndex:
+		return a.key == b.key
+	case a.isIndex:
+		return strconv.Itoa(a.index) == b.key
+	default:
+		return a.key == strconv.Itoa(b.index)
+	}
 }
 
 // IsRoot reports whether p is the root of the input.
@@ -89,7 +107,6 @@ func (p Path) String() string {
 }
 
 // Append returns other below p: the path that reads other as relative to p.
-// The kind of each segment, key or index, is kept.
 func (p Path) Append(other Path) Path {
 	if p.IsRoot() {
 		return other
