@@ -2,7 +2,6 @@ package raoh
 
 import (
 	"encoding/hex"
-	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -237,16 +236,31 @@ func (d StringDecoder) UUID() Conversion[UUID] {
 // The text is an RFC 3986 URI, with the http or https scheme in any case, an
 // authority and a non-empty host, as Raoh for Java accepts it. The host is the
 // RFC 3986 host, not a DNS name, so a reg-name such as my_host is accepted, and
-// raw non-ASCII characters are not.
-func (d StringDecoder) URL() Conversion[*url.URL] {
-	return newConversion(d.s, KeyInvalidFormatURL, func(v string) (*url.URL, bool) {
-		p, ok := parseURI(v)
-		if !ok || !p.representableAsJavaURI() || !(p.schemeIs("http") || p.schemeIs("https")) || !p.hasHost() {
-			return nil, false
-		}
-		u, err := url.Parse(v)
-		return u, err == nil
+// raw non-ASCII characters are not. The value is a [URI], which keeps the text
+// as written.
+func (d StringDecoder) URL() Conversion[URI] {
+	return newConversion(d.s, KeyInvalidFormatURL, func(v string) (URI, bool) {
+		u, ok := newURI(v)
+		return u, ok && (u.p.schemeIs("http") || u.p.schemeIs("https")) && u.p.hasHost()
 	})
+}
+
+// URI returns a decoder that reads the string as an RFC 3986 URI of any
+// scheme: invalid_format.uri when it is not one.
+//
+// It is the rule URL applies without the check for the http or https scheme
+// and a host. A scheme is still required, so a relative reference such as
+// foo/bar or #top is refused, and so are raw non-ASCII characters. A URI that
+// java.net.URI cannot hold is refused as Raoh for Java refuses it: a: and
+// a:#f, a:// with nothing after it, an IPvFuture host, and an IPv6 host with a
+// port above 2147483647. An IPv6 host is checked as IPv6 checks it, without a
+// zone ID.
+//
+// Whether the text is a URI does not depend on package net/url. The value is a
+// [URI] that keeps the text as written; [URI.URL] gives a *url.URL when net/url
+// can hold it.
+func (d StringDecoder) URI() Conversion[URI] {
+	return newConversion(d.s, KeyInvalidFormatURI, newURI)
 }
 
 // Conversion is a decoder that reads a string and converts it to a T,

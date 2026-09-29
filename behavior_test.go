@@ -422,3 +422,117 @@ func TestTemporalDecoders(t *testing.T) {
 		t.Error("Between with from after to")
 	}
 }
+
+func TestStringConversionsContinueAsTheTypeTheyRead(t *testing.T) {
+	v, issues := decodeJSON(t, raoh.String().ToInt().Min(1), `"+007"`)
+	if len(issues) > 0 || v != 7 {
+		t.Errorf("got %v %v", v, codes(issues))
+	}
+	expect(t, raoh.String().ToInt().Min(1), `"0"`, " out_of_range")
+	expect(t, raoh.String().ToInt(), `"2147483648"`, " type_mismatch")
+	expect(t, raoh.String().ToLong(), `"2147483648"`)
+	expect(t, raoh.String().ToBool().IsTrue(), `"NO"`, " invalid_value")
+	expect(t, raoh.String().ToDecimal().Scale(1), `"1.25"`, " invalid_scale")
+	expect(t, raoh.String().ToInt(), `1`, " type_mismatch")
+	expect(t, raoh.String().ToInt(), `null`, " required")
+}
+
+func TestStringConversionMessageIsForTheConversionOnly(t *testing.T) {
+	d := raoh.String().MaxLength(3).ToInt().Message("bad number")
+	message := func(text string) string {
+		_, issues := decodeJSON(t, d, text)
+		if len(issues) != 1 {
+			t.Fatalf("%s: %v", text, codes(issues))
+		}
+		return issues[0].Message(raoh.English)
+	}
+	if got := message(`"abc"`); got != "bad number" {
+		t.Errorf("conversion: %q", got)
+	}
+	if got := message(`"99999"`); got == "bad number" {
+		t.Errorf("a string constraint takes the message of the conversion: %q", got)
+	}
+	if got := message(`1`); got == "bad number" {
+		t.Errorf("the type check of the string takes the message of the conversion: %q", got)
+	}
+}
+
+func TestURIAcceptsAnySchemeAndKeepsSchemeRequired(t *testing.T) {
+	for _, ok := range []string{"HTTP://EXAMPLE.COM", "http://host#", "mailto:ken@example.com", "urn:isbn:0451450523"} {
+		expect(t, raoh.String().URI(), `"`+ok+`"`)
+	}
+	for _, bad := range []string{"foo/bar", "#top", "a:", "http://[v1.abc]/"} {
+		expect(t, raoh.String().URI(), `"`+bad+`"`, " invalid_format")
+	}
+}
+
+func TestURIAcceptanceDoesNotDependOnNetURL(t *testing.T) {
+	// net/url refuses a percent-encoded host; the URI grammar allows it.
+	const text = "http://%41.example/"
+	for name, d := range map[string]raoh.DecoderOf[raoh.URI]{"URI": raoh.String().URI(), "URL": raoh.String().URL()} {
+		u, issues := decodeJSON(t, d, `"`+text+`"`)
+		if len(issues) > 0 || u.String() != text {
+			t.Errorf("%s: %q %v", name, u.String(), codes(issues))
+		}
+		if _, err := u.URL(); err == nil {
+			t.Errorf("%s: net/url unexpectedly holds %s", name, text)
+		}
+	}
+}
+
+func TestURIKeepsTheTextAndItsComponents(t *testing.T) {
+	u, err := raoh.ParseURI("HTTP://user@Host:80/a%2Fb?q=1#f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	authority, _ := u.Authority()
+	host, _ := u.Host()
+	query, hasQuery := u.Query()
+	fragment, hasFragment := u.Fragment()
+	if u.String() != "HTTP://user@Host:80/a%2Fb?q=1#f" || u.Scheme() != "HTTP" || authority != "user@Host:80" ||
+		host != "Host" || u.Path() != "/a%2Fb" || query != "q=1" || !hasQuery || fragment != "f" || !hasFragment {
+		t.Errorf("%q %q %q %q %q %q", u.String(), u.Scheme(), authority, host, u.Path(), query)
+	}
+	empty, _ := raoh.ParseURI("a:b?#")
+	if q, ok := empty.Query(); q != "" || !ok {
+		t.Errorf("empty query: %q %v", q, ok)
+	}
+	if f, ok := empty.Fragment(); f != "" || !ok {
+		t.Errorf("empty fragment: %q %v", f, ok)
+	}
+	plain, _ := raoh.ParseURI("mailto:ken@example.com")
+	if _, ok := plain.Authority(); ok || plain.Path() != "ken@example.com" {
+		t.Errorf("mailto: %q", plain.Path())
+	}
+	if _, ok := plain.Query(); ok {
+		t.Error("mailto has no query")
+	}
+	if _, err := raoh.ParseURI("foo/bar"); err == nil {
+		t.Error("a relative reference is not a URI")
+	}
+}
+
+func TestZeroURIIsNotAURI(t *testing.T) {
+	var u raoh.URI
+	if _, ok := u.Authority(); ok {
+		t.Error("Authority")
+	}
+	if _, ok := u.Host(); ok {
+		t.Error("Host")
+	}
+	if _, ok := u.Query(); ok {
+		t.Error("Query")
+	}
+	if _, ok := u.Fragment(); ok {
+		t.Error("Fragment")
+	}
+	if u.String() != "" || u.Scheme() != "" || u.Path() != "" {
+		t.Error("text")
+	}
+	if _, err := u.URL(); err == nil {
+		t.Error("URL")
+	}
+	if _, err := u.MarshalText(); err == nil {
+		t.Error("MarshalText")
+	}
+}

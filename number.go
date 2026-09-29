@@ -84,22 +84,25 @@ func integerBounds[T Integer]() (lo, hi *big.Int, name string) {
 }
 
 func readInteger[T Integer](in any) (T, *Issue) {
-	lo, hi, name := integerBounds[T]()
-	mismatch := func(actual string) (T, *Issue) {
-		i := NewIssue(CodeTypeMismatch).WithMeta("expected", name)
-		if actual != "" {
-			i = i.WithMeta("actual", actual)
-		}
-		return 0, &i
-	}
+	_, _, name := integerBounds[T]()
 	if isNull(in) {
 		i := NewIssue(CodeRequired)
 		return 0, &i
 	}
 	n, ok := integerOf(in)
 	if !ok {
-		return mismatch(kind(in))
+		i := NewIssue(CodeTypeMismatch).WithMeta("expected", name)
+		if actual := kind(in); actual != "" {
+			i = i.WithMeta("actual", actual)
+		}
+		return 0, &i
 	}
+	return fitInteger[T](n)
+}
+
+// fitInteger returns n as a T, or the issue for a number T cannot hold.
+func fitInteger[T Integer](n *big.Int) (T, *Issue) {
+	lo, hi, name := integerBounds[T]()
 	if n.Cmp(lo) < 0 || n.Cmp(hi) > 0 {
 		i := NewIssue(CodeTypeMismatch).WithMessageKey(KeyTypeMismatchNumericRange).WithMeta("expected", name)
 		return 0, &i

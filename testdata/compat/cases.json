@@ -1197,5 +1197,877 @@
   {
     "decoder": "offset_date_time_after",
     "input": "2024-01-01T00:00:01+09:00"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "0"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "42"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "+5"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "-0"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "007"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "-2147483648"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "2147483647"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "2147483648"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "-2147483649"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "9223372036854775807"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "9223372036854775808"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "-9223372036854775808"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "-9223372036854775809"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "99999999999999999999999"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": ""
+  },
+  {
+    "decoder": "string_to_int",
+    "input": " 1"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "1 "
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "1_000"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "1.0"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "1e3"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "-"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "+"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "１２３"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "0x10"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_to_int",
+    "input": null
+  },
+  {
+    "decoder": "string_to_int",
+    "input": 1
+  },
+  {
+    "decoder": "string_to_int",
+    "input": true
+  },
+  {
+    "decoder": "string_to_int",
+    "input": [
+      "1"
+    ]
+  },
+  {
+    "decoder": "string_to_int_min_1",
+    "input": "0"
+  },
+  {
+    "decoder": "string_to_int_min_1",
+    "input": "1"
+  },
+  {
+    "decoder": "string_to_int_min_1",
+    "input": "-1"
+  },
+  {
+    "decoder": "string_to_int_min_1",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "0"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "42"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "+5"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "-0"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "007"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "-2147483648"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "2147483647"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "2147483648"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "-2147483649"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "9223372036854775807"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "9223372036854775808"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "-9223372036854775808"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "-9223372036854775809"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "99999999999999999999999"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": ""
+  },
+  {
+    "decoder": "string_to_long",
+    "input": " 1"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "1 "
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "1_000"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "1.0"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "1e3"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "-"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "+"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "１２３"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "0x10"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_to_long",
+    "input": null
+  },
+  {
+    "decoder": "string_to_long",
+    "input": 1
+  },
+  {
+    "decoder": "string_to_long",
+    "input": true
+  },
+  {
+    "decoder": "string_to_long",
+    "input": [
+      "1"
+    ]
+  },
+  {
+    "decoder": "string_to_long_positive",
+    "input": "0"
+  },
+  {
+    "decoder": "string_to_long_positive",
+    "input": "5"
+  },
+  {
+    "decoder": "string_to_long_positive",
+    "input": "-5"
+  },
+  {
+    "decoder": "string_max_3_to_int_message",
+    "input": "12"
+  },
+  {
+    "decoder": "string_max_3_to_int_message",
+    "input": "1234"
+  },
+  {
+    "decoder": "string_max_3_to_int_message",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_max_3_to_int_message",
+    "input": "99999999999"
+  },
+  {
+    "decoder": "string_max_3_to_int_message",
+    "input": 1
+  },
+  {
+    "decoder": "string_max_3_to_int_message",
+    "input": null
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "12"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "12.5"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "5."
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": ".5"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "-0"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "+1.50"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e3"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "2.5E-4"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1E+2"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e-2147483648"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e999"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e2147483649"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e99999999999"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "0e5"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": ""
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "."
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "-"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": ".e1"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e+"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "NaN"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "Infinity"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "-Infinity"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "１２"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": " 1"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1 "
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1,5"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "0x1"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1_0"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "--1"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1.2.3"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": "1e1.5"
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": null
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": 1
+  },
+  {
+    "decoder": "string_to_decimal",
+    "input": 1.5
+  },
+  {
+    "decoder": "string_to_decimal_scale_2",
+    "input": "1.25"
+  },
+  {
+    "decoder": "string_to_decimal_scale_2",
+    "input": "1.255"
+  },
+  {
+    "decoder": "string_to_decimal_scale_2",
+    "input": "1e-3"
+  },
+  {
+    "decoder": "string_to_decimal_scale_2",
+    "input": "1e3"
+  },
+  {
+    "decoder": "string_to_decimal_positive",
+    "input": "0"
+  },
+  {
+    "decoder": "string_to_decimal_positive",
+    "input": "1"
+  },
+  {
+    "decoder": "string_to_decimal_positive",
+    "input": "-1"
+  },
+  {
+    "decoder": "string_to_decimal_positive",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "true"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "TRUE"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "True"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "tRuE"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "1"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "yes"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "YES"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "on"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "On"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "false"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "FALSE"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "0"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "no"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "No"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "off"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "OFF"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": ""
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "2"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "y"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "n"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "t"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "f"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "truee"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": " true"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "true "
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "ｔｒｕｅ"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "ＴＲＵＥ"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "İ"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": "truİe"
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": null
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": true
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": 1
+  },
+  {
+    "decoder": "string_to_bool",
+    "input": []
+  },
+  {
+    "decoder": "string_to_bool_is_true",
+    "input": "true"
+  },
+  {
+    "decoder": "string_to_bool_is_true",
+    "input": "false"
+  },
+  {
+    "decoder": "string_to_bool_is_true",
+    "input": "yes"
+  },
+  {
+    "decoder": "string_to_bool_is_true",
+    "input": "maybe"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "https://example.com/a?b=c"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://my_host.com"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "ftp://example.com/x"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "mailto:ken@example.com"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "urn:isbn:0451450523"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "file:///etc/hosts"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "tel:+81-3-1234-5678"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a:b"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a:"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a:#f"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a://"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a:?q"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a:/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a:///"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[::1]/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[::1]:80/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[::1]:2147483647/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[::1]:2147483648/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[v1.abc]/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[fe80::1%25eth0]/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[fe80::1%eth0]/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[2001:db8::g]/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://example.com:99999999999/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://example.com:8080"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://user:pw@host/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host/%41"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host/%4"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host/%zz"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host/ a"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://日本.jp/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host/日本"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "foo/bar"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "#top"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "//host/path"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "/path"
+  },
+  {
+    "decoder": "string_uri",
+    "input": ""
+  },
+  {
+    "decoder": "string_uri",
+    "input": "1a:b"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a+b-c.d:e"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "://x"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http:"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "https://"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host?"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host/#a#b"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "a b:c"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[::1"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://::1/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "git+ssh://git@github.com/x/y.git"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "data:text/plain;base64,SGVsbG8="
+  },
+  {
+    "decoder": "string_uri",
+    "input": "javascript:alert(1)"
+  },
+  {
+    "decoder": "string_uri",
+    "input": null
+  },
+  {
+    "decoder": "string_uri",
+    "input": 1
+  },
+  {
+    "decoder": "string_uri",
+    "input": "HTTP://EXAMPLE.COM"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host#"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://%41.example/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://%zz.example/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://us%40er@host/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[::1]:80/%7e?q=%20#%41"
+  },
+  {
+    "decoder": "string_url",
+    "input": "HTTP://EXAMPLE.COM"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://host#"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://host?"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://%41.example/"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://%zz.example/"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://host/%41"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://us%40er@host/"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://[::1]:80/%7e?q=%20#%41"
   }
 ]

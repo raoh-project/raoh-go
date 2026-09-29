@@ -213,7 +213,17 @@ reported.
 
 `raoh.String()`: `Trim`, `ToLower`, `ToUpper`, `NonBlank`, `MinLength`, `MaxLength`, `Length`,
 `StartsWith`, `EndsWith`, `Contains`, `OneOf`, `Email`, `IP`, `IPv4`, `IPv6`, `ULID`, `CUID`,
-`Pattern`, and the conversions `UUID()` and `URL()`. Lengths count characters, not bytes.
+`Pattern`, and the conversions `UUID()`, `URL()` and `URI()`. Lengths count characters, not bytes.
+
+`ToInt()`, `ToLong()`, `ToDecimal()` and `ToBool()` read the string as that type and continue as its
+decoder, so `String().MaxLength(40).ToDecimal().Positive()` is one decoder. Text that does not
+convert is `type_mismatch` with `expected` set to `integer`, `long`, `decimal` or `boolean`, and
+`Message` after the conversion is the message of that issue alone. `ToInt()` is a 32-bit integer
+and `ToLong()` a 64-bit one, as in Raoh for Java, and not Go's `int`, which `Int()` reads and
+whose width depends on the platform. `URI()` is `URL()` without the http or https scheme and the
+host: any scheme, but a scheme is required. Both give a `raoh.URI`, which holds the text as it was
+written and does not depend on `net/url` for what is a URI, so `http://%41.example/` is accepted
+though `url.Parse` refuses it; `URI.URL()` converts to a `*url.URL` and can fail.
 
 `raoh.Int()`, `Int32()`, `Int64()`, `Uint()`, `Uint32()`, `Uint64()`: `Min`, `Max`, `Range`,
 `Positive`, `Negative`, `NonNegative`, `NonPositive`, `MultipleOf`, `OneOf`. In JSON text a number
@@ -313,8 +323,9 @@ body, err := json.Marshal(userEncoder.Encode(user))
 - `Object`, `List`, `Dict`, `Lazy` and `Discriminate` are the counterparts of the decoders of the
   same name. `Discriminate` picks the variant by the value's dynamic type and writes its tag.
 - `String`, `Int` and the other scalars give a value as it is; `Decimal` gives a `json.Number`
-  that keeps the scale; `UUID`, `URL` and the temporal encoders `Instant`, `Date`, `Time`,
-  `DateTime` and `OffsetDateTime` give text as Raoh for Java's encoders do. `EnumOf` takes the
+  that keeps the scale; `UUID`, `URI` (for the `raoh.URI` that `String().URI()` and
+  `String().URL()` give), `URL` (for a `*url.URL`) and the temporal encoders `Instant`, `Date`,
+  `Time`, `DateTime` and `OffsetDateTime` give text as Raoh for Java's encoders do. `EnumOf` takes the
   map `raoh.EnumOf` decodes with.
 - `Contramap` and `AndThen` adapt an encoder on either side.
 

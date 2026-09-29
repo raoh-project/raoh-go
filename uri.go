@@ -1,11 +1,121 @@
 package raoh
 
-import "strings"
+import (
+	"errors"
+	"net/url"
+	"strings"
+)
 
 // The RFC 3986 URI rule URL reads, as Raoh for Java's UriSyntax defines it.
 // It decides acceptance on its own, not by a parser of the platform. It accepts
 // the URI rule of RFC 3986 section 3, which requires a scheme, so a relative
 // reference is not a URI; raw non-ASCII characters are not accepted.
+
+// URI is an RFC 3986 URI, held as the text that was accepted.
+//
+// Acceptance is decided by the grammar of Raoh for Java's UriSyntax, not by a
+// parser of the platform, so a URI is valid whatever package net/url makes of
+// it: http://%41.example/ is one, and package net/url refuses it. For that
+// reason the value is the text and the offsets of its components, and String
+// gives the text as it was written, with the scheme in the case it had and an
+// empty query or fragment kept. The components are not percent-decoded. Use
+// [URI.URL] to get a *url.URL, which does not exist for every URI.
+//
+// A URI is comparable. Its zero value is not a URI, since every URI has a
+// scheme: String is empty, no component is present, URL and MarshalText report
+// an error.
+type URI struct {
+	p parsedURI
+}
+
+// isZero reports whether u is the zero value.
+func (u URI) isZero() bool { return u.p.value == "" }
+
+// ParseURI reads s as an RFC 3986 URI of any scheme, by the rule of
+// [StringDecoder.URI].
+func ParseURI(s string) (URI, error) {
+	if u, ok := newURI(s); ok {
+		return u, nil
+	}
+	return URI{}, errNotURI
+}
+
+var errNotURI = errors.New("raoh: not a URI")
+
+// newURI is the URI s writes, if s is one that Raoh for Java accepts.
+func newURI(s string) (URI, bool) {
+	p, ok := parseURI(s)
+	if !ok || !p.representableAsJavaURI() {
+		return URI{}, false
+	}
+	return URI{p}, true
+}
+
+// String returns the text as it was written.
+func (u URI) String() string { return u.p.value }
+
+// Scheme returns the scheme as written, in any case.
+func (u URI) Scheme() string { return u.p.value[:u.p.schemeEnd] }
+
+// Authority returns the authority, without the two slashes that start it, and
+// whether the URI has one. An empty authority (file:///a) is present and empty.
+func (u URI) Authority() (string, bool) {
+	if u.isZero() || u.p.authorityStart < 0 {
+		return "", false
+	}
+	return u.p.value[u.p.authorityStart:u.p.authorityEnd], true
+}
+
+// Host returns the host as written, an IPv6 address in its brackets, and
+// whether the URI has an authority. The host of a registered name can be empty.
+func (u URI) Host() (string, bool) {
+	if u.isZero() || u.p.authorityStart < 0 {
+		return "", false
+	}
+	return u.p.value[u.p.hostStart:u.p.hostEnd], true
+}
+
+// Path returns the path as written, which can be empty. For a URI without an
+// authority it is everything between the colon and the query or fragment.
+func (u URI) Path() string { return u.p.value[u.p.authorityEnd:u.p.hierEnd] }
+
+// Query returns the query without its question mark, and whether the URI has
+// one. An empty query (a:b?) is present and empty.
+func (u URI) Query() (string, bool) {
+	if !u.p.hasQuery {
+		return "", false
+	}
+	return u.p.value[u.p.hierEnd+1 : u.p.queryEnd()], true
+}
+
+// Fragment returns the fragment without its number sign, and whether the URI
+// has one. An empty fragment (a:b#) is present and empty.
+func (u URI) Fragment() (string, bool) {
+	if !u.p.hasFragment {
+		return "", false
+	}
+	return u.p.value[u.p.queryEnd()+1:], true
+}
+
+// URL returns the URI as a *url.URL, or the error package net/url gives when it
+// cannot hold the text, as it cannot for a percent-encoded host. The *url.URL
+// may write itself differently from String: the scheme in lower case and an
+// empty fragment left out.
+func (u URI) URL() (*url.URL, error) {
+	if u.isZero() {
+		return nil, errNotURI
+	}
+	return url.Parse(u.p.value)
+}
+
+// MarshalText writes the URI as String does. The zero value is not a URI, and
+// writing it would give text that cannot be read back, so it is an error.
+func (u URI) MarshalText() ([]byte, error) {
+	if u.isZero() {
+		return nil, errNotURI
+	}
+	return []byte(u.p.value), nil
+}
 
 // parsedURI is the components of an accepted URI, as offsets into the text.
 type parsedURI struct {
@@ -18,6 +128,18 @@ type parsedURI struct {
 	hierEnd        int
 	hasQuery       bool
 	hasFragment    bool
+}
+
+// queryEnd is the offset where the query ends: the number sign that starts the
+// fragment, or the end of the text.
+func (p parsedURI) queryEnd() int {
+	if !p.hasFragment {
+		return len(p.value)
+	}
+	if i := strings.IndexByte(p.value[p.hierEnd:], '#'); i >= 0 {
+		return p.hierEnd + i
+	}
+	return len(p.value)
 }
 
 func (p parsedURI) schemeIs(expected string) bool {
