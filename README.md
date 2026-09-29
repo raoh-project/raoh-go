@@ -89,7 +89,7 @@ func (d Decoder[I, T]) Decode(in I) (T, error)
 func (d Decoder[I, T]) Map[U any](f func(T) U) Decoder[I, U]
 func (d Decoder[I, T]) AndThen[U any](f func(T) (U, error)) Decoder[I, U]
 func (d Decoder[I, T]) Pipe[U any](next Decoder[T, U]) Decoder[I, U]
-// Refine, Default, Fallback
+// Refine, RefineWithMeta, RefineWithPath, Default, DefaultFunc, Fallback, FallbackFunc
 ```
 
 A decoder is a value that describes how to read an input. It holds no state and can be reused and
@@ -296,6 +296,34 @@ same grammar rather than by a parser of the platform.
 
 `d.Default(v)` gives `v` when the input is missing or `null`, and still reports any other problem.
 `d.Fallback(v)` gives `v` whatever issues `d` reports. Neither hides a failure of the program.
+`d.DefaultFunc(f)` and `d.FallbackFunc(f)` compute the value instead: `f` is called only when the
+default or the fallback is needed, and the function given to `FallbackFunc` receives the `Issues`
+`d` reported, at their paths in the whole input.
+
+## Functions that see the path
+
+A function given to `NewDecoder`, `AndThen` or an object's `AndThen` does not know where the value
+is, so the issues it returns are read as relative to the decoder's path. When it needs the path,
+for instance to report an issue beside the value, use the form that takes it:
+
+```go
+raoh.Object(raoh.Fields().
+	Field("start", raoh.Int()).
+	Field("end", raoh.Int()),
+).AndThenWithPath(func(start, end int, at raoh.Path) (Period, error) {
+	if start <= end {
+		return Period{start, end}, nil
+	}
+	return Period{}, raoh.Invalid(raoh.NewIssue("start_after_end").At(at.Key("end")))
+})
+```
+
+`NewDecoderWithPath`, `Decoder.AndThenWithPath`, `Decoder.RefineWithPath` and an object's
+`AndThenWithPath` give the function the `Path` as its last parameter. The issues they return keep
+their paths as the function wrote them, so build each from the path it was given. The `Path` is an
+immutable value that decoding already carries, so passing it costs nothing more.
+`d.RefineWithMeta(ok, code, message, meta)` is `Refine` with metadata computed from the value, and
+only when `ok` does not hold.
 
 ## Recursive structures
 
@@ -376,7 +404,7 @@ In what it reports:
 In the API:
 
 - Combining is done with `Object(Fields().Field(...)...)`, not `combine`.
-- `flatMap` is `AndThen`, and `recover` is `Fallback`, since `recover` means panic recovery in Go.
+- `flatMap` is `AndThen`, `flatMapWithPath` is `AndThenWithPath`, and `recover` is `Fallback`, since `recover` means panic recovery in Go.
   There are no `Result`, `Ok` or `Err` types: decoding gives `(T, error)`.
 - The temporal decoders give a `time.Time` for every kind, as Go has no separate date and time
   types, and there is no `Year`, `YearMonth` or `ZonedDateTime` decoder.

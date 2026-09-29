@@ -172,6 +172,24 @@ public class Generate {
                             : Result.failCustom(net.unit8.raoh.Path.ROOT.append("end"),
                                     "invalid_value", "end is before start", Map.of()));
 
+            case "period_nested" -> combine(field("id", int_()), field("period",
+                    combine(field("start", int_()), field("end", int_()))
+                            .map((s, e) -> List.of(s, e))
+                            .flatMapWithPath((v, at) -> v.get(0) <= v.get(1)
+                                    ? Result.ok(v)
+                                    : Result.failCustom(at.append("end"),
+                                            "invalid_value", "end is before start", Map.of()))))
+                    .map((id, period) -> List.of(id, period));
+            case "even_meta" -> int_().refine(n -> n % 2 == 0, "must_be_even", "must be even",
+                    n -> Map.of("actual", n));
+            case "recover_issues" -> combine(field("id", int_()),
+                    field("page", Decoders.recover(int_(),
+                            (java.util.function.Function<net.unit8.raoh.Issues, Integer>) is -> is.asList().size() + 10)))
+                    .map((id, page) -> List.of(id, page));
+            case "default_supplier" -> combine(field("id", Decoders.withDefault(int_(), (java.util.function.Supplier<Integer>) () -> 7)),
+                    field("page", Decoders.withDefault(int_(), (java.util.function.Supplier<Integer>) () -> 8)))
+                    .map((id, page) -> List.of(id, page));
+
             case "instant" -> string().iso8601().map(Object::toString);
             case "instant_after" -> string().iso8601()
                     .after(java.time.Instant.parse("2024-01-01T00:00:00Z")).map(Object::toString);

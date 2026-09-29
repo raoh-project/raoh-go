@@ -51,7 +51,29 @@ func (o object0) AndThen[R any](fn func() (R, error)) Decoder[any, R] {
 			return collected[R](&c)
 		}
 		v, err := fn()
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object0) AndThenWithPath[R any](fn func(Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -104,7 +126,30 @@ func (o object1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 			return collected[R](&c)
 		}
 		v, err := fn(v0)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -159,7 +204,31 @@ func (o object2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] 
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -216,7 +285,32 @@ func (o object3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[an
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -275,7 +369,33 @@ func (o object4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Deco
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -336,7 +456,34 @@ func (o object5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -401,7 +548,35 @@ func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, 
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -468,7 +643,36 @@ func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -539,7 +743,37 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -612,7 +846,38 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -687,7 +952,39 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, 
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		v9 := read(&c, o.f.p9, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -764,7 +1061,40 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, 
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		v9 := read(&c, o.f.p9, m, at)
+		v10 := read(&c, o.f.p10, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -843,7 +1173,41 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, 
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		v9 := read(&c, o.f.p9, m, at)
+		v10 := read(&c, o.f.p10, m, at)
+		v11 := read(&c, o.f.p11, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -924,7 +1288,42 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		v9 := read(&c, o.f.p9, m, at)
+		v10 := read(&c, o.f.p10, m, at)
+		v11 := read(&c, o.f.p11, m, at)
+		v12 := read(&c, o.f.p12, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -1007,7 +1406,43 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn fu
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		v9 := read(&c, o.f.p9, m, at)
+		v10 := read(&c, o.f.p10, m, at)
+		v11 := read(&c, o.f.p11, m, at)
+		v12 := read(&c, o.f.p12, m, at)
+		v13 := read(&c, o.f.p13, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -1092,7 +1527,44 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		v9 := read(&c, o.f.p9, m, at)
+		v10 := read(&c, o.f.p10, m, at)
+		v11 := read(&c, o.f.p11, m, at)
+		v12 := read(&c, o.f.p12, m, at)
+		v13 := read(&c, o.f.p13, m, at)
+		v14 := read(&c, o.f.p14, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -1174,6 +1646,44 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any]
 			return collected[R](&c)
 		}
 		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, m, at)
+		v1 := read(&c, o.f.p1, m, at)
+		v2 := read(&c, o.f.p2, m, at)
+		v3 := read(&c, o.f.p3, m, at)
+		v4 := read(&c, o.f.p4, m, at)
+		v5 := read(&c, o.f.p5, m, at)
+		v6 := read(&c, o.f.p6, m, at)
+		v7 := read(&c, o.f.p7, m, at)
+		v8 := read(&c, o.f.p8, m, at)
+		v9 := read(&c, o.f.p9, m, at)
+		v10 := read(&c, o.f.p10, m, at)
+		v11 := read(&c, o.f.p11, m, at)
+		v12 := read(&c, o.f.p12, m, at)
+		v13 := read(&c, o.f.p13, m, at)
+		v14 := read(&c, o.f.p14, m, at)
+		v15 := read(&c, o.f.p15, m, at)
+		if o.strict {
+			c.unknown(m, at, o.f.names)
+		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
