@@ -159,3 +159,29 @@ func TestFloatReadsAnIntegerTypeRoundedOnce(t *testing.T) {
 		t.Errorf("1<<53+1 as float64: %v, %v", got, err)
 	}
 }
+
+// Raoh for Java builds the allowed values of oneOf with Set.of, which refuses a
+// repeat; a repeat is a mistake in the definition, whatever the type.
+func TestOneOfPanicsOnARepeatedValue(t *testing.T) {
+	nan := math.NaN()
+	for name, f := range map[string]func(){
+		"int":         func() { raoh.Int().OneOf(1, 1) },
+		"int64":       func() { raoh.Int64().OneOf(2, 1, 2) },
+		"string":      func() { raoh.String().OneOf("a", "a") },
+		"float32":     func() { raoh.Float32().OneOf(1, 1) },
+		"float32 NaN": func() { raoh.Float32().OneOf(float32(nan), float32(nan)) },
+		"float64":     func() { raoh.Float64().OneOf(0, 0) },
+	} {
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("%s: no panic", name)
+				}
+			}()
+			f()
+		}()
+	}
+	// -0 and 0 are two values to Float.equals, so they are not a repeat.
+	raoh.Float32().OneOf(float32(math.Copysign(0, -1)), 0)
+	raoh.Float64().OneOf(math.Copysign(0, -1), 0)
+}

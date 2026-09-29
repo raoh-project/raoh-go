@@ -262,8 +262,9 @@ func (d IntDecoder[T]) MultipleOf(divisor T) IntDecoder[T] {
 }
 
 // OneOf requires one of allowed: not_allowed with allowed sorted, and actual.
+// It panics when a value is repeated.
 func (d IntDecoder[T]) OneOf(allowed ...T) IntDecoder[T] {
-	sorted := sortedUnique(allowed)
+	sorted := sortedDistinct(allowed)
 	return d.require(func(v T) bool { _, ok := slices.BinarySearch(sorted, v); return ok }, func(v T) Issue {
 		return NewIssue(CodeNotAllowed).WithMeta("allowed", sorted).WithMeta("actual", v)
 	})
@@ -461,9 +462,7 @@ func floatNonPositive[T binaryFloat](s scalar[T]) scalar[T] {
 }
 
 func floatOneOf[T binaryFloat](s scalar[T], allowed []T) scalar[T] {
-	sorted := slices.Clone(allowed)
-	slices.SortFunc(sorted, compareFloat[T])
-	sorted = slices.CompactFunc(sorted, func(a, b T) bool { return compareFloat(a, b) == 0 })
+	sorted := sortedDistinctFunc(allowed, compareFloat[T])
 	return s.require(func(v T) bool {
 		_, ok := slices.BinarySearchFunc(sorted, v, compareFloat[T])
 		return ok
@@ -525,6 +524,8 @@ func (d Float64Decoder) NonNegative() Float64Decoder { return newFloat64(floatNo
 func (d Float64Decoder) NonPositive() Float64Decoder { return newFloat64(floatNonPositive(d.s)) }
 
 // OneOf requires one of allowed: not_allowed with allowed sorted, and actual.
+// It panics when a value is repeated; NaN is equal to NaN, and -0 is not equal
+// to 0.
 func (d Float64Decoder) OneOf(allowed ...float64) Float64Decoder {
 	return newFloat64(floatOneOf(d.s, allowed))
 }
@@ -581,6 +582,8 @@ func (d Float32Decoder) NonNegative() Float32Decoder { return newFloat32(floatNo
 func (d Float32Decoder) NonPositive() Float32Decoder { return newFloat32(floatNonPositive(d.s)) }
 
 // OneOf requires one of allowed: not_allowed with allowed sorted, and actual.
+// It panics when a value is repeated; NaN is equal to NaN, and -0 is not equal
+// to 0.
 func (d Float32Decoder) OneOf(allowed ...float32) Float32Decoder {
 	return newFloat32(floatOneOf(d.s, allowed))
 }

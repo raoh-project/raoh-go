@@ -178,7 +178,7 @@ func OptionalProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]
 // PropertyWithDefault writes the member key as what get reads from the value,
 // encoded with enc, and as defaultValue, encoded with enc, when get gives nil.
 // It is the counterpart of Raoh for Java's MapEncoders.propertyWithDefault, and
-// of a field read with raoh.WithDefault.
+// of a field read with a decoder's Default or DefaultFunc.
 func PropertyWithDefault[T, V, O any](key string, get func(T) *V, enc Encoder[V, O], defaultValue V) Entry[T] {
 	return PropertyWithDefaultFunc(key, get, enc, func() V { return defaultValue })
 }

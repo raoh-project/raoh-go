@@ -143,9 +143,9 @@ func (d StringDecoder) Contains(substring string) StringDecoder {
 }
 
 // OneOf requires one of allowed: not_allowed with allowed sorted by code
-// point, and actual.
+// point, and actual. It panics when a string is repeated.
 func (d StringDecoder) OneOf(allowed ...string) StringDecoder {
-	sorted := sortedUnique(allowed)
+	sorted := sortedDistinct(allowed)
 	return d.require(
 		func(v string) bool { _, ok := slices.BinarySearch(sorted, v); return ok },
 		func(v string) Issue {

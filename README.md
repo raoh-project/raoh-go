@@ -252,7 +252,8 @@ is a `long`.
 `NonPositive`, `OneOf`. A number beyond the range of the type is `type_mismatch` under
 `type_mismatch.numeric_range`, with `expected` `double` or `float`. Constraints compare as Java's
 `Double.compare` and `Float.compare` do, so `-0` is below `0` and `NaN` is above every other value,
-and `Range` panics when `min` is above `max`. A `Float32` reads a decimal in JSON text as a double
+and `Range` panics when `min` is above `max`. `OneOf`, for every type, panics when a value is
+repeated, as Raoh for Java refuses it. A `Float32` reads a decimal in JSON text as a double
 first and rounds that to a float, as Raoh for Java does.
 
 `raoh.Bytes()` reads a `[]byte` handed to the decoder as a Go value, such as a binary column read
