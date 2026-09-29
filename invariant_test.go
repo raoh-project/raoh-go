@@ -411,9 +411,14 @@ func TestTheZeroValueOfADecoderTypeIsRefusedWhenAnotherIsDerivedFromIt(t *testin
 		"Float32Decoder":  func() { f32.Message("m") },
 		"DecimalDecoder":  func() { dec.Message("m") },
 		"TemporalDecoder": func() { tm.Message("m") },
-		"ListDecoder":     func() { list.NonEmpty() },
-		"DictDecoder":     func() { dict.NonEmpty() },
-		"Conversion":      func() { conv.Message("m") },
+		// The bounds read the kind before they derive, so the kind refuses
+		// the zero value itself.
+		"TemporalDecoder.Before":  func() { tm.Before(time.Time{}) },
+		"TemporalDecoder.After":   func() { tm.After(time.Time{}) },
+		"TemporalDecoder.Between": func() { tm.Between(time.Time{}, time.Time{}) },
+		"ListDecoder":             func() { list.NonEmpty() },
+		"DictDecoder":             func() { dict.NonEmpty() },
+		"Conversion":              func() { conv.Message("m") },
 	} {
 		if got := panicText(build); got != derived {
 			t.Errorf("%s: panic = %q", name, got)

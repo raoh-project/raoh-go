@@ -183,8 +183,16 @@ func parseInstant(s string) (time.Time, bool) {
 	return t, !t.Before(instantMin) && !t.After(instantMax)
 }
 
-// temporalKind is one of the java.time types a temporal decoder reads.
+// temporalKind is one of the java.time types a temporal decoder reads. Its
+// zero value is none of them, and every operation on it refuses that, so a
+// bound method of a zero TemporalDecoder cannot reach a nil function.
 type temporalKind struct {
+	ops *temporalOps
+}
+
+// temporalOps is what a kind does with a value. The kinds below are the only
+// ones, and each has every field.
+type temporalOps struct {
 	parse func(string) (time.Time, bool)
 	key   string
 	// format writes a value as the Java type's toString does, and jsonFormat
@@ -209,8 +217,24 @@ func (v temporalValue) String() string { return v.text }
 
 func (v temporalValue) MarshalJSON() ([]byte, error) { return json.Marshal(v.json) }
 
+// require gives the operations of the kind, and refuses the zero kind. It is
+// the only place that checks, and the operations below go through it.
+func (k temporalKind) require() *temporalOps {
+	if k.ops == nil {
+		refuseZeroValue()
+	}
+	return k.ops
+}
+
+func (k temporalKind) normalize(t time.Time) time.Time { return k.require().normalize(t) }
+
+func (k temporalKind) compare(a, b time.Time) int { return k.require().compare(a, b) }
+
+func (k temporalKind) format(t time.Time) string { return k.require().format(t) }
+
 func (k temporalKind) value(t time.Time) temporalValue {
-	return temporalValue{k.format(t), k.jsonFormat(t)}
+	ops := k.require()
+	return temporalValue{ops.format(t), ops.jsonFormat(t)}
 }
 
 func wallUTC(t time.Time) time.Time {
@@ -218,20 +242,20 @@ func wallUTC(t time.Time) time.Time {
 }
 
 var (
-	instantKind = temporalKind{parseInstant, KeyInvalidFormatInstant, javatime.Instant, javatime.Instant,
-		func(t time.Time) time.Time { return t.UTC() }, time.Time.Compare}
-	dateKind = temporalKind{parseDate, KeyInvalidFormatDate, javatime.Date, javatime.Date,
+	instantKind = temporalKind{&temporalOps{parseInstant, KeyInvalidFormatInstant, javatime.Instant, javatime.Instant,
+		func(t time.Time) time.Time { return t.UTC() }, time.Time.Compare}}
+	dateKind = temporalKind{&temporalOps{parseDate, KeyInvalidFormatDate, javatime.Date, javatime.Date,
 		func(t time.Time) time.Time { return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC) },
-		time.Time.Compare}
-	clockKind = temporalKind{parseClock, KeyInvalidFormatTime, javatime.Time, javatime.ISOTime,
+		time.Time.Compare}}
+	clockKind = temporalKind{&temporalOps{parseClock, KeyInvalidFormatTime, javatime.Time, javatime.ISOTime,
 		func(t time.Time) time.Time {
 			return time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
-		}, time.Time.Compare}
-	dateTimeKind = temporalKind{parseDateTime, KeyInvalidFormatDateTime, javatime.DateTime, javatime.ISODateTime, wallUTC,
-		time.Time.Compare}
+		}, time.Time.Compare}}
+	dateTimeKind = temporalKind{&temporalOps{parseDateTime, KeyInvalidFormatDateTime, javatime.DateTime, javatime.ISODateTime, wallUTC,
+		time.Time.Compare}}
 	// OffsetDateTime.compareTo orders by the instant, then by the local
 	// date-time, so the same instant at two offsets is not equal.
-	offsetDateTimeKind = temporalKind{parseOffsetDateTime, KeyInvalidFormatOffsetDateTime,
+	offsetDateTimeKind = temporalKind{&temporalOps{parseOffsetDateTime, KeyInvalidFormatOffsetDateTime,
 		javatime.OffsetDateTime, javatime.ISOOffsetDateTime,
 		func(t time.Time) time.Time { return t },
 		func(a, b time.Time) int {
@@ -239,7 +263,7 @@ var (
 				return c
 			}
 			return wallUTC(a).Compare(wallUTC(b))
-		}}
+		}}}
 )
 
 // TemporalDecoder decodes a string into a time.Time as one of Java's
@@ -259,9 +283,7 @@ type TemporalDecoder struct {
 }
 
 func newTemporal(str scalar[string], kind temporalKind, s scalar[time.Time]) TemporalDecoder {
-	if kind.parse == nil {
-		refuseZeroValue()
-	}
+	ops := kind.require()
 	d := TemporalDecoder{str: str, kind: kind, s: s}
 	strDecoder := str.build()
 	d.Decoder = Decoder[any, time.Time]{func(in any, at Path) outcome[time.Time] {
@@ -269,9 +291,9 @@ func newTemporal(str scalar[string], kind temporalKind, s scalar[time.Time]) Tem
 		if o.failed() {
 			return failAs[time.Time](o)
 		}
-		v, ok := kind.parse(o.value)
+		v, ok := ops.parse(o.value)
 		if !ok {
-			return invalid[time.Time](withCustom(NewIssue(CodeInvalidFormat).WithMessageKey(kind.key).At(at), s.baseMessage))
+			return invalid[time.Time](withCustom(NewIssue(CodeInvalidFormat).WithMessageKey(ops.key).At(at), s.baseMessage))
 		}
 		return s.run(v, at)
 	}}
