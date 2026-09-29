@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/raoh-project/raoh-go"
 	"github.com/raoh-project/raoh-go/encode"
@@ -275,6 +276,10 @@ func TestContainsRefusesANilElementWhenBuilt(t *testing.T) {
 	}
 	if panics(func() { l.Contains(&one) }) {
 		t.Error("Contains of a pointer")
+	}
+	pointers := raoh.List(raoh.Int().Map(func(int) unsafe.Pointer { return nil }))
+	if !panics(func() { pointers.Contains(nil) }) {
+		t.Error("Contains of a nil unsafe.Pointer")
 	}
 	if !panics(func() { raoh.List(raoh.Int()).UniqueBy[int](nil) }) {
 		t.Error("UniqueBy(nil)")

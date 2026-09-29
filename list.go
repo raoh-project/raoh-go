@@ -147,11 +147,11 @@ func ToSet[T comparable](d DecoderOf[[]T]) Decoder[any, map[T]struct{}] {
 
 func equal[T any](a, b T) bool { return any(a) == any(b) }
 
-// requireNotNil panics if v is nil: a nil pointer or channel, the only nil a
-// type that holds no interface has.
+// requireNotNil panics if v is nil: a nil pointer, unsafe.Pointer or channel,
+// the only nil a type that holds no interface has.
 func requireNotNil[T any](v T, name string) {
 	switch rv := reflect.ValueOf(v); rv.Kind() {
-	case reflect.Pointer, reflect.Chan:
+	case reflect.Pointer, reflect.UnsafePointer, reflect.Chan:
 		if rv.IsNil() {
 			panic(fmt.Sprintf("raoh: %s needs an element that is not nil", name))
 		}
