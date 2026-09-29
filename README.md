@@ -211,7 +211,7 @@ Missing or `null` input is `required` for every one of them, and a value of anot
 `type_mismatch`. The constraints of one decoder run in the order written, and the first to fail is
 reported.
 
-`raoh.String()`: `Trim`, `ToLower`, `ToUpper`, `NonBlank`, `MinLength`, `MaxLength`, `Length`,
+`raoh.String()`: `Trim`, `ToLower`, `ToUpper`, `Normalize`, `NormalizeAs`, `NonBlank`, `MinLength`, `MaxLength`, `Length`,
 `StartsWith`, `EndsWith`, `Contains`, `OneOf`, `Email`, `IP`, `IPv4`, `IPv6`, `ULID`, `CUID`,
 `Pattern`, and the conversions `UUID()` and `URL()`. Lengths count characters, not bytes.
 
@@ -258,7 +258,8 @@ Whitespace, character counts, string order, case mapping and number formatting f
 Java 0.8: `Trim` and `NonBlank` use Unicode's `White_Space`, lengths count code points, `OneOf`,
 `Discriminate` and `EnumOf` sort by code point, `EnumOf` folds ASCII case only, `ToLower` and
 `ToUpper` use Unicode's full case mapping as `Locale.ROOT` does (`ß` becomes `SS`, a final `Σ`
-becomes `ς`), and a fractional bound appears in a message as `Double.toString` writes it, such as
+becomes `ς`), `Normalize` and `NormalizeAs` give what `java.text.Normalizer` gives on Java 25
+(Unicode 16.0) from tables generated from it, and a fractional bound appears in a message as `Double.toString` writes it, such as
 `1.0E7`. `Email`, `IP`, `URL` and `UUID` accept the text Raoh for Java accepts, decided by the
 same grammar rather than by a parser of the platform.
 

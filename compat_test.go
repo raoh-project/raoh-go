@@ -101,6 +101,16 @@ func compatDecoder(name string) func([]byte) (any, error) {
 		return out(s().ToLower(), same)
 	case "string_upper":
 		return out(s().ToUpper(), same)
+	case "string_normalize":
+		return out(s().Normalize(), same)
+	case "string_normalize_nfd":
+		return out(s().NormalizeAs(raoh.NFD), same)
+	case "string_normalize_nfkc":
+		return out(s().NormalizeAs(raoh.NFKC), same)
+	case "string_normalize_nfkd":
+		return out(s().NormalizeAs(raoh.NFKD), same)
+	case "string_normalize_max_2":
+		return out(s().Normalize().MaxLength(2), same)
 	case "string_email":
 		return out(s().Email(), same)
 	case "string_one_of_astral":
