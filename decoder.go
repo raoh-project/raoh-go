@@ -120,6 +120,10 @@ func asOutsideIssues(err error, target any) bool {
 
 // Decoder decodes an I into a T. A decoder holds no state and can be reused
 // and shared between goroutines.
+//
+// The zero Decoder has nothing to run. A decoder built from it, or a method
+// called on it, panics: when a decoder is built if it can be, and otherwise at
+// the decode.
 type Decoder[I, T any] struct {
 	run func(in I, at Path) outcome[T]
 }
@@ -139,6 +143,14 @@ func (d Decoder[I, T]) decoder() Decoder[I, T] {
 		panic("raoh: a decoder was built from the zero Decoder, which has nothing to run")
 	}
 	return d
+}
+
+// requireRun panics if d is the zero Decoder, which has nothing to run: a
+// decoder derived from it, or a decode with it, would panic whatever the input.
+func (d Decoder[I, T]) requireRun(method string) {
+	if d.run == nil {
+		panic(fmt.Sprintf("raoh: %s needs a receiver that is not the zero Decoder", method))
+	}
 }
 
 // decoderOf is d.decoder() for a decoder a constructor is given, refused when
@@ -183,6 +195,7 @@ func NewDecoderWithPath[I, T any](f func(in I, at Path) (T, error)) Decoder[I, T
 // from a failure of the program. A failure of the program is returned as the
 // function that produced it returned it, unless issues were mixed into it.
 func (d Decoder[I, T]) Decode(in I) (T, error) {
+	d.requireRun("Decoder.Decode")
 	o := d.run(in, Path{})
 	var zero T
 	switch {
@@ -196,6 +209,7 @@ func (d Decoder[I, T]) Decode(in I) (T, error) {
 
 // Map returns a decoder that applies f to the decoded value.
 func (d Decoder[I, T]) Map[U any](f func(T) U) Decoder[I, U] {
+	d.requireRun("Decoder.Map")
 	requireArgument(f != nil, "Decoder.Map", "f")
 	return Decoder[I, U]{func(in I, at Path) outcome[U] {
 		o := d.run(in, at)
@@ -212,6 +226,7 @@ func (d Decoder[I, T]) Map[U any](f func(T) U) Decoder[I, U] {
 // are reported as relative to the path this decoder is at. Any other error
 // stops the decode and is returned from Decode.
 func (d Decoder[I, T]) AndThen[U any](f func(T) (U, error)) Decoder[I, U] {
+	d.requireRun("Decoder.AndThen")
 	requireArgument(f != nil, "Decoder.AndThen", "f")
 	return Decoder[I, U]{func(in I, at Path) outcome[U] {
 		o := d.run(in, at)
@@ -228,6 +243,7 @@ func (d Decoder[I, T]) AndThen[U any](f func(T) (U, error)) Decoder[I, U] {
 // AndThen, it does not move the issues f returns: their paths are kept as f
 // gives them, so build them from the path it was given, as at.Key("end").
 func (d Decoder[I, T]) AndThenWithPath[U any](f func(T, Path) (U, error)) Decoder[I, U] {
+	d.requireRun("Decoder.AndThenWithPath")
 	requireArgument(f != nil, "Decoder.AndThenWithPath", "f")
 	return Decoder[I, U]{func(in I, at Path) outcome[U] {
 		o := d.run(in, at)
@@ -242,6 +258,7 @@ func (d Decoder[I, T]) AndThenWithPath[U any](f func(T, Path) (U, error)) Decode
 // Pipe returns a decoder that hands the decoded value to next as its input,
 // at the same path.
 func (d Decoder[I, T]) Pipe[U any](next Decoder[T, U]) Decoder[I, U] {
+	d.requireRun("Decoder.Pipe")
 	if next.run == nil {
 		panic("raoh: Decoder.Pipe needs a next decoder that is not the zero Decoder")
 	}
@@ -257,6 +274,7 @@ func (d Decoder[I, T]) Pipe[U any](next Decoder[T, U]) Decoder[I, U] {
 // Refine returns a decoder that also requires ok to hold for the decoded
 // value, and reports code with message as a custom message when it does not.
 func (d Decoder[I, T]) Refine(ok func(T) bool, code, message string) Decoder[I, T] {
+	d.requireRun("Decoder.Refine")
 	requireArgument(ok != nil, "Decoder.Refine", "ok")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
@@ -271,6 +289,7 @@ func (d Decoder[I, T]) Refine(ok func(T) bool, code, message string) Decoder[I, 
 // the decoded value. meta is called only when ok does not hold, and the map it
 // returns is copied into the issue.
 func (d Decoder[I, T]) RefineWithMeta(ok func(T) bool, code, message string, meta func(T) map[string]any) Decoder[I, T] {
+	d.requireRun("Decoder.RefineWithMeta")
 	requireArgument(ok != nil, "Decoder.RefineWithMeta", "ok")
 	requireArgument(meta != nil, "Decoder.RefineWithMeta", "meta")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
@@ -288,6 +307,7 @@ func (d Decoder[I, T]) RefineWithMeta(ok func(T) bool, code, message string, met
 // build them from the path it was given, as at.Key("end"). Any other error
 // stops the decode.
 func (d Decoder[I, T]) RefineWithPath(check func(T, Path) error) Decoder[I, T] {
+	d.requireRun("Decoder.RefineWithPath")
 	requireArgument(check != nil, "Decoder.RefineWithPath", "check")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
@@ -304,12 +324,14 @@ func (d Decoder[I, T]) RefineWithPath(check func(T, Path) error) Decoder[I, T] {
 // Default returns a decoder that gives v when every issue d reports is
 // required, as for a missing or null value, and reports any other problem.
 func (d Decoder[I, T]) Default(v T) Decoder[I, T] {
+	d.requireRun("Decoder.Default")
 	return d.DefaultFunc(func() T { return v })
 }
 
 // DefaultFunc is Default with the default computed by f, which is called once
 // each time the default is needed and not otherwise.
 func (d Decoder[I, T]) DefaultFunc(f func() T) Decoder[I, T] {
+	d.requireRun("Decoder.DefaultFunc")
 	requireArgument(f != nil, "Decoder.DefaultFunc", "f")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
@@ -328,6 +350,7 @@ func (d Decoder[I, T]) DefaultFunc(f func() T) Decoder[I, T] {
 // Fallback returns a decoder that gives v whatever issues d reports. A failure
 // of the program is still returned.
 func (d Decoder[I, T]) Fallback(v T) Decoder[I, T] {
+	d.requireRun("Decoder.Fallback")
 	return d.FallbackFunc(func(Issues) T { return v })
 }
 
@@ -335,6 +358,7 @@ func (d Decoder[I, T]) Fallback(v T) Decoder[I, T] {
 // reported, at their paths in the whole input. A failure of the program is
 // still returned.
 func (d Decoder[I, T]) FallbackFunc(f func(Issues) T) Decoder[I, T] {
+	d.requireRun("Decoder.FallbackFunc")
 	requireArgument(f != nil, "Decoder.FallbackFunc", "f")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)

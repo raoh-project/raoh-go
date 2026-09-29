@@ -259,6 +259,9 @@ type TemporalDecoder struct {
 }
 
 func newTemporal(str scalar[string], kind temporalKind, s scalar[time.Time]) TemporalDecoder {
+	if kind.parse == nil {
+		refuseZeroValue()
+	}
 	d := TemporalDecoder{str: str, kind: kind, s: s}
 	strDecoder := str.build()
 	d.Decoder = Decoder[any, time.Time]{func(in any, at Path) outcome[time.Time] {

@@ -41,21 +41,34 @@ func requireArgument(ok bool, constructor, argument string) {
 	}
 }
 
+// requireReceiver panics if an encoder is nil: the nil Encoder is the zero
+// value of the type and has nothing to run.
+func requireReceiver(ok bool, method string) {
+	if !ok {
+		panic(fmt.Sprintf("raoh/encode: %s needs a receiver that is not nil", method))
+	}
+}
+
 // Encoder turns a T into its boundary representation O.
 type Encoder[T, O any] func(T) O
 
 // Encode encodes v.
-func (e Encoder[T, O]) Encode(v T) O { return e(v) }
+func (e Encoder[T, O]) Encode(v T) O {
+	requireReceiver(e != nil, "Encoder.Encode")
+	return e(v)
+}
 
 // Contramap returns an encoder of S that turns an S into a T with f and
 // encodes that, such as the value a domain type wraps.
 func (e Encoder[T, O]) Contramap[S any](f func(S) T) Encoder[S, O] {
+	requireReceiver(e != nil, "Encoder.Contramap")
 	requireArgument(f != nil, "Encoder.Contramap", "f")
 	return func(v S) O { return e(f(v)) }
 }
 
 // AndThen returns an encoder that hands what e gives to next.
 func (e Encoder[T, O]) AndThen[P any](next Encoder[O, P]) Encoder[T, P] {
+	requireReceiver(e != nil, "Encoder.AndThen")
 	requireArgument(next != nil, "Encoder.AndThen", "next")
 	return func(v T) P { return next(e(v)) }
 }

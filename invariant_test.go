@@ -342,22 +342,81 @@ func TestANilArgumentIsRefusedWhenTheDecoderIsBuilt(t *testing.T) {
 	}
 }
 
-// The zero Decoder has nothing to run, so a decoder built from it is refused.
+// The zero Decoder has nothing to run, so a decoder built from it, as an
+// argument or as the receiver of a combinator, is refused, and so is a decode
+// with it.
 func TestTheZeroDecoderIsRefusedWhenAnotherIsBuiltFromIt(t *testing.T) {
 	var zero raoh.Decoder[any, int]
+	built := "raoh: a decoder was built from the zero Decoder, which has nothing to run"
+	receiver := func(method string) string {
+		return "raoh: Decoder." + method + " needs a receiver that is not the zero Decoder"
+	}
+	tests := []struct {
+		name  string
+		build func()
+		want  string
+	}{
+		{"List", func() { raoh.List(zero) }, built},
+		{"Dict", func() { raoh.Dict(zero) }, built},
+		{"Nullable", func() { raoh.Nullable(zero) }, built},
+		{"Optional", func() { raoh.Optional(zero) }, built},
+		{"PresenceOf", func() { raoh.PresenceOf(zero) }, built},
+		{"OneOf", func() { raoh.OneOf[int](zero) }, built},
+		{"Field", func() { raoh.Fields().Field("a", zero) }, "raoh: Field needs src that is not nil"},
+		{"Field of Optional", func() { raoh.Fields().Field("a", raoh.OptionalSource[int]{}) }, "raoh: Field needs src that is not nil"},
+		{"Field of PresenceOf", func() { raoh.Fields().Field("a", raoh.PresenceSource[int]{}) }, "raoh: Field needs src that is not nil"},
+		{"Map", func() { zero.Map(func(v int) int { return v }) }, receiver("Map")},
+		{"AndThen", func() { zero.AndThen(func(v int) (int, error) { return v, nil }) }, receiver("AndThen")},
+		{"AndThenWithPath", func() { zero.AndThenWithPath(func(v int, _ raoh.Path) (int, error) { return v, nil }) }, receiver("AndThenWithPath")},
+		{"Pipe", func() { zero.Pipe(raoh.Decoder[int, int]{}) }, receiver("Pipe")},
+		{"Refine", func() { zero.Refine(func(int) bool { return true }, "c", "m") }, receiver("Refine")},
+		{"RefineWithMeta", func() {
+			zero.RefineWithMeta(func(int) bool { return true }, "c", "m", func(int) map[string]any { return nil })
+		}, receiver("RefineWithMeta")},
+		{"RefineWithPath", func() { zero.RefineWithPath(func(int, raoh.Path) error { return nil }) }, receiver("RefineWithPath")},
+		{"Default", func() { zero.Default(1) }, receiver("Default")},
+		{"DefaultFunc", func() { zero.DefaultFunc(func() int { return 1 }) }, receiver("DefaultFunc")},
+		{"Fallback", func() { zero.Fallback(1) }, receiver("Fallback")},
+		{"FallbackFunc", func() { zero.FallbackFunc(func(raoh.Issues) int { return 1 }) }, receiver("FallbackFunc")},
+		{"Decode", func() { zero.Decode(1) }, receiver("Decode")},
+	}
+	for _, tt := range tests {
+		if got := panicText(tt.build); got != tt.want {
+			t.Errorf("%s: panic = %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}
+
+// The types that keep the parts a Decoder is rebuilt from have a zero value
+// too, and a method that derives a decoder from it is refused as well.
+func TestTheZeroValueOfADecoderTypeIsRefusedWhenAnotherIsDerivedFromIt(t *testing.T) {
+	derived := "raoh: a decoder was derived from the zero value of a decoder type, which has nothing to read the input with"
+	var (
+		str  raoh.StringDecoder
+		i    raoh.IntDecoder[int]
+		b    raoh.BoolDecoder
+		f64  raoh.Float64Decoder
+		f32  raoh.Float32Decoder
+		dec  raoh.DecimalDecoder
+		tm   raoh.TemporalDecoder
+		list raoh.ListDecoder[int]
+		dict raoh.DictDecoder[int]
+		conv raoh.Conversion[int]
+	)
 	for name, build := range map[string]func(){
-		"List":                func() { raoh.List(zero) },
-		"Dict":                func() { raoh.Dict(zero) },
-		"Nullable":            func() { raoh.Nullable(zero) },
-		"Optional":            func() { raoh.Optional(zero) },
-		"PresenceOf":          func() { raoh.PresenceOf(zero) },
-		"OneOf":               func() { raoh.OneOf[int](zero) },
-		"Field":               func() { raoh.Fields().Field("a", zero) },
-		"Field of Optional":   func() { raoh.Fields().Field("a", raoh.OptionalSource[int]{}) },
-		"Field of PresenceOf": func() { raoh.Fields().Field("a", raoh.PresenceSource[int]{}) },
+		"StringDecoder":   func() { str.NonBlank() },
+		"IntDecoder":      func() { i.Min(1) },
+		"BoolDecoder":     func() { b.IsTrue() },
+		"Float64Decoder":  func() { f64.Message("m") },
+		"Float32Decoder":  func() { f32.Message("m") },
+		"DecimalDecoder":  func() { dec.Message("m") },
+		"TemporalDecoder": func() { tm.Message("m") },
+		"ListDecoder":     func() { list.NonEmpty() },
+		"DictDecoder":     func() { dict.NonEmpty() },
+		"Conversion":      func() { conv.Message("m") },
 	} {
-		if !panics(build) {
-			t.Errorf("%s of the zero Decoder", name)
+		if got := panicText(build); got != derived {
+			t.Errorf("%s: panic = %q", name, got)
 		}
 	}
 }

@@ -306,3 +306,22 @@ func TestANilArgumentIsRefusedWhenTheEncoderIsBuilt(t *testing.T) {
 		}
 	}
 }
+
+// The nil Encoder has nothing to run, so an encoder derived from it is refused
+// when it is built, and an encode with it is refused with a message.
+func TestTheNilEncoderIsRefusedAsAReceiver(t *testing.T) {
+	var none encode.Encoder[int, int]
+	tests := []struct {
+		build func()
+		want  string
+	}{
+		{func() { encode.Encoder[int, int](nil).Contramap(func(s string) int { return 0 }) }, "raoh/encode: Encoder.Contramap needs a receiver that is not nil"},
+		{func() { none.AndThen(encode.Int()) }, "raoh/encode: Encoder.AndThen needs a receiver that is not nil"},
+		{func() { none.Encode(1) }, "raoh/encode: Encoder.Encode needs a receiver that is not nil"},
+	}
+	for _, tt := range tests {
+		if got := panicText(tt.build); got != tt.want {
+			t.Errorf("panic = %q, want %q", got, tt.want)
+		}
+	}
+}

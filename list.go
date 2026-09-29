@@ -26,6 +26,9 @@ func List[T any](element DecoderOf[T]) ListDecoder[T] {
 }
 
 func newList[T any](element Decoder[any, T], s scalar[[]T]) ListDecoder[T] {
+	if element.run == nil {
+		refuseZeroValue()
+	}
 	return ListDecoder[T]{Decoder[any, []T]{func(in any, at Path) outcome[[]T] {
 		items, ok := asArray(in)
 		if !ok {
@@ -232,6 +235,9 @@ func Dict[T any](value DecoderOf[T]) DictDecoder[T] {
 }
 
 func newDict[T any](value Decoder[any, T], s scalar[map[string]T]) DictDecoder[T] {
+	if value.run == nil {
+		refuseZeroValue()
+	}
 	return DictDecoder[T]{Decoder[any, map[string]T]{func(in any, at Path) outcome[map[string]T] {
 		m, ok := AsObject(in)
 		if !ok {

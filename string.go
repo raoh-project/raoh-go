@@ -288,6 +288,9 @@ func (c Conversion[T]) Message(message string) Conversion[T] {
 }
 
 func (c Conversion[T]) build() Decoder[any, T] {
+	if c.convert == nil {
+		refuseZeroValue()
+	}
 	str := c.s.build()
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		o := str.run(in, at)
