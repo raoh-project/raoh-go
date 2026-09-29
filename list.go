@@ -38,7 +38,7 @@ func newList[T any](element Decoder[any, T], s scalar[[]T]) ListDecoder[T] {
 			if o.err != nil {
 				return failAs[[]T](o)
 			}
-			issues.add(o.issues.items...)
+			issues.appendInPlace(o.issues.items...)
 			values = append(values, o.value)
 		}
 		if issues.Len() > 0 {
@@ -246,7 +246,7 @@ func newDict[T any](value Decoder[any, T], s scalar[map[string]T]) DictDecoder[T
 			if o.err != nil {
 				return failAs[map[string]T](o)
 			}
-			issues.add(o.issues.items...)
+			issues.appendInPlace(o.issues.items...)
 			values[name] = o.value
 		}
 		if issues.Len() > 0 {

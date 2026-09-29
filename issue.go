@@ -71,6 +71,12 @@ func (i Issue) At(p Path) Issue {
 	return i
 }
 
+// Rebase returns i with its path read as relative to prefix.
+func (i Issue) Rebase(prefix Path) Issue {
+	i.path = prefix.Append(i.path)
+	return i
+}
+
 // Path returns where in the input the problem is.
 func (i Issue) Path() Path { return i.path }
 
@@ -203,17 +209,67 @@ func (is Issues) Flatten(r Resolver) map[string][]string {
 	return out
 }
 
-func (is *Issues) add(i ...Issue) { is.items = append(is.items, i...) }
+// Format returns the messages r writes as a tree following the paths, in the
+// form of Raoh for Java's Issues.format: each member, and each index written
+// in decimal, is a map, and the messages at a path are the list under its
+// "_errors" key. Messages at the root are under "_errors" of the result.
+//
+// The tree cannot tell an input member named "_errors" from the list of
+// messages, so it is a projection for showing, not a form to read the issues
+// back from; use [Issues.All], [Issues.Render] or [Issues.GroupByPath] for
+// that. The messages can hold text from the input; see [RenderedIssue].
+func (is Issues) Format(r Resolver) map[string]any {
+	root := map[string]any{}
+	for _, i := range is.items {
+		node := root
+		for _, seg := range i.path.Segments() {
+			next, ok := node[seg].(map[string]any)
+			if !ok {
+				next = map[string]any{}
+				node[seg] = next
+			}
+			node = next
+		}
+		msgs, _ := node["_errors"].([]string)
+		node["_errors"] = append(msgs, i.Message(r))
+	}
+	return root
+}
 
-// under returns the issues read as relative to prefix.
-func (is Issues) under(prefix Path) []Issue {
-	out := make([]Issue, len(is.items))
-	for n, i := range is.items {
-		i.path = i.path.under(prefix)
-		out[n] = i
+// GroupByPath returns the issues grouped by the JSON Pointer of their path,
+// each group in the order its issues were found.
+func (is Issues) GroupByPath() map[string]Issues {
+	out := map[string]Issues{}
+	for _, i := range is.items {
+		p := i.path.String()
+		g := out[p]
+		g.appendInPlace(i)
+		out[p] = g
 	}
 	return out
 }
+
+// Add returns the issues followed by more, leaving is as it was.
+func (is Issues) Add(more ...Issue) Issues {
+	return Issues{items: slices.Concat(is.items, more)}
+}
+
+// Merge returns the issues followed by those of other, leaving both as they
+// were.
+func (is Issues) Merge(other Issues) Issues {
+	return Issues{items: slices.Concat(is.items, other.items)}
+}
+
+// Rebase returns the issues with each path read as relative to prefix.
+func (is Issues) Rebase(prefix Path) Issues {
+	out := make([]Issue, len(is.items))
+	for n, i := range is.items {
+		out[n] = i.Rebase(prefix)
+	}
+	return Issues{items: out}
+}
+
+func (is *Issues) appendInPlace(i ...Issue) { is.items = append(is.items, i...) }
 
 // asIssues reports whether err is made of Raoh issues only. A single wrapper
 // such as fmt.Errorf("...: %w", issues) is looked through, and a join counts
@@ -235,7 +291,7 @@ func asIssues(err error) (Issues, bool) {
 			if !ok {
 				return Issues{}, false
 			}
-			all.add(is.items...)
+			all.appendInPlace(is.items...)
 		}
 		return all, all.Len() > 0
 	}

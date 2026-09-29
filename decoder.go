@@ -37,7 +37,7 @@ func fromRelativeError[T any](v T, err error, at Path) outcome[T] {
 	}
 	o := failedError[T](err)
 	if o.issues.Len() > 0 {
-		o.issues = Issues{items: o.issues.under(at)}
+		o.issues = o.issues.Rebase(at)
 	}
 	return o
 }

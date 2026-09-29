@@ -126,7 +126,7 @@ func (m *Messages) Resolve(i Issue) string {
 	for l := m; l != nil; l = l.parent {
 		for _, key := range []string{i.messageKey, i.code} {
 			if t, ok := l.templates[key]; ok {
-				if s, ok := fill(t, i.meta); ok {
+				if s, ok := InterpolateFully(t, i.meta); ok {
 					return s
 				}
 			}
@@ -135,10 +135,22 @@ func (m *Messages) Resolve(i Issue) string {
 	return "validation failed: " + i.code
 }
 
-// fill returns template with each {name} replaced by the metadata entry name,
-// or false when an entry is missing. A brace that does not open a placeholder
-// name is kept as it is.
-func fill(template string, meta map[string]any) (string, bool) {
+// Interpolate returns template with each {name} replaced by the metadata
+// entry name. A placeholder whose entry is missing is kept as written, and so
+// is a brace that does not open a placeholder name. The template is read once:
+// a value that holds "{other}" is not filled in turn.
+func Interpolate(template string, meta map[string]any) string {
+	s, _ := interpolate(template, meta, false)
+	return s
+}
+
+// InterpolateFully is [Interpolate] that gives up when an entry is missing: it
+// returns "" and false then.
+func InterpolateFully(template string, meta map[string]any) (string, bool) {
+	return interpolate(template, meta, true)
+}
+
+func interpolate(template string, meta map[string]any, strict bool) (string, bool) {
 	var out strings.Builder
 	rest := template
 	for {
@@ -151,10 +163,14 @@ func fill(template string, meta map[string]any) (string, bool) {
 		end := strings.IndexByte(after, '}')
 		if end >= 0 && isPlaceholderName(after[:end]) {
 			v, ok := meta[after[:end]]
-			if !ok {
+			switch {
+			case ok:
+				out.WriteString(display(v))
+			case strict:
 				return "", false
+			default:
+				out.WriteString(rest[open : open+end+2])
 			}
-			out.WriteString(display(v))
 			rest = after[end+1:]
 		} else {
 			out.WriteByte('{')
