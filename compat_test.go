@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kawasima/raoh-go"
-	"github.com/kawasima/raoh-go/encode"
+	"github.com/raoh-project/raoh-go"
+	"github.com/raoh-project/raoh-go/encode"
 )
 
 // out turns a decoder's output into the JSON value the Java counterpart's

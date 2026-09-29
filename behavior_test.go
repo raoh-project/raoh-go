@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kawasima/raoh-go"
+	"github.com/raoh-project/raoh-go"
 )
 
 func decodeJSON[T any](t *testing.T, d raoh.DecoderOf[T], text string) (T, []raoh.Issue) {

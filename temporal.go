@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kawasima/raoh-go/internal/javatime"
+	"github.com/raoh-project/raoh-go/internal/javatime"
 )
 
 // The ISO 8601 text forms the temporal decoders accept, as Raoh for Java's

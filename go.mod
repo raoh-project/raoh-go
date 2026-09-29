@@ -1,3 +1,3 @@
-module github.com/kawasima/raoh-go
+module github.com/raoh-project/raoh-go
 
 go 1.27

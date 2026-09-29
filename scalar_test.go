@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kawasima/raoh-go"
+	"github.com/raoh-project/raoh-go"
 )
 
 // The same sets as Raoh for Java's StringDecoderTest: Unicode White_Space,

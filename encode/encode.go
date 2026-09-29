@@ -28,8 +28,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/kawasima/raoh-go"
-	"github.com/kawasima/raoh-go/internal/javatime"
+	"github.com/raoh-project/raoh-go"
+	"github.com/raoh-project/raoh-go/internal/javatime"
 )
 
 // Encoder turns a T into its boundary representation O.

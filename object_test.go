@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kawasima/raoh-go"
+	"github.com/raoh-project/raoh-go"
 )
 
 type Email string

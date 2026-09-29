@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kawasima/raoh-go"
+	"github.com/raoh-project/raoh-go"
 )
 
 func ExampleObject() {

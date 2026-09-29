@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kawasima/raoh-go"
-	"github.com/kawasima/raoh-go/encode"
+	"github.com/raoh-project/raoh-go"
+	"github.com/raoh-project/raoh-go/encode"
 )
 
 type Email struct{ value string }

@@ -24,7 +24,7 @@ The only dependency is the standard library. Go 1.27 or later is required, for g
 ## Installation
 
 ```sh
-go get github.com/kawasima/raoh-go
+go get github.com/raoh-project/raoh-go
 ```
 
 ## Quick start
