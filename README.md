@@ -110,6 +110,8 @@ same:
 - a number: `json.Number`, or a value of any integer or float type, named types such as
   `time.Duration` included
 - an array: a value of any type whose underlying type is `[]any`
+- bytes: a value of any type whose underlying type is `[]byte`, which only `raoh.Bytes()` reads;
+  `DecodeJSON` never gives one
 - an object: a value of any type whose underlying type is `map[string]any`, or a
   `*raoh.JSONObject`; `raoh.AsObject` reads either
 
@@ -246,8 +248,16 @@ is `type_mismatch` under `type_mismatch.numeric_range`. Issues name the type in 
 for Java names the type of the same width: `integer` for 32 bits and `long` for 64, so a Go `int`
 is a `long`.
 
-`raoh.Float64()`: `Min`, `Max`, `Range`, `Positive`, `Negative`, `NonNegative`, `NonPositive`,
-`OneOf`.
+`raoh.Float64()` and `raoh.Float32()`: `Min`, `Max`, `Range`, `Positive`, `Negative`, `NonNegative`,
+`NonPositive`, `OneOf`. A number beyond the range of the type is `type_mismatch` under
+`type_mismatch.numeric_range`, with `expected` `double` or `float`. Constraints compare as Java's
+`Double.compare` and `Float.compare` do, so `-0` is below `0` and `NaN` is above every other value,
+and `Range` panics when `min` is above `max`. A `Float32` reads a decimal in JSON text as a double
+first and rounds that to a float, as Raoh for Java does.
+
+`raoh.Bytes()` reads a `[]byte` handed to the decoder as a Go value, such as a binary column read
+from a database, and returns it without copying. JSON text is never read as bytes: a JSON array or a
+Base64 string is not one.
 
 `raoh.DecimalNumber()`: the numeric constraints plus `MultipleOf` and `Scale`, decoding into
 `raoh.Decimal`, which holds a number as written as Java's `BigDecimal` does: `1.20` keeps its
@@ -373,6 +383,8 @@ body, err := json.Marshal(userEncoder.Encode(user))
 - `Property`, `NullableProperty` (writes `null` for `nil`), `OptionalProperty` (leaves the member
   out for `nil`) and `PresenceProperty` are the counterparts of a field, `raoh.Nullable`,
   `raoh.Optional` and `raoh.PresenceOf`, so what one decodes the other writes back.
+  `PropertyWithDefault` writes a default, encoded like any other value, for `nil` instead of
+  `null`; `PropertyWithDefaultFunc` makes the default only when `nil` calls for it.
 - `Object`, `List`, `Dict`, `Lazy` and `Discriminate` are the counterparts of the decoders of the
   same name. `Discriminate` picks the variant by the value's dynamic type and writes its tag.
 - `String`, `Int` and the other scalars give a value as it is; `Decimal` gives a `json.Number`

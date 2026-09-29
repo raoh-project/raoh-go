@@ -3050,5 +3050,313 @@
     "input": [
       1
     ]
+  },
+  {
+    "decoder": "float",
+    "input": 1.5
+  },
+  {
+    "decoder": "float",
+    "input": 2
+  },
+  {
+    "decoder": "float",
+    "input": 0.1
+  },
+  {
+    "decoder": "float",
+    "input": 16777217
+  },
+  {
+    "decoder": "float",
+    "input": -16777217
+  },
+  {
+    "decoder": "float",
+    "input": "1.0"
+  },
+  {
+    "decoder": "float",
+    "input": null
+  },
+  {
+    "decoder": "float",
+    "input": true
+  },
+  {
+    "decoder": "float",
+    "input": [
+      1
+    ]
+  },
+  {
+    "decoder": "float",
+    "input_json": "1e40"
+  },
+  {
+    "decoder": "float",
+    "input_json": "-1e40"
+  },
+  {
+    "decoder": "float",
+    "input_json": "3.4028235e38"
+  },
+  {
+    "decoder": "float",
+    "input_json": "3.4028236e38"
+  },
+  {
+    "decoder": "float",
+    "input_json": "1e-50"
+  },
+  {
+    "decoder": "float",
+    "input_json": "-0"
+  },
+  {
+    "decoder": "float",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "float",
+    "input_json": "0.0"
+  },
+  {
+    "decoder": "float",
+    "input_json": "1.00000005960464477539062501"
+  },
+  {
+    "decoder": "float",
+    "input_json": "123456789012345678901234567890"
+  },
+  {
+    "decoder": "float",
+    "input_json": "1e400"
+  },
+  {
+    "decoder": "float",
+    "input_json": "-1e400"
+  },
+  {
+    "decoder": "float",
+    "input_json": "16777217"
+  },
+  {
+    "decoder": "float",
+    "input_json": "33554435"
+  },
+  {
+    "decoder": "float",
+    "input_json": "0.1"
+  },
+  {
+    "decoder": "float",
+    "input_json": "1E2"
+  },
+  {
+    "decoder": "double",
+    "input_json": "-0"
+  },
+  {
+    "decoder": "double",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "double",
+    "input_json": "1e400"
+  },
+  {
+    "decoder": "double",
+    "input_json": "-1e400"
+  },
+  {
+    "decoder": "double",
+    "input_json": "123456789012345678901234567890"
+  },
+  {
+    "decoder": "double",
+    "input_json": "1e308"
+  },
+  {
+    "decoder": "double",
+    "input_json": "0.1"
+  },
+  {
+    "decoder": "float_positive",
+    "input": 0
+  },
+  {
+    "decoder": "float_positive",
+    "input": 0.5
+  },
+  {
+    "decoder": "float_positive",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "float_negative",
+    "input": 0.5
+  },
+  {
+    "decoder": "float_negative",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "float_negative",
+    "input": 0
+  },
+  {
+    "decoder": "float_non_negative",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "float_non_negative",
+    "input": -1
+  },
+  {
+    "decoder": "float_non_negative",
+    "input": 0
+  },
+  {
+    "decoder": "float_non_positive",
+    "input_json": "0.0"
+  },
+  {
+    "decoder": "float_non_positive",
+    "input": 1
+  },
+  {
+    "decoder": "float_non_positive",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "float_range",
+    "input": 2.0
+  },
+  {
+    "decoder": "float_range",
+    "input": 1
+  },
+  {
+    "decoder": "float_range",
+    "input": 0.25
+  },
+  {
+    "decoder": "float_min",
+    "input": 0.25
+  },
+  {
+    "decoder": "float_min",
+    "input": 0.5
+  },
+  {
+    "decoder": "float_max",
+    "input": 2
+  },
+  {
+    "decoder": "float_max",
+    "input": 1.5
+  },
+  {
+    "decoder": "float_one_of",
+    "input": 3.0
+  },
+  {
+    "decoder": "float_one_of",
+    "input": 1
+  },
+  {
+    "decoder": "float_one_of_zero",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "float_one_of_zero",
+    "input_json": "0.0"
+  },
+  {
+    "decoder": "float_min_tenth",
+    "input": 0.05
+  },
+  {
+    "decoder": "float_min_tenth",
+    "input_json": "0.1"
+  },
+  {
+    "decoder": "float_min_1e7",
+    "input": 1
+  },
+  {
+    "decoder": "float_max_small",
+    "input": 1
+  },
+  {
+    "decoder": "double_negative",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "double_non_negative",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "double_non_positive",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "double_one_of_zero",
+    "input_json": "-0.0"
+  },
+  {
+    "decoder": "double_negative",
+    "input_json": "0.0"
+  },
+  {
+    "decoder": "double_non_negative",
+    "input_json": "0.0"
+  },
+  {
+    "decoder": "double_non_positive",
+    "input_json": "0.0"
+  },
+  {
+    "decoder": "double_one_of_zero",
+    "input_json": "0.0"
+  },
+  {
+    "decoder": "double_non_negative",
+    "input": -1
+  },
+  {
+    "decoder": "double_non_positive",
+    "input": 1
+  },
+  {
+    "decoder": "property_with_default",
+    "input": null
+  },
+  {
+    "decoder": "property_with_default",
+    "input": "hello"
+  },
+  {
+    "decoder": "property_with_default",
+    "input": 1
+  },
+  {
+    "decoder": "bytes",
+    "input_bytes": [
+      0,
+      1,
+      127,
+      128,
+      255
+    ]
+  },
+  {
+    "decoder": "bytes",
+    "input_bytes": []
+  },
+  {
+    "decoder": "bytes",
+    "input_bytes": null
   }
 ]

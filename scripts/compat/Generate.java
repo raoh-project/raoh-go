@@ -23,6 +23,9 @@ import net.unit8.raoh.Presence;
 import net.unit8.raoh.Result;
 import net.unit8.raoh.decode.Decoder;
 import net.unit8.raoh.decode.Decoders;
+import net.unit8.raoh.decode.ObjectDecoders;
+import net.unit8.raoh.encode.MapEncoders;
+import net.unit8.raoh.encode.ObjectEncoders;
 import net.unit8.raoh.decode.combinator.CombinePart;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -100,6 +103,26 @@ public class Generate {
             case "double_min_1e7" -> double_().min(1e7);
             case "double_max_small" -> double_().max(1e-4);
             case "double_one_of_big" -> double_().oneOf(1e7, 0.5);
+            case "double_non_negative" -> double_().nonNegative();
+            case "double_non_positive" -> double_().nonPositive();
+            case "double_one_of_zero" -> double_().oneOf(0.0);
+
+            case "float" -> float_();
+            case "float_positive" -> float_().positive();
+            case "float_negative" -> float_().negative();
+            case "float_non_negative" -> float_().nonNegative();
+            case "float_non_positive" -> float_().nonPositive();
+            case "float_range" -> float_().range(0.5f, 1.5f);
+            case "float_min" -> float_().min(0.5f);
+            case "float_max" -> float_().max(1.5f);
+            case "float_one_of" -> float_().oneOf(2.0f, 1.0f);
+            case "float_one_of_zero" -> float_().oneOf(0.0f);
+            case "float_min_tenth" -> float_().min(0.1f);
+            case "float_min_1e7" -> float_().min(1e7f);
+            case "float_max_small" -> float_().max(1e-4f);
+            case "property_with_default" -> nullable(string()).map(v ->
+                    MapEncoders.<String>object(MapEncoders.<String, String>propertyWithDefault(
+                            "value", s -> s, ObjectEncoders.string(), "default")).encode(v));
 
             case "decimal" -> decimal();
             case "decimal_scale_2" -> decimal().scale(2);
@@ -230,6 +253,19 @@ public class Generate {
         };
     }
 
+    // A decoder that reads a Java value rather than JSON, as a JDBC column is read.
+    static Decoder<Object, ?> objectDecoder(String name) {
+        return switch (name) {
+            // A Java byte is signed; the bytes are written as the unsigned numbers the case lists.
+            case "bytes" -> ObjectDecoders.bytes().map(b -> {
+                var numbers = new ArrayList<Integer>();
+                for (byte v : b) numbers.add(v & 0xff);
+                return numbers;
+            });
+            default -> throw new IllegalArgumentException("no decoder " + name);
+        };
+    }
+
     static Decoder<JsonNode, List<Object>> contactDecoder() {
         return combine(field("email", string()), field("phone", string()))
                 .map((e, p) -> List.of(e, p));
@@ -259,15 +295,30 @@ public class Generate {
             var name = c.get("decoder").asString();
             // A number whose text matters, such as -0, is given as the JSON text to read.
             var text = c.get("input_json");
+            var bytes = c.get("input_bytes");
             var input = text != null ? MAPPER.readTree(text.asString()) : c.get("input");
             var result = new LinkedHashMap<String, Object>();
             result.put("decoder", name);
-            if (text != null) {
+            if (bytes != null) {
+                result.put("input_bytes", bytes);
+            } else if (text != null) {
                 result.put("input_json", text.asString());
             } else {
                 result.put("input", input);
             }
-            Result<?> r = decoder(name).decode(input);
+            Result<?> r;
+            if (bytes != null) {
+                // Bytes are not JSON: null is null, and a list of unsigned numbers is a byte[].
+                Object in = null;
+                if (!bytes.isNull()) {
+                    var array = new byte[bytes.size()];
+                    for (int n = 0; n < array.length; n++) array[n] = (byte) bytes.get(n).asInt();
+                    in = array;
+                }
+                r = objectDecoder(name).decode(in);
+            } else {
+                r = decoder(name).decode(input);
+            }
             switch (r) {
                 case Ok<?> ok -> result.put("ok", ok.value());
                 case Err<?> err -> {

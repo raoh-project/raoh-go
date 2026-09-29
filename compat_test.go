@@ -197,6 +197,41 @@ func compatDecoder(name string) func([]byte) (any, error) {
 		return out(raoh.Float64().Max(1e-4), same)
 	case "double_one_of_big":
 		return out(raoh.Float64().OneOf(1e7, 0.5), same)
+	case "double_non_negative":
+		return out(raoh.Float64().NonNegative(), same)
+	case "double_non_positive":
+		return out(raoh.Float64().NonPositive(), same)
+	case "double_one_of_zero":
+		return out(raoh.Float64().OneOf(0.0), same)
+	case "float":
+		return out(raoh.Float32(), same)
+	case "float_positive":
+		return out(raoh.Float32().Positive(), same)
+	case "float_negative":
+		return out(raoh.Float32().Negative(), same)
+	case "float_non_negative":
+		return out(raoh.Float32().NonNegative(), same)
+	case "float_non_positive":
+		return out(raoh.Float32().NonPositive(), same)
+	case "float_range":
+		return out(raoh.Float32().Range(0.5, 1.5), same)
+	case "float_min":
+		return out(raoh.Float32().Min(0.5), same)
+	case "float_max":
+		return out(raoh.Float32().Max(1.5), same)
+	case "float_one_of":
+		return out(raoh.Float32().OneOf(2.0, 1.0), same)
+	case "float_one_of_zero":
+		return out(raoh.Float32().OneOf(0.0), same)
+	case "float_min_tenth":
+		return out(raoh.Float32().Min(0.1), same)
+	case "float_min_1e7":
+		return out(raoh.Float32().Min(1e7), same)
+	case "float_max_small":
+		return out(raoh.Float32().Max(1e-4), same)
+	case "property_with_default":
+		enc := encode.Object(encode.PropertyWithDefault("value", func(p *string) *string { return p }, encode.String(), "default"))
+		return out(raoh.Nullable(s()), func(p *string) any { return enc(p) })
 
 	case "decimal":
 		return out(raoh.DecimalNumber(), same)
@@ -389,6 +424,44 @@ func compatDecoder(name string) func([]byte) (any, error) {
 	return nil
 }
 
+// compatNative is the Go counterpart of a Java decoder that reads a Go value
+// rather than JSON: it is given the input as the Java oracle was.
+func compatNative(name string) func(any) (any, error) {
+	switch name {
+	case "bytes":
+		return func(in any) (any, error) {
+			b, err := raoh.Bytes().Decode(in)
+			if err != nil {
+				return nil, err
+			}
+			// Bytes as the unsigned numbers the Java oracle writes them as.
+			numbers := make([]any, len(b))
+			for i, v := range b {
+				numbers[i] = int(v)
+			}
+			return numbers, nil
+		}
+	}
+	return nil
+}
+
+// nativeInput is the input of a case given as a byte slice, the JSON null as
+// nil, from the unsigned numbers the case lists.
+func nativeInput(raw json.RawMessage) (any, error) {
+	var numbers []int
+	if err := json.Unmarshal(raw, &numbers); err != nil {
+		return nil, err
+	}
+	if numbers == nil {
+		return nil, nil
+	}
+	b := make([]byte, len(numbers))
+	for i, n := range numbers {
+		b[i] = byte(n)
+	}
+	return b, nil
+}
+
 // outcome is what a case gives, as JSON: {"ok": output} or {"issues": [...]}.
 func outcome(v any, err error) (any, error) {
 	if err == nil {
@@ -452,8 +525,10 @@ type compatCase struct {
 	Decoder   string          `json:"decoder"`
 	Input     json.RawMessage `json:"input"`
 	InputJSON *string         `json:"input_json"`
-	Ok        json.RawMessage `json:"ok"`
-	Issues    json.RawMessage `json:"issues"`
+	// InputBytes is an input that is not JSON: bytes, given as unsigned numbers.
+	InputBytes json.RawMessage `json:"input_bytes"`
+	Ok         json.RawMessage `json:"ok"`
+	Issues     json.RawMessage `json:"issues"`
 }
 
 func TestEveryCaseGivesWhatRaohForJavaGives(t *testing.T) {
@@ -474,6 +549,28 @@ func TestEveryCaseGivesWhatRaohForJavaGives(t *testing.T) {
 		input := []byte(c.Input)
 		if c.InputJSON != nil {
 			input = []byte(*c.InputJSON)
+		}
+		if c.InputBytes != nil {
+			native := compatNative(c.Decoder)
+			if native == nil {
+				skipped = append(skipped, c.Decoder)
+				continue
+			}
+			in, err := nativeInput(c.InputBytes)
+			if err != nil {
+				t.Fatalf("%s %s: %v", c.Decoder, c.InputBytes, err)
+			}
+			java := `{"issues": ` + string(c.Issues) + `}`
+			if c.Ok != nil {
+				java = `{"ok": ` + string(c.Ok) + `}`
+			}
+			got, err := outcome(native(in))
+			if err != nil {
+				t.Errorf("%s %s: %v", c.Decoder, c.InputBytes, err)
+			} else if wanted := canonicalJSON(t, java); !reflect.DeepEqual(canonical(got), wanted) {
+				mismatches = append(mismatches, fmt.Sprintf("%s %s\n  want: %v\n  go:   %v", c.Decoder, c.InputBytes, wanted, canonical(got)))
+			}
+			continue
 		}
 		decode := compatDecoder(c.Decoder)
 		if decode == nil {
@@ -560,7 +657,10 @@ func canonical(v any) any {
 		n.float = true
 		return n
 	case float32:
-		return canonical(float64(x))
+		// The shortest decimal that reads back as the float, as Java writes a float.
+		n := numText(strconv.FormatFloat(float64(x), 'g', -1, 32))
+		n.float = true
+		return n
 	case json.Marshaler:
 		text, err := x.MarshalJSON()
 		if err != nil {

@@ -212,7 +212,7 @@ func display(v any) string {
 	case float64:
 		return doubleToString(x)
 	case float32:
-		return doubleToString(float64(x))
+		return floatToString(x)
 	case json.Number:
 		return string(x)
 	case Decimal:
@@ -226,7 +226,9 @@ func display(v any) string {
 		return strconv.FormatInt(rv.Int(), 10)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return strconv.FormatUint(rv.Uint(), 10)
-	case reflect.Float32, reflect.Float64:
+	case reflect.Float32:
+		return floatToString(float32(rv.Float()))
+	case reflect.Float64:
 		return doubleToString(rv.Float())
 	case reflect.Slice, reflect.Array:
 		items := make([]string, rv.Len())

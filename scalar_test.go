@@ -2,6 +2,7 @@ package raoh_test
 
 import (
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/raoh-project/raoh-go"
@@ -66,5 +67,79 @@ func TestTrimStripsExactlyUnicodeWhiteSpace(t *testing.T) {
 	}
 	if v, _ := d.Decode("\u3000\U0001F600\u00A0"); v != "\U0001F600" {
 		t.Errorf("%q", v)
+	}
+}
+
+func TestFloat32ReadsNumbersAsRaohForJavaDoes(t *testing.T) {
+	nan := float32(math.NaN())
+	if v, err := raoh.Float32().Decode(float64(math.NaN())); err != nil || v == v {
+		t.Errorf("NaN is read: %v, %v", v, err)
+	}
+	if _, err := raoh.Float32().Range(0, 1).Decode(nan); codeOf(t, err) != raoh.CodeOutOfRange {
+		t.Errorf("a range rejects NaN: %v", err)
+	}
+	if _, err := raoh.Float32().Max(1).Decode(nan); codeOf(t, err) != raoh.CodeOutOfRange {
+		t.Errorf("NaN is above every value: %v", err)
+	}
+	if _, err := raoh.Float32().OneOf(nan).Decode(nan); err != nil {
+		t.Errorf("NaN is one of NaN, as Float.equals has it: %v", err)
+	}
+	for _, in := range []any{math.Inf(1), float32(math.Inf(-1)), math.MaxFloat64} {
+		_, err := raoh.Float32().Decode(in)
+		issues, _ := errors.AsType[*raoh.Issues](err)
+		if issues == nil || issues.All()[0].MessageKey() != raoh.KeyTypeMismatchNumericRange {
+			t.Errorf("%v: %v", in, err)
+		}
+	}
+	if _, err := raoh.Float64().Decode(math.Inf(1)); err == nil {
+		t.Error("Float64 reads an infinity")
+	}
+	if v, err := raoh.Float32().Decode(int64(16777217)); err != nil || v != 16777216 {
+		t.Errorf("16777217 is %v, %v", v, err)
+	}
+}
+
+func TestFloatRangePanicsWhenMinIsAboveMax(t *testing.T) {
+	for name, f := range map[string]func(){
+		"float32": func() { raoh.Float32().Range(2, 1) },
+		"float64": func() { raoh.Float64().Range(2, 1) },
+	} {
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("%s: no panic", name)
+				}
+			}()
+			f()
+		}()
+	}
+	raoh.Float64().Range(math.Copysign(0, -1), 0)
+}
+
+func TestBytesReadsAByteSliceAsItIs(t *testing.T) {
+	type Blob []byte
+	in := Blob{1, 2, 3}
+	got, err := raoh.Bytes().Decode(in)
+	if err != nil || len(got) != 3 || &got[0] != &in[0] {
+		t.Errorf("a named []byte is read without a copy: %v, %v", got, err)
+	}
+	if _, err := raoh.Bytes().Decode(nil); codeOf(t, err) != raoh.CodeRequired {
+		t.Errorf("nil: %v", err)
+	}
+	for _, c := range []struct {
+		in     any
+		actual string
+	}{{"abc", "string"}, {1, "number"}, {[]any{1.0}, "array"}} {
+		_, err := raoh.Bytes().Decode(c.in)
+		issues, _ := errors.AsType[*raoh.Issues](err)
+		if issues == nil || issues.All()[0].Meta()["expected"] != "byte[]" || issues.All()[0].Meta()["actual"] != c.actual {
+			t.Errorf("%v: %v", c.in, err)
+		}
+	}
+	if _, err := raoh.Int().Decode([]byte{1}); err == nil {
+		t.Error("bytes are not a number")
+	}
+	if _, err := raoh.DecodeJSON([]byte(`[1,2,3]`), raoh.Bytes()); err == nil {
+		t.Error("a JSON array is not bytes")
 	}
 }

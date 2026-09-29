@@ -25,6 +25,8 @@ import (
 //   - a number: json.Number, or a value of any integer or float type, named
 //     types such as time.Duration included
 //   - an array: a value of any type whose underlying type is []any
+//   - bytes: a value of any type whose underlying type is []byte, which only
+//     [Bytes] reads; DecodeJSON never gives one
 //   - an object: a value of any type whose underlying type is map[string]any,
 //     or a *JSONObject, which DecodeJSON gives to keep the members in the order
 //     written; [AsObject] reads either
@@ -113,14 +115,15 @@ func isNull(v any) bool {
 }
 
 var (
-	anySlice = reflect.TypeFor[[]any]()
-	anyMap   = reflect.TypeFor[map[string]any]()
+	anySlice  = reflect.TypeFor[[]any]()
+	byteSlice = reflect.TypeFor[[]byte]()
+	anyMap    = reflect.TypeFor[map[string]any]()
 )
 
 // plain returns v as a value of the predeclared type the input model reads it
 // as: a named boolean, string or number type as bool, string, int64, uint64,
-// float32 or float64, and a named []any or map[string]any as the unnamed
-// type. Any other value is returned as it is.
+// float32 or float64, and a named []byte, []any or map[string]any as the
+// unnamed type. Any other value is returned as it is.
 func plain(v any) any {
 	switch v.(type) {
 	case nil, missingValue, bool, string, json.Number,
@@ -143,6 +146,9 @@ func plain(v any) any {
 	case reflect.Float64:
 		return rv.Float()
 	case reflect.Slice:
+		if rv.Type().ConvertibleTo(byteSlice) {
+			return rv.Convert(byteSlice).Interface()
+		}
 		if rv.Type().ConvertibleTo(anySlice) {
 			return rv.Convert(anySlice).Interface()
 		}
@@ -170,6 +176,8 @@ func kind(v any) string {
 		return "number"
 	case []any:
 		return "array"
+	case []byte:
+		return "byte[]"
 	case *JSONObject, map[string]any:
 		return "object"
 	}
