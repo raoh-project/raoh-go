@@ -26,20 +26,6 @@ const (
 	NFKD
 )
 
-func (f NormalForm) String() string {
-	switch f {
-	case NFC:
-		return "NFC"
-	case NFD:
-		return "NFD"
-	case NFKC:
-		return "NFKC"
-	case NFKD:
-		return "NFKD"
-	}
-	return fmt.Sprintf("NormalForm(%d)", int(f))
-}
-
 // Normalize converts to Unicode normalization form NFC, as Raoh for Java's
 // normalize does: a character written as a base and combining marks becomes
 // the single character where there is one, so that the same text compares
@@ -68,7 +54,7 @@ func (d StringDecoder) NormalizeAs(f NormalForm) StringDecoder {
 	case NFKD:
 		form = norm.NFKD
 	default:
-		panic(fmt.Sprintf("raoh: invalid %v", f))
+		panic(fmt.Sprintf("raoh: invalid NormalForm(%d)", int(f)))
 	}
 	return newString(d.s.transform(func(v string) string { return norm.String(form, v) }))
 }

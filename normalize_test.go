@@ -59,11 +59,3 @@ func TestNormalizeAsRefusesAnUnknownForm(t *testing.T) {
 		}()
 	}
 }
-
-func TestNormalFormString(t *testing.T) {
-	for f, want := range map[raoh.NormalForm]string{raoh.NFC: "NFC", raoh.NFD: "NFD", raoh.NFKC: "NFKC", raoh.NFKD: "NFKD", 7: "NormalForm(7)"} {
-		if got := f.String(); got != want {
-			t.Errorf("%d is %q, want %q", int(f), got, want)
-		}
-	}
-}

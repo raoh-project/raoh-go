@@ -383,4 +383,6 @@ need Java 25; the first also needs Maven.
 
 ## License
 
-Apache License 2.0
+Apache License 2.0. The Unicode data the normalization and case mapping are built from, and
+the Unicode Consortium's test file that holds them to Unicode, are under the Unicode License; see
+[THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
