@@ -107,7 +107,7 @@ func (o *JSONObject) MarshalJSONTo(enc *jsontext.Encoder) error {
 		return err
 	}
 	for _, name := range o.names {
-		if err := jsonv2.MarshalEncode(enc, name); err != nil {
+		if err := enc.WriteToken(jsontext.String(name)); err != nil {
 			return err
 		}
 		if err := jsonv2.MarshalEncode(enc, o.values[name]); err != nil {
