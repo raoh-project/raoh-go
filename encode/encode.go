@@ -33,6 +33,14 @@ import (
 	"github.com/raoh-project/raoh-go/internal/javatime"
 )
 
+// requireArgument panics, when an encoder is built, if a function or encoder
+// it is given is nil: the encoder would call it and panic, whatever the value.
+func requireArgument(ok bool, constructor, argument string) {
+	if !ok {
+		panic(fmt.Sprintf("raoh/encode: %s needs %s that is not nil", constructor, argument))
+	}
+}
+
 // Encoder turns a T into its boundary representation O.
 type Encoder[T, O any] func(T) O
 
@@ -42,11 +50,13 @@ func (e Encoder[T, O]) Encode(v T) O { return e(v) }
 // Contramap returns an encoder of S that turns an S into a T with f and
 // encodes that, such as the value a domain type wraps.
 func (e Encoder[T, O]) Contramap[S any](f func(S) T) Encoder[S, O] {
+	requireArgument(f != nil, "Encoder.Contramap", "f")
 	return func(v S) O { return e(f(v)) }
 }
 
 // AndThen returns an encoder that hands what e gives to next.
 func (e Encoder[T, O]) AndThen[P any](next Encoder[O, P]) Encoder[T, P] {
+	requireArgument(next != nil, "Encoder.AndThen", "next")
 	return func(v T) P { return next(e(v)) }
 }
 
@@ -148,6 +158,8 @@ type Entry[T any] func(v T, out map[string]any)
 // Property writes the member key: what get reads from the value, encoded
 // with enc. It is the counterpart of a field read by a decoder.
 func Property[T, V, O any](key string, get func(T) V, enc Encoder[V, O]) Entry[T] {
+	requireArgument(get != nil, "Property", "get")
+	requireArgument(enc != nil, "Property", "enc")
 	return func(v T, out map[string]any) { out[key] = enc(get(v)) }
 }
 
@@ -155,6 +167,8 @@ func Property[T, V, O any](key string, get func(T) V, enc Encoder[V, O]) Entry[T
 // otherwise what it points to, encoded with enc. It is the counterpart of a
 // field read with raoh.Nullable.
 func NullableProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]) Entry[T] {
+	requireArgument(get != nil, "NullableProperty", "get")
+	requireArgument(enc != nil, "NullableProperty", "enc")
 	return func(v T, out map[string]any) {
 		if p := get(v); p != nil {
 			out[key] = enc(*p)
@@ -168,6 +182,8 @@ func NullableProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]
 // otherwise writes what it points to, encoded with enc. It is the counterpart
 // of a field read with raoh.Optional.
 func OptionalProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]) Entry[T] {
+	requireArgument(get != nil, "OptionalProperty", "get")
+	requireArgument(enc != nil, "OptionalProperty", "enc")
 	return func(v T, out map[string]any) {
 		if p := get(v); p != nil {
 			out[key] = enc(*p)
@@ -180,6 +196,8 @@ func OptionalProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]
 // It is the counterpart of Raoh for Java's MapEncoders.propertyWithDefault, and
 // of a field read with a decoder's Default or DefaultFunc.
 func PropertyWithDefault[T, V, O any](key string, get func(T) *V, enc Encoder[V, O], defaultValue V) Entry[T] {
+	requireArgument(get != nil, "PropertyWithDefault", "get")
+	requireArgument(enc != nil, "PropertyWithDefault", "enc")
 	return PropertyWithDefaultFunc(key, get, enc, func() V { return defaultValue })
 }
 
@@ -187,6 +205,9 @@ func PropertyWithDefault[T, V, O any](key string, get func(T) *V, enc Encoder[V,
 // when it is needed: defaultValue is called once for each value get gives nil
 // for, and not called for any other.
 func PropertyWithDefaultFunc[T, V, O any](key string, get func(T) *V, enc Encoder[V, O], defaultValue func() V) Entry[T] {
+	requireArgument(get != nil, "PropertyWithDefaultFunc", "get")
+	requireArgument(enc != nil, "PropertyWithDefaultFunc", "enc")
+	requireArgument(defaultValue != nil, "PropertyWithDefaultFunc", "defaultValue")
 	return func(v T, out map[string]any) {
 		if p := get(v); p != nil {
 			out[key] = enc(*p)
@@ -201,6 +222,8 @@ func PropertyWithDefaultFunc[T, V, O any](key string, get func(T) *V, enc Encode
 // enc. It is the counterpart of a field read with raoh.PresenceOf, so such a
 // member round-trips without loss.
 func PresenceProperty[T, V, O any](key string, get func(T) raoh.Presence[V], enc Encoder[V, O]) Entry[T] {
+	requireArgument(get != nil, "PresenceProperty", "get")
+	requireArgument(enc != nil, "PresenceProperty", "enc")
 	return func(v T, out map[string]any) {
 		p := get(v)
 		if value, ok := p.Value(); ok {
@@ -214,6 +237,9 @@ func PresenceProperty[T, V, O any](key string, get func(T) raoh.Presence[V], enc
 // Object returns the encoder of a value as an object, with the members each
 // entry writes. It is the counterpart of raoh.Object.
 func Object[T any](entries ...Entry[T]) Encoder[T, map[string]any] {
+	for _, e := range entries {
+		requireArgument(e != nil, "Object", "each entry")
+	}
 	return func(v T) map[string]any {
 		out := map[string]any{}
 		for _, e := range entries {
@@ -226,6 +252,7 @@ func Object[T any](entries ...Entry[T]) Encoder[T, map[string]any] {
 // List returns the encoder of a slice, each element encoded with element. It
 // is the counterpart of raoh.List.
 func List[T, O any](element Encoder[T, O]) Encoder[[]T, []any] {
+	requireArgument(element != nil, "List", "element")
 	return func(values []T) []any {
 		out := make([]any, len(values))
 		for i, v := range values {
@@ -238,6 +265,7 @@ func List[T, O any](element Encoder[T, O]) Encoder[[]T, []any] {
 // Dict returns the encoder of a map, each value encoded with value. It is the
 // counterpart of raoh.Dict.
 func Dict[V, O any](value Encoder[V, O]) Encoder[map[string]V, map[string]any] {
+	requireArgument(value != nil, "Dict", "value")
 	return func(values map[string]V) map[string]any {
 		out := make(map[string]any, len(values))
 		for k, v := range values {
@@ -250,6 +278,7 @@ func Dict[V, O any](value Encoder[V, O]) Encoder[map[string]V, map[string]any] {
 // Lazy returns an encoder that calls f each time it encodes and encodes with
 // what it returns. It lets an encoder refer to itself.
 func Lazy[T, O any](f func() Encoder[T, O]) Encoder[T, O] {
+	requireArgument(f != nil, "Lazy", "f")
 	return func(v T) O { return f()(v) }
 }
 
@@ -263,6 +292,7 @@ type variant struct {
 // Variant returns the choice of Discriminate for the values of the concrete
 // type S: the tag it writes and the encoder of the rest of the object.
 func Variant[S any](tag string, enc Encoder[S, map[string]any]) variant {
+	requireArgument(enc != nil, "Variant", "enc")
 	return variant{reflect.TypeFor[S](), tag, func(v any) map[string]any { return enc(v.(S)) }}
 }
 

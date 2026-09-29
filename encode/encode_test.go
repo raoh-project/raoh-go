@@ -2,6 +2,7 @@ package encode_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"reflect"
 	"testing"
@@ -257,5 +258,51 @@ func TestPropertyWithDefaultFuncMakesTheDefaultOnlyForNil(t *testing.T) {
 	}
 	if got := enc(nil); !reflect.DeepEqual(got, map[string]any{"v": 7}) || calls != 1 {
 		t.Errorf("nil: %v after %d calls", got, calls)
+	}
+}
+
+func panicText(f func()) (text string) {
+	defer func() {
+		if r := recover(); r != nil {
+			text = fmt.Sprint(r)
+		}
+	}()
+	f()
+	return ""
+}
+
+// A function or encoder an encode would call is refused when the encoder is
+// built, with a message that names the constructor and the argument.
+func TestANilArgumentIsRefusedWhenTheEncoderIsBuilt(t *testing.T) {
+	get := func(int) int { return 0 }
+	getPtr := func(int) *int { return nil }
+	e := encode.Int()
+	var none encode.Encoder[int, int]
+	tests := []struct {
+		build func()
+		want  string
+	}{
+		{func() { e.Contramap[int](nil) }, "raoh/encode: Encoder.Contramap needs f that is not nil"},
+		{func() { e.AndThen(none) }, "raoh/encode: Encoder.AndThen needs next that is not nil"},
+		{func() { encode.Property[int, int, int]("k", nil, e) }, "raoh/encode: Property needs get that is not nil"},
+		{func() { encode.Property("k", get, none) }, "raoh/encode: Property needs enc that is not nil"},
+		{func() { encode.NullableProperty[int, int, int]("k", nil, e) }, "raoh/encode: NullableProperty needs get that is not nil"},
+		{func() { encode.NullableProperty("k", getPtr, none) }, "raoh/encode: NullableProperty needs enc that is not nil"},
+		{func() { encode.OptionalProperty[int, int, int]("k", nil, e) }, "raoh/encode: OptionalProperty needs get that is not nil"},
+		{func() { encode.OptionalProperty("k", getPtr, none) }, "raoh/encode: OptionalProperty needs enc that is not nil"},
+		{func() { encode.PropertyWithDefault[int, int, int]("k", nil, e, 0) }, "raoh/encode: PropertyWithDefault needs get that is not nil"},
+		{func() { encode.PropertyWithDefault("k", getPtr, none, 0) }, "raoh/encode: PropertyWithDefault needs enc that is not nil"},
+		{func() { encode.PropertyWithDefaultFunc("k", getPtr, e, nil) }, "raoh/encode: PropertyWithDefaultFunc needs defaultValue that is not nil"},
+		{func() { encode.PresenceProperty[int, int, int]("k", nil, e) }, "raoh/encode: PresenceProperty needs get that is not nil"},
+		{func() { encode.Object[int](nil) }, "raoh/encode: Object needs each entry that is not nil"},
+		{func() { encode.List(none) }, "raoh/encode: List needs element that is not nil"},
+		{func() { encode.Dict(none) }, "raoh/encode: Dict needs value that is not nil"},
+		{func() { encode.Lazy[int, int](nil) }, "raoh/encode: Lazy needs f that is not nil"},
+		{func() { encode.Variant[int]("t", nil) }, "raoh/encode: Variant needs enc that is not nil"},
+	}
+	for _, tt := range tests {
+		if got := panicText(tt.build); got != tt.want {
+			t.Errorf("panic = %q, want %q", got, tt.want)
+		}
 	}
 }
