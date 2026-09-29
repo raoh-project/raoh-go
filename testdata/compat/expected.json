@@ -1565,6 +1565,584 @@
   "input" : "ﬁ",
   "ok" : "FI"
 }, {
+  "decoder" : "string_normalize",
+  "input" : "",
+  "ok" : ""
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "",
+  "ok" : ""
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "",
+  "ok" : ""
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "",
+  "ok" : ""
+}, {
+  "decoder" : "string_normalize",
+  "input" : "abc",
+  "ok" : "abc"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "abc",
+  "ok" : "abc"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "abc",
+  "ok" : "abc"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "abc",
+  "ok" : "abc"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "é",
+  "ok" : "é"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "q̣̇",
+  "ok" : "q̣̇"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "q̣̇",
+  "ok" : "q̣̇"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "q̣̇",
+  "ok" : "q̣̇"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "q̣̇",
+  "ok" : "q̣̇"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ạ́",
+  "ok" : "ạ́"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ạ́",
+  "ok" : "ạ́"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ạ́",
+  "ok" : "ạ́"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ạ́",
+  "ok" : "ạ́"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "á́",
+  "ok" : "á́"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "á́",
+  "ok" : "á́"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "á́",
+  "ok" : "á́"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "á́",
+  "ok" : "á́"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ậ",
+  "ok" : "ậ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ậ",
+  "ok" : "ậ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ậ",
+  "ok" : "ậ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ậ",
+  "ok" : "ậ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "Å",
+  "ok" : "Å"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "Å",
+  "ok" : "Å"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "Å",
+  "ok" : "Å"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "Å",
+  "ok" : "Å"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "각",
+  "ok" : "각"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ﬁ",
+  "ok" : "ﬁ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ﬁ",
+  "ok" : "ﬁ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ﬁ",
+  "ok" : "fi"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ﬁ",
+  "ok" : "fi"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "①",
+  "ok" : "①"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "①",
+  "ok" : "①"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "①",
+  "ok" : "1"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "①",
+  "ok" : "1"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ﷺ",
+  "ok" : "ﷺ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ﷺ",
+  "ok" : "ﷺ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ﷺ",
+  "ok" : "صلى الله عليه وسلم"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ﷺ",
+  "ok" : "صلى الله عليه وسلم"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "क़",
+  "ok" : "क़"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "क़",
+  "ok" : "क़"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "क़",
+  "ok" : "क़"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "क़",
+  "ok" : "क़"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ୋ",
+  "ok" : "ୋ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ୋ",
+  "ok" : "ୋ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ୋ",
+  "ok" : "ୋ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ୋ",
+  "ok" : "ୋ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ｶﾞ",
+  "ok" : "ｶﾞ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ｶﾞ",
+  "ok" : "ｶﾞ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ｶﾞ",
+  "ok" : "ガ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ｶﾞ",
+  "ok" : "ガ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "が",
+  "ok" : "が"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "が",
+  "ok" : "が"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "が",
+  "ok" : "が"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "が",
+  "ok" : "が"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ẛ̣",
+  "ok" : "ẛ̣"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ẛ̣",
+  "ok" : "ẛ̣"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ẛ̣",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ẛ̣",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "𝅗𝅥",
+  "ok" : "𝅗𝅥"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "𝅗𝅥",
+  "ok" : "𝅗𝅥"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "𝅗𝅥",
+  "ok" : "𝅗𝅥"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "𝅗𝅥",
+  "ok" : "𝅗𝅥"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "𝅗𝅥𝅥",
+  "ok" : "𝅗𝅥𝅥"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "𝅗𝅥𝅥",
+  "ok" : "𝅗𝅥𝅥"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "𝅗𝅥𝅥",
+  "ok" : "𝅗𝅥𝅥"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "𝅗𝅥𝅥",
+  "ok" : "𝅗𝅥𝅥"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "😀",
+  "ok" : "😀"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "😀",
+  "ok" : "😀"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "😀",
+  "ok" : "😀"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "😀",
+  "ok" : "😀"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "̈́",
+  "ok" : "̈́"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "̈́",
+  "ok" : "̈́"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "̈́",
+  "ok" : "̈́"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "̈́",
+  "ok" : "̈́"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ä́",
+  "ok" : "ä́"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ä́",
+  "ok" : "ä́"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ä́",
+  "ok" : "ä́"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ä́",
+  "ok" : "ä́"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ÅΩ",
+  "ok" : "ÅΩ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ÅΩ",
+  "ok" : "ÅΩ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ÅΩ",
+  "ok" : "ÅΩ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ÅΩ",
+  "ok" : "ÅΩ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ṩ",
+  "ok" : "ṩ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "Ǆ",
+  "ok" : "Ǆ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "Ǆ",
+  "ok" : "Ǆ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "Ǆ",
+  "ok" : "DŽ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "Ǆ",
+  "ok" : "DŽ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ཱི",
+  "ok" : "ཱི"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ཱི",
+  "ok" : "ཱི"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ཱི",
+  "ok" : "ཱི"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ཱི",
+  "ok" : "ཱི"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ำ",
+  "ok" : "ำ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ำ",
+  "ok" : "ำ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ำ",
+  "ok" : "ํา"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ำ",
+  "ok" : "ํา"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "Ώ",
+  "ok" : "Ώ"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "Ώ",
+  "ok" : "Ώ"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "Ώ",
+  "ok" : "Ώ"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "Ώ",
+  "ok" : "Ώ"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "㌀",
+  "ok" : "㌀"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "㌀",
+  "ok" : "㌀"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "㌀",
+  "ok" : "アパート"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "㌀",
+  "ok" : "アパート"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize_nfd",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize_nfkc",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize_nfkd",
+  "input" : "ééé",
+  "ok" : "ééé"
+}, {
+  "decoder" : "string_normalize_max_2",
+  "input" : "ééé",
+  "issues" : [ {
+    "code" : "too_long",
+    "message" : "must be at most 2 characters",
+    "message_key" : "too_long",
+    "meta" : {
+      "actual" : 3,
+      "max" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "string_normalize_max_2",
+  "input" : "éé",
+  "ok" : "éé"
+}, {
+  "decoder" : "string_normalize_max_2",
+  "input" : "ééé",
+  "issues" : [ {
+    "code" : "too_long",
+    "message" : "must be at most 2 characters",
+    "message_key" : "too_long",
+    "meta" : {
+      "actual" : 3,
+      "max" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "string_normalize_max_2",
+  "input" : "a",
+  "ok" : "a"
+}, {
   "decoder" : "string_ipv6",
   "input" : "::ffff:1.2.3.4",
   "ok" : "::ffff:1.2.3.4"

@@ -695,6 +695,566 @@
     "input": "ﬁ"
   },
   {
+    "decoder": "string_normalize",
+    "input": ""
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": ""
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": ""
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": ""
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "abc"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "e\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "e\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "e\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "e\u0301"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u00e9"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u00e9"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u00e9"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u00e9"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "q\u0307\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "q\u0307\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "q\u0307\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "q\u0307\u0323"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "a\u0301\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "a\u0301\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "a\u0301\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "a\u0301\u0323"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "a\u0301\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "a\u0301\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "a\u0301\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "a\u0301\u0301"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "a\u0323\u0302"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "a\u0323\u0302"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "a\u0323\u0302"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "a\u0323\u0302"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u212b"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u212b"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u212b"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u212b"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u1100\u1161\u11a8"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u1100\u1161\u11a8"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u1100\u1161\u11a8"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u1100\u1161\u11a8"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\uac01"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\uac01"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\uac01"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\uac01"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\ufb01"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\ufb01"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\ufb01"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\ufb01"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u2460"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u2460"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u2460"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u2460"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\ufdfa"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\ufdfa"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\ufdfa"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\ufdfa"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u0958"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u0958"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u0958"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u0958"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u0b47\u0b3e"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u0b47\u0b3e"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u0b47\u0b3e"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u0b47\u0b3e"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\uff76\uff9e"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\uff76\uff9e"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\uff76\uff9e"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\uff76\uff9e"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u304b\u3099"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u304b\u3099"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u304b\u3099"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u304b\u3099"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u1e9b\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u1e9b\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u1e9b\u0323"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u1e9b\u0323"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\ud834\udd5e"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\ud834\udd5e"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\ud834\udd5e"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\ud834\udd5e"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\ud834\udd5e\ud834\udd65"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\ud834\udd5e\ud834\udd65"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\ud834\udd5e\ud834\udd65"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\ud834\udd5e\ud834\udd65"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\ud83d\ude00"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\ud83d\ude00"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\ud83d\ude00"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\ud83d\ude00"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u0344"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u0344"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u0344"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u0344"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "a\u0344"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "a\u0344"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "a\u0344"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "a\u0344"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u00c5\u2126"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u00c5\u2126"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u00c5\u2126"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u00c5\u2126"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u1e69"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u1e69"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u1e69"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u1e69"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "s\u0323\u0307"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "s\u0323\u0307"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "s\u0323\u0307"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "s\u0323\u0307"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u01c4"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u01c4"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u01c4"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u01c4"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u0f73"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u0f73"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u0f73"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u0f73"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u0e33"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u0e33"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u0e33"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u0e33"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u2126\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u2126\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u2126\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u2126\u0301"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u3300"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u3300"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u3300"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u3300"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "\u00e9\u00e9\u00e9"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "\u00e9\u00e9\u00e9"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "\u00e9\u00e9\u00e9"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "\u00e9\u00e9\u00e9"
+  },
+  {
+    "decoder": "string_normalize",
+    "input": "e\u0301e\u0301e\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfd",
+    "input": "e\u0301e\u0301e\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkc",
+    "input": "e\u0301e\u0301e\u0301"
+  },
+  {
+    "decoder": "string_normalize_nfkd",
+    "input": "e\u0301e\u0301e\u0301"
+  },
+  {
+    "decoder": "string_normalize_max_2",
+    "input": "e\u0301e\u0301e\u0301"
+  },
+  {
+    "decoder": "string_normalize_max_2",
+    "input": "e\u0301e\u0301"
+  },
+  {
+    "decoder": "string_normalize_max_2",
+    "input": "\u00e9\u00e9\u00e9"
+  },
+  {
+    "decoder": "string_normalize_max_2",
+    "input": "a"
+  },
+  {
     "decoder": "string_ipv6",
     "input": "::ffff:1.2.3.4"
   },
