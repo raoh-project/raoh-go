@@ -236,19 +236,15 @@ func (d Decoder[I, T]) Refine(ok func(T) bool, code, message string) Decoder[I, 
 }
 
 // RefineWithMeta is Refine for a failure that carries metadata computed from
-// the decoded value. meta is called only when ok does not hold, and the
-// entries it returns are copied into the issue.
+// the decoded value. meta is called only when ok does not hold, and the map it
+// returns is copied into the issue.
 func (d Decoder[I, T]) RefineWithMeta(ok func(T) bool, code, message string, meta func(T) map[string]any) Decoder[I, T] {
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.failed() || ok(o.value) {
 			return o
 		}
-		i := NewIssue(code).WithMessage(message).At(at)
-		for k, v := range meta(o.value) {
-			i = i.WithMeta(k, v)
-		}
-		return invalid[T](i)
+		return invalid[T](NewIssue(code).WithMessage(message).withMetaMap(meta(o.value)).At(at))
 	}}
 }
 
@@ -264,7 +260,7 @@ func (d Decoder[I, T]) RefineWithPath(check func(T, Path) error) Decoder[I, T] {
 			return o
 		}
 		if err := check(o.value, at); err != nil {
-			return failedError[T](err)
+			return fromAbsoluteError(o.value, err)
 		}
 		return o
 	}}

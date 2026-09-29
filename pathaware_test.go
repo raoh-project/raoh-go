@@ -3,6 +3,7 @@ package raoh_test
 import (
 	"errors"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/raoh-project/raoh-go"
@@ -175,14 +176,40 @@ func TestPathAwareFormsAddNoAllocationOnSuccess(t *testing.T) {
 		AndThenWithPath(func(a, b int, _ raoh.Path) (int, error) { return a + b, nil })
 	in := map[string]any{"a": 1, "b": 2}
 
+	newPlain := raoh.NewDecoder(func(in any) (int, error) { return 1, nil })
+	newAware := raoh.NewDecoderWithPath(func(in any, _ raoh.Path) (int, error) { return 1, nil })
+	refPlain := raoh.Int().Refine(func(int) bool { return true }, "c", "m")
+	refAware := raoh.Int().RefineWithPath(func(int, raoh.Path) error { return nil })
+
 	for name, pair := range map[string][2]func(){
-		"Decoder": {func() { plain.Decode(1) }, func() { aware.Decode(1) }},
-		"object":  {func() { po.Decode(in) }, func() { pa.Decode(in) }},
+		"AndThen":    {func() { plain.Decode(1) }, func() { aware.Decode(1) }},
+		"object":     {func() { po.Decode(in) }, func() { pa.Decode(in) }},
+		"NewDecoder": {func() { newPlain.Decode(1) }, func() { newAware.Decode(1) }},
+		"Refine":     {func() { refPlain.Decode(1) }, func() { refAware.Decode(1) }},
 	} {
 		base := testing.AllocsPerRun(100, pair[0])
 		got := testing.AllocsPerRun(100, pair[1])
 		if got > base {
 			t.Errorf("%s: %v allocations with the path, %v without", name, got, base)
 		}
+	}
+}
+
+// The cost of RefineWithMeta grows in proportion to the entries the function
+// returns, not with their square.
+func TestRefineWithMetaCostGrowsLinearlyWithTheMeta(t *testing.T) {
+	cost := func(n int) uint64 {
+		meta := make(map[string]any, n)
+		for k := range n {
+			meta[strconv.Itoa(k)] = k
+		}
+		d := raoh.Int().RefineWithMeta(func(int) bool { return false }, "c", "m",
+			func(int) map[string]any { return meta })
+		return allocated(func() { d.Decode(1) })
+	}
+	small, large := cost(1000), cost(8000)
+	// Linear growth gives about 8; quadratic gives about 64.
+	if large > small*16 {
+		t.Errorf("8000 entries allocate %d bytes and 1000 allocate %d: not linear", large, small)
 	}
 }

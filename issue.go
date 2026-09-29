@@ -49,6 +49,14 @@ func (i Issue) WithMeta(key string, value any) Issue {
 	return i
 }
 
+// withMetaMap returns i with a copy of meta as its metadata, in place of what
+// it had. It copies once, where a WithMeta per entry would copy the whole map
+// each time.
+func (i Issue) withMetaMap(meta map[string]any) Issue {
+	i.meta = maps.Clone(meta)
+	return i
+}
+
 // WithMessage returns i with message as its sentence in every language, in
 // place of the catalogue's.
 func (i Issue) WithMessage(message string) Issue {
