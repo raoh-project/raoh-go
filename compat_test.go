@@ -60,6 +60,11 @@ func presence(p raoh.Presence[int32]) any {
 
 func list(values ...any) any { return values }
 
+func contact() raoh.Decoder[any, any] {
+	return raoh.Object(raoh.Fields().Field("email", raoh.String()).Field("phone", raoh.String())).
+		Map(func(e, p string) any { return list(e, p) })
+}
+
 func sortedKeys(set map[int32]struct{}) any {
 	keys := slices.Sorted(maps.Keys(set))
 	if keys == nil {
@@ -240,6 +245,33 @@ func compatDecoder(name string) func([]byte) (any, error) {
 	case "person_strict":
 		return out(raoh.Object(raoh.Fields().Field("name", s()).Field("age", i())).Strict().
 			Map(func(n string, a int32) any { return list(n, a) }), same)
+	case "flat":
+		return out(raoh.Object(raoh.Fields().Field("id", i()).Flat(contact())).
+			Map(func(id int32, c any) any { return list(id, c) }), same)
+	case "flat_first":
+		return out(raoh.Object(raoh.Fields().Flat(contact()).Field("id", i())).
+			Map(func(c any, id int32) any { return list(c, id) }), same)
+	case "flat_nested":
+		cd := raoh.Object(raoh.Fields().Field("c", i()).Field("d", i())).
+			Map(func(c, d int32) int32 { return c*10 + d })
+		bcd := raoh.Object(raoh.Fields().Field("b", i()).Flat(cd)).
+			Map(func(b, cd int32) int32 { return b*100 + cd })
+		return out(raoh.Object(raoh.Fields().Field("a", i()).Flat(bcd)).
+			Map(func(a, bcd int32) int32 { return a*1000 + bcd }), same)
+	// Java holds 17 fields in a CombinerList, which gives an untyped Object[]; Go splits
+	// them into 15 fields and a Flat of the last 2, and every level is typed.
+	case "object_17":
+		tail := raoh.Object(raoh.Fields().Field("f16", i()).Field("f17", s())).
+			Map(func(f16 int32, f17 string) []any { return []any{f16, f17} })
+		return out(raoh.Object(raoh.Fields().
+			Field("f1", i()).Field("f2", i()).Field("f3", i()).Field("f4", i()).
+			Field("f5", i()).Field("f6", i()).Field("f7", i()).Field("f8", i()).
+			Field("f9", i()).Field("f10", i()).Field("f11", i()).Field("f12", i()).
+			Field("f13", i()).Field("f14", i()).Field("f15", i()).
+			Flat(tail)).
+			Map(func(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o int32, t []any) any {
+				return list(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, t[0], t[1])
+			}), same)
 	case "escaped_keys":
 		return out(raoh.Object(raoh.Fields().Field("a/b", i()).Field("~c", i())).
 			Map(func(a, b int32) any { return list(a, b) }), same)
@@ -408,6 +440,11 @@ func divergences() []divergence {
 		{"optional_only", `null`, required, objectScope},
 		{"optional_only", `[1]`, notAnObject("array"), objectScope},
 		{"shape", `"rect"`, notAnObject("string"), objectScope},
+		{"flat", `[1]`, notAnObject("array"), objectScope},
+		{"flat", `null`, required, objectScope},
+		{"flat_first", `[1]`, notAnObject("array"), objectScope},
+		{"flat_first", `null`, required, objectScope},
+		{"object_17", `[1]`, notAnObject("array"), objectScope},
 	}
 }
 

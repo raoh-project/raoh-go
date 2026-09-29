@@ -5206,14 +5206,15 @@
   "input" : {
     "a" : 1,
     "b" : 2,
-    "c" : 3
+    "c" : 3,
+    "d" : 4
   },
   "issues" : [ {
     "code" : "invalid_size",
     "message" : "must have exactly 2 elements",
     "message_key" : "invalid_size",
     "meta" : {
-      "actual" : 3,
+      "actual" : 4,
       "expected" : 2
     },
     "path" : ""
@@ -5385,5 +5386,725 @@
       "expected" : "integer"
     },
     "path" : "/id"
+  } ]
+}, {
+  "decoder" : "flat",
+  "input" : {
+    "id" : 1,
+    "email" : "a@example.com",
+    "phone" : "090"
+  },
+  "ok" : [ 1, [ "a@example.com", "090" ] ]
+}, {
+  "decoder" : "flat",
+  "input" : { },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/id"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/email"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/phone"
+  } ]
+}, {
+  "decoder" : "flat",
+  "input" : {
+    "id" : "x",
+    "email" : 1,
+    "phone" : null,
+    "extra" : 1
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/id"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected string",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "string"
+    },
+    "path" : "/email"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/phone"
+  } ]
+}, {
+  "decoder" : "flat",
+  "input" : [ 1 ],
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/id"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/email"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/phone"
+  } ]
+}, {
+  "decoder" : "flat",
+  "input" : null,
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "null",
+      "expected" : "object"
+    },
+    "path" : "/id"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "null",
+      "expected" : "object"
+    },
+    "path" : "/email"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "null",
+      "expected" : "object"
+    },
+    "path" : "/phone"
+  } ]
+}, {
+  "decoder" : "flat_first",
+  "input" : {
+    "id" : 1,
+    "email" : "a@example.com",
+    "phone" : "090"
+  },
+  "ok" : [ [ "a@example.com", "090" ], 1 ]
+}, {
+  "decoder" : "flat_first",
+  "input" : { },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/email"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/phone"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/id"
+  } ]
+}, {
+  "decoder" : "flat_first",
+  "input" : {
+    "id" : "x",
+    "email" : 1,
+    "phone" : null,
+    "extra" : 1
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected string",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "string"
+    },
+    "path" : "/email"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/phone"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/id"
+  } ]
+}, {
+  "decoder" : "flat_first",
+  "input" : [ 1 ],
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/email"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/phone"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/id"
+  } ]
+}, {
+  "decoder" : "flat_first",
+  "input" : null,
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "null",
+      "expected" : "object"
+    },
+    "path" : "/email"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "null",
+      "expected" : "object"
+    },
+    "path" : "/phone"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "null",
+      "expected" : "object"
+    },
+    "path" : "/id"
+  } ]
+}, {
+  "decoder" : "flat_nested",
+  "input" : {
+    "a" : 1,
+    "b" : 2,
+    "c" : 3,
+    "d" : 4
+  },
+  "ok" : 1234
+}, {
+  "decoder" : "flat_nested",
+  "input" : {
+    "a" : "x",
+    "c" : "y"
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/a"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/b"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/c"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/d"
+  } ]
+}, {
+  "decoder" : "flat_nested",
+  "input" : { },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/a"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/b"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/c"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/d"
+  } ]
+}, {
+  "decoder" : "object_17",
+  "input" : {
+    "f1" : 1,
+    "f2" : 2,
+    "f3" : 3,
+    "f4" : 4,
+    "f5" : 5,
+    "f6" : 6,
+    "f7" : 7,
+    "f8" : 8,
+    "f9" : 9,
+    "f10" : 10,
+    "f11" : 11,
+    "f12" : 12,
+    "f13" : 13,
+    "f14" : 14,
+    "f15" : 15,
+    "f16" : 16,
+    "f17" : "x"
+  },
+  "ok" : [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, "x" ]
+}, {
+  "decoder" : "object_17",
+  "input" : { },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f1"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f2"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f3"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f4"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f5"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f6"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f7"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f8"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f9"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f10"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f11"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f12"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f13"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f14"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f15"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f16"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f17"
+  } ]
+}, {
+  "decoder" : "object_17",
+  "input" : {
+    "f1" : "a",
+    "f2" : 2,
+    "f3" : 3,
+    "f4" : 4,
+    "f5" : 5,
+    "f6" : 6,
+    "f7" : 7,
+    "f8" : 8,
+    "f9" : 9,
+    "f10" : 10,
+    "f11" : 11,
+    "f12" : 12,
+    "f13" : 13,
+    "f14" : 14,
+    "f15" : 15,
+    "f16" : 1.5,
+    "f17" : 17
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/f1"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "integer"
+    },
+    "path" : "/f16"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected string",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "string"
+    },
+    "path" : "/f17"
+  } ]
+}, {
+  "decoder" : "object_17",
+  "input" : {
+    "f1" : 1,
+    "f2" : 2,
+    "f3" : 3,
+    "f4" : 4,
+    "f5" : 5,
+    "f6" : 6,
+    "f7" : 7,
+    "f8" : 8,
+    "f9" : 9
+  },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f10"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f11"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f12"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f13"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f14"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f15"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f16"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/f17"
+  } ]
+}, {
+  "decoder" : "object_17",
+  "input" : [ 1 ],
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f1"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f2"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f3"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f4"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f5"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f6"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f7"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f8"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f9"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f10"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f11"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f12"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f13"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f14"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f15"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f16"
+  }, {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : "/f17"
   } ]
 } ]

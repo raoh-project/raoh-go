@@ -4,7 +4,7 @@ package raoh
 
 import "slices"
 
-// fields0 is a set of 0 fields.
+// fields0 is a set of 0 components.
 type fields0 struct {
 	names []string
 }
@@ -12,6 +12,14 @@ type fields0 struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields0) Field[A any](name string, src FieldSource[A]) fields1[A] {
 	return fields1[A]{append(slices.Clip(f.names), name), toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields0) Flat[A any](d DecoderOf[A]) flatfields1[A] {
+	return flatfields1[A]{toFlatPart(d)}
 }
 
 func (f fields0) object() object0 { return object0{f: f} }
@@ -28,14 +36,14 @@ func (o object0) Strict() object0 {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object0) Map[R any](fn func() R) Decoder[any, R] {
 	return o.AndThen(func() (R, error) { return fn(), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object0) AndThen[R any](fn func() (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -77,7 +85,7 @@ func (o object0) AndThenWithPath[R any](fn func(Path) (R, error)) Decoder[any, R
 	}}
 }
 
-// fields1 is a set of 1 fields.
+// fields1 is a set of 1 components.
 type fields1[A any] struct {
 	names []string
 	p0    part[A]
@@ -86,6 +94,14 @@ type fields1[A any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields1[A]) Field[B any](name string, src FieldSource[B]) fields2[A, B] {
 	return fields2[A, B]{append(slices.Clip(f.names), name), f.p0, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields1[A]) Flat[B any](d DecoderOf[B]) flatfields2[A, B] {
+	return flatfields2[A, B]{f.p0, toFlatPart(d)}
 }
 
 func (f fields1[A]) object() object1[A] { return object1[A]{f: f} }
@@ -102,14 +118,14 @@ func (o object1[A]) Strict() object1[A] {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A) (R, error) { return fn(v0), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -118,7 +134,7 @@ func (o object1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -141,7 +157,7 @@ func (o object1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -153,7 +169,77 @@ func (o object1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[
 	}}
 }
 
-// fields2 is a set of 2 fields.
+// flatfields1 is a set of 1 components.
+type flatfields1[A any] struct {
+	p0 part[A]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields1[A]) Field[B any](name string, src FieldSource[B]) flatfields2[A, B] {
+	return flatfields2[A, B]{f.p0, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields1[A]) Flat[B any](d DecoderOf[B]) flatfields2[A, B] {
+	return flatfields2[A, B]{f.p0, toFlatPart(d)}
+}
+
+func (f flatfields1[A]) object() flatobject1[A] { return flatobject1[A]{f: f} }
+
+// flatobject1 builds the decoder of an object of 1 components, some of them Flat.
+type flatobject1[A any] struct {
+	f flatfields1[A]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A) (R, error) { return fn(v0), nil })
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields2 is a set of 2 components.
 type fields2[A, B any] struct {
 	names []string
 	p0    part[A]
@@ -163,6 +249,14 @@ type fields2[A, B any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields2[A, B]) Field[C any](name string, src FieldSource[C]) fields3[A, B, C] {
 	return fields3[A, B, C]{append(slices.Clip(f.names), name), f.p0, f.p1, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields2[A, B]) Flat[C any](d DecoderOf[C]) flatfields3[A, B, C] {
+	return flatfields3[A, B, C]{f.p0, f.p1, toFlatPart(d)}
 }
 
 func (f fields2[A, B]) object() object2[A, B] { return object2[A, B]{f: f} }
@@ -179,14 +273,14 @@ func (o object2[A, B]) Strict() object2[A, B] {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B) (R, error) { return fn(v0, v1), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -195,8 +289,8 @@ func (o object2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] 
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -219,8 +313,8 @@ func (o object2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) De
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -232,7 +326,80 @@ func (o object2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) De
 	}}
 }
 
-// fields3 is a set of 3 fields.
+// flatfields2 is a set of 2 components.
+type flatfields2[A, B any] struct {
+	p0 part[A]
+	p1 part[B]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields2[A, B]) Field[C any](name string, src FieldSource[C]) flatfields3[A, B, C] {
+	return flatfields3[A, B, C]{f.p0, f.p1, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields2[A, B]) Flat[C any](d DecoderOf[C]) flatfields3[A, B, C] {
+	return flatfields3[A, B, C]{f.p0, f.p1, toFlatPart(d)}
+}
+
+func (f flatfields2[A, B]) object() flatobject2[A, B] { return flatobject2[A, B]{f: f} }
+
+// flatobject2 builds the decoder of an object of 2 components, some of them Flat.
+type flatobject2[A, B any] struct {
+	f flatfields2[A, B]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B) (R, error) { return fn(v0, v1), nil })
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields3 is a set of 3 components.
 type fields3[A, B, C any] struct {
 	names []string
 	p0    part[A]
@@ -243,6 +410,14 @@ type fields3[A, B, C any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields3[A, B, C]) Field[D any](name string, src FieldSource[D]) fields4[A, B, C, D] {
 	return fields4[A, B, C, D]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields3[A, B, C]) Flat[D any](d DecoderOf[D]) flatfields4[A, B, C, D] {
+	return flatfields4[A, B, C, D]{f.p0, f.p1, f.p2, toFlatPart(d)}
 }
 
 func (f fields3[A, B, C]) object() object3[A, B, C] { return object3[A, B, C]{f: f} }
@@ -259,14 +434,14 @@ func (o object3[A, B, C]) Strict() object3[A, B, C] {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C) (R, error) { return fn(v0, v1, v2), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -275,9 +450,9 @@ func (o object3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[an
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -300,9 +475,9 @@ func (o object3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, erro
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -314,7 +489,83 @@ func (o object3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, erro
 	}}
 }
 
-// fields4 is a set of 4 fields.
+// flatfields3 is a set of 3 components.
+type flatfields3[A, B, C any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields3[A, B, C]) Field[D any](name string, src FieldSource[D]) flatfields4[A, B, C, D] {
+	return flatfields4[A, B, C, D]{f.p0, f.p1, f.p2, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields3[A, B, C]) Flat[D any](d DecoderOf[D]) flatfields4[A, B, C, D] {
+	return flatfields4[A, B, C, D]{f.p0, f.p1, f.p2, toFlatPart(d)}
+}
+
+func (f flatfields3[A, B, C]) object() flatobject3[A, B, C] { return flatobject3[A, B, C]{f: f} }
+
+// flatobject3 builds the decoder of an object of 3 components, some of them Flat.
+type flatobject3[A, B, C any] struct {
+	f flatfields3[A, B, C]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C) (R, error) { return fn(v0, v1, v2), nil })
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields4 is a set of 4 components.
 type fields4[A, B, C, D any] struct {
 	names []string
 	p0    part[A]
@@ -326,6 +577,14 @@ type fields4[A, B, C, D any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields4[A, B, C, D]) Field[E any](name string, src FieldSource[E]) fields5[A, B, C, D, E] {
 	return fields5[A, B, C, D, E]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields4[A, B, C, D]) Flat[E any](d DecoderOf[E]) flatfields5[A, B, C, D, E] {
+	return flatfields5[A, B, C, D, E]{f.p0, f.p1, f.p2, f.p3, toFlatPart(d)}
 }
 
 func (f fields4[A, B, C, D]) object() object4[A, B, C, D] { return object4[A, B, C, D]{f: f} }
@@ -342,14 +601,14 @@ func (o object4[A, B, C, D]) Strict() object4[A, B, C, D] {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D) (R, error) { return fn(v0, v1, v2, v3), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -358,10 +617,10 @@ func (o object4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Deco
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -384,10 +643,10 @@ func (o object4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -399,7 +658,88 @@ func (o object4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R
 	}}
 }
 
-// fields5 is a set of 5 fields.
+// flatfields4 is a set of 4 components.
+type flatfields4[A, B, C, D any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+	p3 part[D]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields4[A, B, C, D]) Field[E any](name string, src FieldSource[E]) flatfields5[A, B, C, D, E] {
+	return flatfields5[A, B, C, D, E]{f.p0, f.p1, f.p2, f.p3, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields4[A, B, C, D]) Flat[E any](d DecoderOf[E]) flatfields5[A, B, C, D, E] {
+	return flatfields5[A, B, C, D, E]{f.p0, f.p1, f.p2, f.p3, toFlatPart(d)}
+}
+
+func (f flatfields4[A, B, C, D]) object() flatobject4[A, B, C, D] {
+	return flatobject4[A, B, C, D]{f: f}
+}
+
+// flatobject4 builds the decoder of an object of 4 components, some of them Flat.
+type flatobject4[A, B, C, D any] struct {
+	f flatfields4[A, B, C, D]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D) (R, error) { return fn(v0, v1, v2, v3), nil })
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields5 is a set of 5 components.
 type fields5[A, B, C, D, E any] struct {
 	names []string
 	p0    part[A]
@@ -412,6 +752,14 @@ type fields5[A, B, C, D, E any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields5[A, B, C, D, E]) Field[F any](name string, src FieldSource[F]) fields6[A, B, C, D, E, F] {
 	return fields6[A, B, C, D, E, F]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields5[A, B, C, D, E]) Flat[F any](d DecoderOf[F]) flatfields6[A, B, C, D, E, F] {
+	return flatfields6[A, B, C, D, E, F]{f.p0, f.p1, f.p2, f.p3, f.p4, toFlatPart(d)}
 }
 
 func (f fields5[A, B, C, D, E]) object() object5[A, B, C, D, E] { return object5[A, B, C, D, E]{f: f} }
@@ -428,14 +776,14 @@ func (o object5[A, B, C, D, E]) Strict() object5[A, B, C, D, E] {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E) (R, error) { return fn(v0, v1, v2, v3, v4), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -444,11 +792,11 @@ func (o object5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -471,11 +819,11 @@ func (o object5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Pa
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -487,7 +835,91 @@ func (o object5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Pa
 	}}
 }
 
-// fields6 is a set of 6 fields.
+// flatfields5 is a set of 5 components.
+type flatfields5[A, B, C, D, E any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+	p3 part[D]
+	p4 part[E]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields5[A, B, C, D, E]) Field[F any](name string, src FieldSource[F]) flatfields6[A, B, C, D, E, F] {
+	return flatfields6[A, B, C, D, E, F]{f.p0, f.p1, f.p2, f.p3, f.p4, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields5[A, B, C, D, E]) Flat[F any](d DecoderOf[F]) flatfields6[A, B, C, D, E, F] {
+	return flatfields6[A, B, C, D, E, F]{f.p0, f.p1, f.p2, f.p3, f.p4, toFlatPart(d)}
+}
+
+func (f flatfields5[A, B, C, D, E]) object() flatobject5[A, B, C, D, E] {
+	return flatobject5[A, B, C, D, E]{f: f}
+}
+
+// flatobject5 builds the decoder of an object of 5 components, some of them Flat.
+type flatobject5[A, B, C, D, E any] struct {
+	f flatfields5[A, B, C, D, E]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E) (R, error) { return fn(v0, v1, v2, v3, v4), nil })
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields6 is a set of 6 components.
 type fields6[A, B, C, D, E, F any] struct {
 	names []string
 	p0    part[A]
@@ -501,6 +933,14 @@ type fields6[A, B, C, D, E, F any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields6[A, B, C, D, E, F]) Field[G any](name string, src FieldSource[G]) fields7[A, B, C, D, E, F, G] {
 	return fields7[A, B, C, D, E, F, G]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields6[A, B, C, D, E, F]) Flat[G any](d DecoderOf[G]) flatfields7[A, B, C, D, E, F, G] {
+	return flatfields7[A, B, C, D, E, F, G]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, toFlatPart(d)}
 }
 
 func (f fields6[A, B, C, D, E, F]) object() object6[A, B, C, D, E, F] {
@@ -519,14 +959,14 @@ func (o object6[A, B, C, D, E, F]) Strict() object6[A, B, C, D, E, F] {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F) (R, error) { return fn(v0, v1, v2, v3, v4, v5), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -535,12 +975,12 @@ func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, 
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -563,12 +1003,12 @@ func (o object6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E,
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -580,7 +1020,94 @@ func (o object6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E,
 	}}
 }
 
-// fields7 is a set of 7 fields.
+// flatfields6 is a set of 6 components.
+type flatfields6[A, B, C, D, E, F any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+	p3 part[D]
+	p4 part[E]
+	p5 part[F]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields6[A, B, C, D, E, F]) Field[G any](name string, src FieldSource[G]) flatfields7[A, B, C, D, E, F, G] {
+	return flatfields7[A, B, C, D, E, F, G]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields6[A, B, C, D, E, F]) Flat[G any](d DecoderOf[G]) flatfields7[A, B, C, D, E, F, G] {
+	return flatfields7[A, B, C, D, E, F, G]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, toFlatPart(d)}
+}
+
+func (f flatfields6[A, B, C, D, E, F]) object() flatobject6[A, B, C, D, E, F] {
+	return flatobject6[A, B, C, D, E, F]{f: f}
+}
+
+// flatobject6 builds the decoder of an object of 6 components, some of them Flat.
+type flatobject6[A, B, C, D, E, F any] struct {
+	f flatfields6[A, B, C, D, E, F]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F) (R, error) { return fn(v0, v1, v2, v3, v4, v5), nil })
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields7 is a set of 7 components.
 type fields7[A, B, C, D, E, F, G any] struct {
 	names []string
 	p0    part[A]
@@ -595,6 +1122,14 @@ type fields7[A, B, C, D, E, F, G any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields7[A, B, C, D, E, F, G]) Field[H any](name string, src FieldSource[H]) fields8[A, B, C, D, E, F, G, H] {
 	return fields8[A, B, C, D, E, F, G, H]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields7[A, B, C, D, E, F, G]) Flat[H any](d DecoderOf[H]) flatfields8[A, B, C, D, E, F, G, H] {
+	return flatfields8[A, B, C, D, E, F, G, H]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, toFlatPart(d)}
 }
 
 func (f fields7[A, B, C, D, E, F, G]) object() object7[A, B, C, D, E, F, G] {
@@ -613,14 +1148,14 @@ func (o object7[A, B, C, D, E, F, G]) Strict() object7[A, B, C, D, E, F, G] {
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G) (R, error) { return fn(v0, v1, v2, v3, v4, v5, v6), nil })
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -629,13 +1164,13 @@ func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -658,13 +1193,13 @@ func (o object7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D,
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -676,7 +1211,97 @@ func (o object7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D,
 	}}
 }
 
-// fields8 is a set of 8 fields.
+// flatfields7 is a set of 7 components.
+type flatfields7[A, B, C, D, E, F, G any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+	p3 part[D]
+	p4 part[E]
+	p5 part[F]
+	p6 part[G]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields7[A, B, C, D, E, F, G]) Field[H any](name string, src FieldSource[H]) flatfields8[A, B, C, D, E, F, G, H] {
+	return flatfields8[A, B, C, D, E, F, G, H]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields7[A, B, C, D, E, F, G]) Flat[H any](d DecoderOf[H]) flatfields8[A, B, C, D, E, F, G, H] {
+	return flatfields8[A, B, C, D, E, F, G, H]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, toFlatPart(d)}
+}
+
+func (f flatfields7[A, B, C, D, E, F, G]) object() flatobject7[A, B, C, D, E, F, G] {
+	return flatobject7[A, B, C, D, E, F, G]{f: f}
+}
+
+// flatobject7 builds the decoder of an object of 7 components, some of them Flat.
+type flatobject7[A, B, C, D, E, F, G any] struct {
+	f flatfields7[A, B, C, D, E, F, G]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G) (R, error) { return fn(v0, v1, v2, v3, v4, v5, v6), nil })
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields8 is a set of 8 components.
 type fields8[A, B, C, D, E, F, G, H any] struct {
 	names []string
 	p0    part[A]
@@ -692,6 +1317,14 @@ type fields8[A, B, C, D, E, F, G, H any] struct {
 // Field returns the set with one more field, name, read with src.
 func (f fields8[A, B, C, D, E, F, G, H]) Field[I any](name string, src FieldSource[I]) fields9[A, B, C, D, E, F, G, H, I] {
 	return fields9[A, B, C, D, E, F, G, H, I]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields8[A, B, C, D, E, F, G, H]) Flat[I any](d DecoderOf[I]) flatfields9[A, B, C, D, E, F, G, H, I] {
+	return flatfields9[A, B, C, D, E, F, G, H, I]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, toFlatPart(d)}
 }
 
 func (f fields8[A, B, C, D, E, F, G, H]) object() object8[A, B, C, D, E, F, G, H] {
@@ -710,7 +1343,7 @@ func (o object8[A, B, C, D, E, F, G, H]) Strict() object8[A, B, C, D, E, F, G, H
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F, G, H) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H) (R, error) {
@@ -719,7 +1352,7 @@ func (o object8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F, G,
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F, G, H) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -728,14 +1361,14 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -758,14 +1391,14 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C,
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -777,7 +1410,102 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C,
 	}}
 }
 
-// fields9 is a set of 9 fields.
+// flatfields8 is a set of 8 components.
+type flatfields8[A, B, C, D, E, F, G, H any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+	p3 part[D]
+	p4 part[E]
+	p5 part[F]
+	p6 part[G]
+	p7 part[H]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields8[A, B, C, D, E, F, G, H]) Field[I any](name string, src FieldSource[I]) flatfields9[A, B, C, D, E, F, G, H, I] {
+	return flatfields9[A, B, C, D, E, F, G, H, I]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields8[A, B, C, D, E, F, G, H]) Flat[I any](d DecoderOf[I]) flatfields9[A, B, C, D, E, F, G, H, I] {
+	return flatfields9[A, B, C, D, E, F, G, H, I]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, toFlatPart(d)}
+}
+
+func (f flatfields8[A, B, C, D, E, F, G, H]) object() flatobject8[A, B, C, D, E, F, G, H] {
+	return flatobject8[A, B, C, D, E, F, G, H]{f: f}
+}
+
+// flatobject8 builds the decoder of an object of 8 components, some of them Flat.
+type flatobject8[A, B, C, D, E, F, G, H any] struct {
+	f flatfields8[A, B, C, D, E, F, G, H]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F, G, H) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F, G, H) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields9 is a set of 9 components.
 type fields9[A, B, C, D, E, F, G, H, I any] struct {
 	names []string
 	p0    part[A]
@@ -796,6 +1524,14 @@ func (f fields9[A, B, C, D, E, F, G, H, I]) Field[J any](name string, src FieldS
 	return fields10[A, B, C, D, E, F, G, H, I, J]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, toPart(name, src)}
 }
 
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields9[A, B, C, D, E, F, G, H, I]) Flat[J any](d DecoderOf[J]) flatfields10[A, B, C, D, E, F, G, H, I, J] {
+	return flatfields10[A, B, C, D, E, F, G, H, I, J]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, toFlatPart(d)}
+}
+
 func (f fields9[A, B, C, D, E, F, G, H, I]) object() object9[A, B, C, D, E, F, G, H, I] {
 	return object9[A, B, C, D, E, F, G, H, I]{f: f}
 }
@@ -812,7 +1548,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) Strict() object9[A, B, C, D, E, F, G
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E, F, G, H, I) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I) (R, error) {
@@ -821,7 +1557,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E, F,
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -830,15 +1566,15 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -861,15 +1597,15 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B,
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -881,7 +1617,105 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B,
 	}}
 }
 
-// fields10 is a set of 10 fields.
+// flatfields9 is a set of 9 components.
+type flatfields9[A, B, C, D, E, F, G, H, I any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+	p3 part[D]
+	p4 part[E]
+	p5 part[F]
+	p6 part[G]
+	p7 part[H]
+	p8 part[I]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields9[A, B, C, D, E, F, G, H, I]) Field[J any](name string, src FieldSource[J]) flatfields10[A, B, C, D, E, F, G, H, I, J] {
+	return flatfields10[A, B, C, D, E, F, G, H, I, J]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields9[A, B, C, D, E, F, G, H, I]) Flat[J any](d DecoderOf[J]) flatfields10[A, B, C, D, E, F, G, H, I, J] {
+	return flatfields10[A, B, C, D, E, F, G, H, I, J]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, toFlatPart(d)}
+}
+
+func (f flatfields9[A, B, C, D, E, F, G, H, I]) object() flatobject9[A, B, C, D, E, F, G, H, I] {
+	return flatobject9[A, B, C, D, E, F, G, H, I]{f: f}
+}
+
+// flatobject9 builds the decoder of an object of 9 components, some of them Flat.
+type flatobject9[A, B, C, D, E, F, G, H, I any] struct {
+	f flatfields9[A, B, C, D, E, F, G, H, I]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E, F, G, H, I) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields10 is a set of 10 components.
 type fields10[A, B, C, D, E, F, G, H, I, J any] struct {
 	names []string
 	p0    part[A]
@@ -901,6 +1735,14 @@ func (f fields10[A, B, C, D, E, F, G, H, I, J]) Field[K any](name string, src Fi
 	return fields11[A, B, C, D, E, F, G, H, I, J, K]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, toPart(name, src)}
 }
 
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields10[A, B, C, D, E, F, G, H, I, J]) Flat[K any](d DecoderOf[K]) flatfields11[A, B, C, D, E, F, G, H, I, J, K] {
+	return flatfields11[A, B, C, D, E, F, G, H, I, J, K]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, toFlatPart(d)}
+}
+
 func (f fields10[A, B, C, D, E, F, G, H, I, J]) object() object10[A, B, C, D, E, F, G, H, I, J] {
 	return object10[A, B, C, D, E, F, G, H, I, J]{f: f}
 }
@@ -917,7 +1759,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) Strict() object10[A, B, C, D, E,
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J) (R, error) {
@@ -926,7 +1768,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, D, E
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -935,16 +1777,16 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, 
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -967,16 +1809,16 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -988,7 +1830,108 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A
 	}}
 }
 
-// fields11 is a set of 11 fields.
+// flatfields10 is a set of 10 components.
+type flatfields10[A, B, C, D, E, F, G, H, I, J any] struct {
+	p0 part[A]
+	p1 part[B]
+	p2 part[C]
+	p3 part[D]
+	p4 part[E]
+	p5 part[F]
+	p6 part[G]
+	p7 part[H]
+	p8 part[I]
+	p9 part[J]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields10[A, B, C, D, E, F, G, H, I, J]) Field[K any](name string, src FieldSource[K]) flatfields11[A, B, C, D, E, F, G, H, I, J, K] {
+	return flatfields11[A, B, C, D, E, F, G, H, I, J, K]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields10[A, B, C, D, E, F, G, H, I, J]) Flat[K any](d DecoderOf[K]) flatfields11[A, B, C, D, E, F, G, H, I, J, K] {
+	return flatfields11[A, B, C, D, E, F, G, H, I, J, K]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, toFlatPart(d)}
+}
+
+func (f flatfields10[A, B, C, D, E, F, G, H, I, J]) object() flatobject10[A, B, C, D, E, F, G, H, I, J] {
+	return flatobject10[A, B, C, D, E, F, G, H, I, J]{f: f}
+}
+
+// flatobject10 builds the decoder of an object of 10 components, some of them Flat.
+type flatobject10[A, B, C, D, E, F, G, H, I, J any] struct {
+	f flatfields10[A, B, C, D, E, F, G, H, I, J]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields11 is a set of 11 components.
 type fields11[A, B, C, D, E, F, G, H, I, J, K any] struct {
 	names []string
 	p0    part[A]
@@ -1009,6 +1952,14 @@ func (f fields11[A, B, C, D, E, F, G, H, I, J, K]) Field[L any](name string, src
 	return fields12[A, B, C, D, E, F, G, H, I, J, K, L]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, toPart(name, src)}
 }
 
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields11[A, B, C, D, E, F, G, H, I, J, K]) Flat[L any](d DecoderOf[L]) flatfields12[A, B, C, D, E, F, G, H, I, J, K, L] {
+	return flatfields12[A, B, C, D, E, F, G, H, I, J, K, L]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, toFlatPart(d)}
+}
+
 func (f fields11[A, B, C, D, E, F, G, H, I, J, K]) object() object11[A, B, C, D, E, F, G, H, I, J, K] {
 	return object11[A, B, C, D, E, F, G, H, I, J, K]{f: f}
 }
@@ -1025,7 +1976,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) Strict() object11[A, B, C, D,
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K) (R, error) {
@@ -1034,7 +1985,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, C, D
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -1043,17 +1994,17 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, 
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1076,17 +2027,17 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn fun
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1098,7 +2049,111 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn fun
 	}}
 }
 
-// fields12 is a set of 12 fields.
+// flatfields11 is a set of 11 components.
+type flatfields11[A, B, C, D, E, F, G, H, I, J, K any] struct {
+	p0  part[A]
+	p1  part[B]
+	p2  part[C]
+	p3  part[D]
+	p4  part[E]
+	p5  part[F]
+	p6  part[G]
+	p7  part[H]
+	p8  part[I]
+	p9  part[J]
+	p10 part[K]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields11[A, B, C, D, E, F, G, H, I, J, K]) Field[L any](name string, src FieldSource[L]) flatfields12[A, B, C, D, E, F, G, H, I, J, K, L] {
+	return flatfields12[A, B, C, D, E, F, G, H, I, J, K, L]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields11[A, B, C, D, E, F, G, H, I, J, K]) Flat[L any](d DecoderOf[L]) flatfields12[A, B, C, D, E, F, G, H, I, J, K, L] {
+	return flatfields12[A, B, C, D, E, F, G, H, I, J, K, L]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, toFlatPart(d)}
+}
+
+func (f flatfields11[A, B, C, D, E, F, G, H, I, J, K]) object() flatobject11[A, B, C, D, E, F, G, H, I, J, K] {
+	return flatobject11[A, B, C, D, E, F, G, H, I, J, K]{f: f}
+}
+
+// flatobject11 builds the decoder of an object of 11 components, some of them Flat.
+type flatobject11[A, B, C, D, E, F, G, H, I, J, K any] struct {
+	f flatfields11[A, B, C, D, E, F, G, H, I, J, K]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields12 is a set of 12 components.
 type fields12[A, B, C, D, E, F, G, H, I, J, K, L any] struct {
 	names []string
 	p0    part[A]
@@ -1120,6 +2175,14 @@ func (f fields12[A, B, C, D, E, F, G, H, I, J, K, L]) Field[M any](name string, 
 	return fields13[A, B, C, D, E, F, G, H, I, J, K, L, M]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, toPart(name, src)}
 }
 
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields12[A, B, C, D, E, F, G, H, I, J, K, L]) Flat[M any](d DecoderOf[M]) flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M] {
+	return flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, toFlatPart(d)}
+}
+
 func (f fields12[A, B, C, D, E, F, G, H, I, J, K, L]) object() object12[A, B, C, D, E, F, G, H, I, J, K, L] {
 	return object12[A, B, C, D, E, F, G, H, I, J, K, L]{f: f}
 }
@@ -1136,7 +2199,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) Strict() object12[A, B, C,
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L) (R, error) {
@@ -1145,7 +2208,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, B, C
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -1154,18 +2217,18 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, 
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1188,18 +2251,18 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn 
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1211,7 +2274,114 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn 
 	}}
 }
 
-// fields13 is a set of 13 fields.
+// flatfields12 is a set of 12 components.
+type flatfields12[A, B, C, D, E, F, G, H, I, J, K, L any] struct {
+	p0  part[A]
+	p1  part[B]
+	p2  part[C]
+	p3  part[D]
+	p4  part[E]
+	p5  part[F]
+	p6  part[G]
+	p7  part[H]
+	p8  part[I]
+	p9  part[J]
+	p10 part[K]
+	p11 part[L]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields12[A, B, C, D, E, F, G, H, I, J, K, L]) Field[M any](name string, src FieldSource[M]) flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M] {
+	return flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields12[A, B, C, D, E, F, G, H, I, J, K, L]) Flat[M any](d DecoderOf[M]) flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M] {
+	return flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, toFlatPart(d)}
+}
+
+func (f flatfields12[A, B, C, D, E, F, G, H, I, J, K, L]) object() flatobject12[A, B, C, D, E, F, G, H, I, J, K, L] {
+	return flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]{f: f}
+}
+
+// flatobject12 builds the decoder of an object of 12 components, some of them Flat.
+type flatobject12[A, B, C, D, E, F, G, H, I, J, K, L any] struct {
+	f flatfields12[A, B, C, D, E, F, G, H, I, J, K, L]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields13 is a set of 13 components.
 type fields13[A, B, C, D, E, F, G, H, I, J, K, L, M any] struct {
 	names []string
 	p0    part[A]
@@ -1234,6 +2404,14 @@ func (f fields13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Field[N any](name strin
 	return fields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, toPart(name, src)}
 }
 
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Flat[N any](d DecoderOf[N]) flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N] {
+	return flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, toFlatPart(d)}
+}
+
 func (f fields13[A, B, C, D, E, F, G, H, I, J, K, L, M]) object() object13[A, B, C, D, E, F, G, H, I, J, K, L, M] {
 	return object13[A, B, C, D, E, F, G, H, I, J, K, L, M]{f: f}
 }
@@ -1250,7 +2428,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Strict() object13[A, B,
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M) (R, error) {
@@ -1259,7 +2437,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(A, B
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -1268,19 +2446,19 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1303,19 +2481,19 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1327,7 +2505,117 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](
 	}}
 }
 
-// fields14 is a set of 14 fields.
+// flatfields13 is a set of 13 components.
+type flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M any] struct {
+	p0  part[A]
+	p1  part[B]
+	p2  part[C]
+	p3  part[D]
+	p4  part[E]
+	p5  part[F]
+	p6  part[G]
+	p7  part[H]
+	p8  part[I]
+	p9  part[J]
+	p10 part[K]
+	p11 part[L]
+	p12 part[M]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Field[N any](name string, src FieldSource[N]) flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N] {
+	return flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Flat[N any](d DecoderOf[N]) flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N] {
+	return flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, toFlatPart(d)}
+}
+
+func (f flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M]) object() flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M] {
+	return flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]{f: f}
+}
+
+// flatobject13 builds the decoder of an object of 13 components, some of them Flat.
+type flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M any] struct {
+	f flatfields13[A, B, C, D, E, F, G, H, I, J, K, L, M]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields14 is a set of 14 components.
 type fields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N any] struct {
 	names []string
 	p0    part[A]
@@ -1351,6 +2639,14 @@ func (f fields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Field[O any](name st
 	return fields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, toPart(name, src)}
 }
 
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Flat[O any](d DecoderOf[O]) flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O] {
+	return flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, toFlatPart(d)}
+}
+
 func (f fields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) object() object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N] {
 	return object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]{f: f}
 }
@@ -1367,7 +2663,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Strict() object14[A,
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N) (R, error) {
@@ -1376,7 +2672,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn func(A
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -1385,20 +2681,20 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn fu
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
-		v13 := read(&c, o.f.p13, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1421,20 +2717,20 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R an
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
-		v13 := read(&c, o.f.p13, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1446,7 +2742,120 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R an
 	}}
 }
 
-// fields15 is a set of 15 fields.
+// flatfields14 is a set of 14 components.
+type flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N any] struct {
+	p0  part[A]
+	p1  part[B]
+	p2  part[C]
+	p3  part[D]
+	p4  part[E]
+	p5  part[F]
+	p6  part[G]
+	p7  part[H]
+	p8  part[I]
+	p9  part[J]
+	p10 part[K]
+	p11 part[L]
+	p12 part[M]
+	p13 part[N]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Field[O any](name string, src FieldSource[O]) flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O] {
+	return flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Flat[O any](d DecoderOf[O]) flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O] {
+	return flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, toFlatPart(d)}
+}
+
+func (f flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) object() flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N] {
+	return flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]{f: f}
+}
+
+// flatobject14 builds the decoder of an object of 14 components, some of them Flat.
+type flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N any] struct {
+	f flatfields14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields15 is a set of 15 components.
 type fields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O any] struct {
 	names []string
 	p0    part[A]
@@ -1471,6 +2880,14 @@ func (f fields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Field[P any](name
 	return fields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]{append(slices.Clip(f.names), name), f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, f.p14, toPart(name, src)}
 }
 
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f fields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Flat[P any](d DecoderOf[P]) flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P] {
+	return flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, f.p14, toFlatPart(d)}
+}
+
 func (f fields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) object() object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O] {
 	return object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]{f: f}
 }
@@ -1487,7 +2904,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Strict() object15
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O) (R, error) {
@@ -1496,7 +2913,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn fun
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -1505,21 +2922,21 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
-		v13 := read(&c, o.f.p13, m, at)
-		v14 := read(&c, o.f.p14, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1542,21 +2959,21 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
-		v13 := read(&c, o.f.p13, m, at)
-		v14 := read(&c, o.f.p14, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1568,7 +2985,123 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R
 	}}
 }
 
-// fields16 is a set of 16 fields.
+// flatfields15 is a set of 15 components.
+type flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O any] struct {
+	p0  part[A]
+	p1  part[B]
+	p2  part[C]
+	p3  part[D]
+	p4  part[E]
+	p5  part[F]
+	p6  part[G]
+	p7  part[H]
+	p8  part[I]
+	p9  part[J]
+	p10 part[K]
+	p11 part[L]
+	p12 part[M]
+	p13 part[N]
+	p14 part[O]
+}
+
+// Field returns the set with one more field, name, read with src.
+func (f flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Field[P any](name string, src FieldSource[P]) flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P] {
+	return flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, f.p14, toPart(name, src)}
+}
+
+// Flat returns the set with one more component, d, read from the same
+// object as the fields: d is given the object itself, at the path of the
+// object, and its value is the next argument of the function given to Map.
+// The members d reads are not known, so an object with a Flat has no Strict.
+func (f flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Flat[P any](d DecoderOf[P]) flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P] {
+	return flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]{f.p0, f.p1, f.p2, f.p3, f.p4, f.p5, f.p6, f.p7, f.p8, f.p9, f.p10, f.p11, f.p12, f.p13, f.p14, toFlatPart(d)}
+}
+
+func (f flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) object() flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O] {
+	return flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]{f: f}
+}
+
+// flatobject15 builds the decoder of an object of 15 components, some of them Flat.
+type flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O any] struct {
+	f flatfields15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// fields16 is a set of 16 components.
 type fields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P any] struct {
 	names []string
 	p0    part[A]
@@ -1605,7 +3138,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Strict() objec
 	return o
 }
 
-// Map returns the decoder that builds the value with fn once every field
+// Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) R) Decoder[any, R] {
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O, v15 P) (R, error) {
@@ -1614,7 +3147,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any](fn 
 }
 
 // AndThen returns the decoder that builds the value with fn once every
-// field has decoded. Issues fn returns (see Invalid) are reported at the
+// component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) (R, error)) Decoder[any, R] {
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
@@ -1623,22 +3156,22 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any]
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
-		v13 := read(&c, o.f.p13, m, at)
-		v14 := read(&c, o.f.p14, m, at)
-		v15 := read(&c, o.f.p15, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
+		v15 := read(&c, o.f.p15, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
@@ -1661,25 +3194,131 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPat
 			return invalid[R](*issue)
 		}
 		var c collector
-		v0 := read(&c, o.f.p0, m, at)
-		v1 := read(&c, o.f.p1, m, at)
-		v2 := read(&c, o.f.p2, m, at)
-		v3 := read(&c, o.f.p3, m, at)
-		v4 := read(&c, o.f.p4, m, at)
-		v5 := read(&c, o.f.p5, m, at)
-		v6 := read(&c, o.f.p6, m, at)
-		v7 := read(&c, o.f.p7, m, at)
-		v8 := read(&c, o.f.p8, m, at)
-		v9 := read(&c, o.f.p9, m, at)
-		v10 := read(&c, o.f.p10, m, at)
-		v11 := read(&c, o.f.p11, m, at)
-		v12 := read(&c, o.f.p12, m, at)
-		v13 := read(&c, o.f.p13, m, at)
-		v14 := read(&c, o.f.p14, m, at)
-		v15 := read(&c, o.f.p15, m, at)
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
+		v15 := read(&c, o.f.p15, in, m, at)
 		if o.strict {
 			c.unknown(m, at, o.f.names)
 		}
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, at)
+		return fromAbsoluteError(v, err)
+	}}
+}
+
+// flatfields16 is a set of 16 components.
+type flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P any] struct {
+	p0  part[A]
+	p1  part[B]
+	p2  part[C]
+	p3  part[D]
+	p4  part[E]
+	p5  part[F]
+	p6  part[G]
+	p7  part[H]
+	p8  part[I]
+	p9  part[J]
+	p10 part[K]
+	p11 part[L]
+	p12 part[M]
+	p13 part[N]
+	p14 part[O]
+	p15 part[P]
+}
+
+func (f flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) object() flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P] {
+	return flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]{f: f}
+}
+
+// flatobject16 builds the decoder of an object of 16 components, some of them Flat.
+type flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P any] struct {
+	f flatfields16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
+}
+
+// Map returns the decoder that builds the value with fn once every component
+// has decoded.
+func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) R) Decoder[any, R] {
+	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O, v15 P) (R, error) {
+		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15), nil
+	})
+}
+
+// AndThen returns the decoder that builds the value with fn once every
+// component has decoded. Issues fn returns (see Invalid) are reported at the
+// object; any other error stops the decode.
+func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
+		v15 := read(&c, o.f.p15, in, m, at)
+		if c.failed() {
+			return collected[R](&c)
+		}
+		v, err := fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path of the
+// object, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues fn returns: their paths are kept as fn
+// gives them, so build them from the path it was given, as at.Key("end").
+func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Path) (R, error)) Decoder[any, R] {
+	return Decoder[any, R]{func(in any, at Path) outcome[R] {
+		m, issue := openObject(in, at)
+		if issue != nil {
+			return invalid[R](*issue)
+		}
+		var c collector
+		v0 := read(&c, o.f.p0, in, m, at)
+		v1 := read(&c, o.f.p1, in, m, at)
+		v2 := read(&c, o.f.p2, in, m, at)
+		v3 := read(&c, o.f.p3, in, m, at)
+		v4 := read(&c, o.f.p4, in, m, at)
+		v5 := read(&c, o.f.p5, in, m, at)
+		v6 := read(&c, o.f.p6, in, m, at)
+		v7 := read(&c, o.f.p7, in, m, at)
+		v8 := read(&c, o.f.p8, in, m, at)
+		v9 := read(&c, o.f.p9, in, m, at)
+		v10 := read(&c, o.f.p10, in, m, at)
+		v11 := read(&c, o.f.p11, in, m, at)
+		v12 := read(&c, o.f.p12, in, m, at)
+		v13 := read(&c, o.f.p13, in, m, at)
+		v14 := read(&c, o.f.p14, in, m, at)
+		v15 := read(&c, o.f.p15, in, m, at)
 		if c.failed() {
 			return collected[R](&c)
 		}

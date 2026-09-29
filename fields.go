@@ -2,15 +2,10 @@ package raoh
 
 import "slices"
 
-// MaxFields is the number of fields one set can hold. A larger object is
-// decoded by grouping some of its fields into a nested object.
-const MaxFields = 16
-
-// part reads one field of an object.
-type part[T any] struct {
-	name string
-	src  FieldSource[T]
-}
+// part reads one component of an object: a named field, or the whole input
+// for a component added with Flat. in is the input the object decoder was
+// given; m is its members.
+type part[T any] func(in any, m *JSONObject, at Path) outcome[T]
 
 // FieldSource is what a field is read with: a Decoder[any, T] such as
 // raoh.String(), or [Optional] or [PresenceOf]. A decoder of any other input
@@ -28,7 +23,17 @@ type FieldSource[T any] interface {
 // Decoder[I, T] with I other than any out of [FieldSource].
 func (d Decoder[I, T]) decodeAt(in I, at Path) outcome[T] { return d.run(in, at) }
 
-func toPart[T any](name string, src FieldSource[T]) part[T] { return part[T]{name, src} }
+func toPart[T any](name string, src FieldSource[T]) part[T] {
+	return func(_ any, m *JSONObject, at Path) outcome[T] {
+		return src.decodeAt(m.member(name), at.Key(name))
+	}
+}
+
+// toFlatPart reads with d the same input as the object, at the object's path.
+func toFlatPart[T any](d DecoderOf[T]) part[T] {
+	dec := d.decoder()
+	return func(in any, _ *JSONObject, at Path) outcome[T] { return dec.run(in, at) }
+}
 
 // OptionalSource is the [FieldSource] that [Optional] returns.
 type OptionalSource[T any] struct {
@@ -61,12 +66,27 @@ func (s OptionalSource[T]) decodeAt(in any, at Path) outcome[*T] {
 //			Field("email", emailDecoder).
 //			Field("age", ageDecoder),
 //	).Map(NewUser)
+//
+// A set holds up to 16 components, each a Field or a Flat: the arity of the
+// function given to Map. An object of more fields is read by moving some of
+// them into a decoder of its own and adding that with Flat, which reads the
+// same object:
+//
+//	raoh.Object(
+//		raoh.Fields().
+//			Field("id", idDecoder).
+//			Flat(contactDecoder),
+//	).Map(NewAccount)
+//
+// Each level has its constructor checked by the compiler, so the number of
+// fields is not limited. The decoder Flat is given is opaque, so the members
+// it reads are not known: an object with a Flat has no Strict method.
 func Fields() fields0 { return fields0{} }
 
 // Object returns the builder of the decoder of an object made of the fields in
 // f. Call Map or AndThen on it with a function whose parameters are the types
-// of the fields, in the order they were added; Strict also reports the members
-// the fields do not name.
+// of the components, in the order they were added; Strict also reports the
+// members the fields do not name.
 //
 // The input must be an object: null or a missing member is required, and any
 // other type is type_mismatch with expected object, reported once at the
@@ -91,12 +111,12 @@ type collector struct {
 	err    error
 }
 
-func read[T any](c *collector, p part[T], m *JSONObject, at Path) T {
+func read[T any](c *collector, p part[T], in any, m *JSONObject, at Path) T {
 	var zero T
 	if c.err != nil {
 		return zero
 	}
-	o := p.src.decodeAt(m.member(p.name), at.Key(p.name))
+	o := p(in, m, at)
 	if o.err != nil {
 		c.err = o.err
 		return zero
