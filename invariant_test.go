@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/raoh-project/raoh-go"
 	"github.com/raoh-project/raoh-go/encode"
@@ -243,6 +244,45 @@ func TestUniqueIsRefusedForTypesWhoseValuesMayNotCompare(t *testing.T) {
 	}
 	if !panics(func() { anyList.UniqueBy(func(v any) any { return v }) }) {
 		t.Error("UniqueBy with an interface key")
+	}
+}
+
+func TestContainsAndToSetAreRefusedForTypesWhoseValuesMayNotCompare(t *testing.T) {
+	anyList := raoh.List(raoh.OneOf[any](raoh.List(raoh.Int()).Map(func(v []int) any { return v })))
+	if !panics(func() { anyList.Contains(1) }) {
+		t.Error("Contains on []any")
+	}
+	if !panics(func() { anyList.ContainsAll(1) }) {
+		t.Error("ContainsAll on []any")
+	}
+	if !panics(func() { raoh.ToSet(anyList) }) {
+		t.Error("ToSet on []any")
+	}
+	if !panics(func() { raoh.List(raoh.Int()).ContainsAll() }) {
+		t.Error("ContainsAll without elements")
+	}
+}
+
+// Raoh for Java refuses a null element of contains and containsAll when the
+// decoder is built; a nil pointer is the null of a Go element.
+func TestContainsRefusesANilElementWhenBuilt(t *testing.T) {
+	l := raoh.List(raoh.Nullable(raoh.Int()))
+	one := 1
+	if !panics(func() { l.Contains(nil) }) {
+		t.Error("Contains(nil)")
+	}
+	if !panics(func() { l.ContainsAll(&one, nil) }) {
+		t.Error("ContainsAll with a nil")
+	}
+	if panics(func() { l.Contains(&one) }) {
+		t.Error("Contains of a pointer")
+	}
+	pointers := raoh.List(raoh.Int().Map(func(int) unsafe.Pointer { return nil }))
+	if !panics(func() { pointers.Contains(nil) }) {
+		t.Error("Contains of a nil unsafe.Pointer")
+	}
+	if !panics(func() { raoh.List(raoh.Int()).UniqueBy[int](nil) }) {
+		t.Error("UniqueBy(nil)")
 	}
 }
 

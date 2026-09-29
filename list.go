@@ -3,6 +3,7 @@ package raoh
 import (
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/raoh-project/raoh-go/internal/hashable"
 )
@@ -21,21 +22,15 @@ type ListDecoder[T any] struct {
 
 // List returns a decoder of an array whose elements element decodes.
 func List[T any](element DecoderOf[T]) ListDecoder[T] {
-	return newList(element.decoder(), scalar[[]T]{read: func(in any) ([]T, *Issue) {
-		if _, ok := plain(in).([]any); !ok {
-			i := unexpected("array", in)
-			return nil, &i
-		}
-		return nil, nil
-	}})
+	return newList(element.decoder(), scalar[[]T]{})
 }
 
 func newList[T any](element Decoder[any, T], s scalar[[]T]) ListDecoder[T] {
 	return ListDecoder[T]{Decoder[any, []T]{func(in any, at Path) outcome[[]T] {
-		if _, issue := s.read(in); issue != nil {
-			return s.typeIssue(*issue, at)
+		items, ok := asArray(in)
+		if !ok {
+			return s.typeIssue(unexpected("array", in), at)
 		}
-		items := plain(in).([]any)
 		values := make([]T, 0, len(items))
 		var issues Issues
 		for n, item := range items {
@@ -57,6 +52,12 @@ func (l ListDecoder[T]) require(ok func([]T) bool, fail func([]T) Issue) ListDec
 	return newList(l.element, l.s.require(ok, fail))
 }
 
+// check adds a constraint that reports its issue, or nil, from one scan of the
+// list, for those whose issue is found by the work that decides them.
+func (l ListDecoder[T]) check(f func([]T) *Issue) ListDecoder[T] {
+	return newList(l.element, l.s.with(step[[]T]{check: f}))
+}
+
 // Message gives the most recent constraint written before it, or the type
 // check when there is none, a custom message that every language shows as
 // written.
@@ -67,30 +68,94 @@ func (l ListDecoder[T]) Message(message string) ListDecoder[T] {
 // NonEmpty requires an element: too_small under the message key
 // too_small.nonempty, with min 1 and actual 0.
 func (l ListDecoder[T]) NonEmpty() ListDecoder[T] {
-	return l.require(func(v []T) bool { return len(v) > 0 }, func([]T) Issue {
-		return NewIssue(CodeTooSmall).WithMessageKey(KeyTooSmallNonEmpty).WithMeta("min", 1).WithMeta("actual", 0)
-	})
+	return l.require(listSize[T]().nonEmpty())
 }
 
 // MinSize requires at least n elements: too_small with min and actual.
 func (l ListDecoder[T]) MinSize(n int) ListDecoder[T] {
-	return l.require(func(v []T) bool { return len(v) >= n }, func(v []T) Issue {
-		return NewIssue(CodeTooSmall).WithMeta("min", n).WithMeta("actual", len(v))
-	})
+	return l.require(listSize[T]().atLeast(n))
 }
 
 // MaxSize allows at most n elements: too_big with max and actual.
 func (l ListDecoder[T]) MaxSize(n int) ListDecoder[T] {
-	return l.require(func(v []T) bool { return len(v) <= n }, func(v []T) Issue {
-		return NewIssue(CodeTooBig).WithMeta("max", n).WithMeta("actual", len(v))
-	})
+	return l.require(listSize[T]().atMost(n))
 }
 
 // Size requires exactly n elements: invalid_size with expected and actual.
 func (l ListDecoder[T]) Size(n int) ListDecoder[T] {
-	return l.require(func(v []T) bool { return len(v) == n }, func(v []T) Issue {
-		return NewIssue(CodeInvalidSize).WithMeta("expected", n).WithMeta("actual", len(v))
+	return l.require(listSize[T]().exactly(n))
+}
+
+// Contains requires the list to hold element, compared with ==:
+// missing_element with expected. It panics, when the decoder is built, if T
+// holds an interface anywhere, as Unique does, or if element is nil, as Raoh
+// for Java refuses a null element.
+func (l ListDecoder[T]) Contains(element T) ListDecoder[T] {
+	requireHashable(reflect.TypeFor[T](), "Contains")
+	requireNotNil(element, "Contains")
+	return l.require(func(v []T) bool { return slices.ContainsFunc(v, func(e T) bool { return equal(e, element) }) },
+		func([]T) Issue { return NewIssue(CodeMissingElement).WithMeta("expected", element) })
+}
+
+// ContainsAll requires the list to hold every one of elements, compared with
+// ==: missing_elements with expected, all of elements, and missing, those the
+// list lacks, in the order given. It panics, when the decoder is built, if
+// elements is empty, if one is nil, or if T holds an interface anywhere, as
+// Contains does.
+func (l ListDecoder[T]) ContainsAll(elements ...T) ListDecoder[T] {
+	requireHashable(reflect.TypeFor[T](), "ContainsAll")
+	if len(elements) == 0 {
+		panic("raoh: ContainsAll needs at least one element")
+	}
+	for _, e := range elements {
+		requireNotNil(e, "ContainsAll")
+	}
+	required := slices.Clone(elements)
+	return l.check(func(v []T) *Issue {
+		held := make(map[any]struct{}, len(v))
+		for _, e := range v {
+			held[e] = struct{}{}
+		}
+		var missing []T
+		for _, r := range required {
+			if _, ok := held[r]; !ok {
+				missing = append(missing, r)
+			}
+		}
+		if missing == nil {
+			return nil
+		}
+		i := NewIssue(CodeMissingElements).WithMeta("expected", required).WithMeta("missing", missing)
+		return &i
 	})
+}
+
+// ToSet turns the elements d decodes into a set: a map whose keys are the
+// elements, each once. The order of the list is not kept. Constraints on d,
+// such as Unique, run before the elements are gathered. It panics, when the
+// decoder is built, if T holds an interface anywhere, as Unique does.
+func ToSet[T comparable](d DecoderOf[[]T]) Decoder[any, map[T]struct{}] {
+	requireHashable(reflect.TypeFor[T](), "ToSet")
+	return d.decoder().Map(func(v []T) map[T]struct{} {
+		set := make(map[T]struct{}, len(v))
+		for _, e := range v {
+			set[e] = struct{}{}
+		}
+		return set
+	})
+}
+
+func equal[T any](a, b T) bool { return any(a) == any(b) }
+
+// requireNotNil panics if v is nil: a nil pointer, unsafe.Pointer or channel,
+// the only nil a type that holds no interface has.
+func requireNotNil[T any](v T, name string) {
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.UnsafePointer, reflect.Chan:
+		if rv.IsNil() {
+			panic(fmt.Sprintf("raoh: %s needs an element that is not nil", name))
+		}
+	}
 }
 
 // Unique requires every element to differ from the others, compared with ==:
@@ -112,6 +177,9 @@ func (l ListDecoder[T]) Unique() ListDecoder[T] {
 // built, if K holds an interface anywhere, as Unique does.
 func (l ListDecoder[T]) UniqueBy[K comparable](key func(T) K) ListDecoder[T] {
 	requireHashable(reflect.TypeFor[K](), "UniqueBy")
+	if key == nil {
+		panic("raoh: UniqueBy needs a key function")
+	}
 	return l.unique(func(v T) any { return key(v) })
 }
 
@@ -122,8 +190,13 @@ func requireHashable(t reflect.Type, name string) {
 }
 
 func (l ListDecoder[T]) unique(key func(T) any) ListDecoder[T] {
-	return l.require(func(v []T) bool { return len(duplicates(v, key)) == 0 }, func(v []T) Issue {
-		return NewIssue(CodeDuplicateElement).WithMeta("duplicates", duplicates(v, key))
+	return l.check(func(v []T) *Issue {
+		repeated := duplicates(v, key)
+		if len(repeated) == 0 {
+			return nil
+		}
+		i := NewIssue(CodeDuplicateElement).WithMeta("duplicates", repeated)
+		return &i
 	})
 }
 
@@ -142,21 +215,34 @@ func duplicates[T any](items []T, key func(T) any) []T {
 	return out
 }
 
+// DictDecoder decodes an object used as a map into a map[string]T.
+//
+// Null or a missing member is required; any other type is type_mismatch. Every
+// member is decoded, and the issues of each are reported under its name, in
+// the order the input has its members. The constraints on the map run once
+// every member has decoded, in the order they are written.
+type DictDecoder[T any] struct {
+	Decoder[any, map[string]T]
+	value Decoder[any, T]
+	s     scalar[map[string]T]
+}
+
 // Dict returns a decoder of an object used as a map, whose member values value
-// decodes. Null or a missing member is required; any other type is
-// type_mismatch. The issues of each member are reported under its name, in the
-// order the input has its members.
-func Dict[T any](value DecoderOf[T]) Decoder[any, map[string]T] {
-	d := value.decoder()
-	return Decoder[any, map[string]T]{func(in any, at Path) outcome[map[string]T] {
+// decodes.
+func Dict[T any](value DecoderOf[T]) DictDecoder[T] {
+	return newDict(value.decoder(), scalar[map[string]T]{})
+}
+
+func newDict[T any](value Decoder[any, T], s scalar[map[string]T]) DictDecoder[T] {
+	return DictDecoder[T]{Decoder[any, map[string]T]{func(in any, at Path) outcome[map[string]T] {
 		m, ok := AsObject(in)
 		if !ok {
-			return invalid[map[string]T](unexpected("object", in).At(at))
+			return s.typeIssue(unexpected("object", in), at)
 		}
 		values := make(map[string]T, len(m.names))
 		var issues Issues
 		for _, name := range m.names {
-			o := d.run(m.values[name], at.Key(name))
+			o := value.run(m.values[name], at.Key(name))
 			if o.err != nil {
 				return failAs[map[string]T](o)
 			}
@@ -166,6 +252,38 @@ func Dict[T any](value DecoderOf[T]) Decoder[any, map[string]T] {
 		if issues.Len() > 0 {
 			return outcome[map[string]T]{issues: issues}
 		}
-		return succeed(values)
-	}}
+		return s.run(values, at)
+	}}, value, s}
+}
+
+func (d DictDecoder[T]) require(ok func(map[string]T) bool, fail func(map[string]T) Issue) DictDecoder[T] {
+	return newDict(d.value, d.s.require(ok, fail))
+}
+
+// Message gives the most recent constraint written before it, or the type
+// check when there is none, a custom message that every language shows as
+// written.
+func (d DictDecoder[T]) Message(message string) DictDecoder[T] {
+	return newDict(d.value, d.s.message(message))
+}
+
+// NonEmpty requires a member: too_small under the message key
+// too_small.nonempty, with min 1 and actual 0.
+func (d DictDecoder[T]) NonEmpty() DictDecoder[T] {
+	return d.require(dictSize[T]().nonEmpty())
+}
+
+// MinSize requires at least n members: too_small with min and actual.
+func (d DictDecoder[T]) MinSize(n int) DictDecoder[T] {
+	return d.require(dictSize[T]().atLeast(n))
+}
+
+// MaxSize allows at most n members: too_big with max and actual.
+func (d DictDecoder[T]) MaxSize(n int) DictDecoder[T] {
+	return d.require(dictSize[T]().atMost(n))
+}
+
+// Size requires exactly n members: invalid_size with expected and actual.
+func (d DictDecoder[T]) Size(n int) DictDecoder[T] {
+	return d.require(dictSize[T]().exactly(n))
 }

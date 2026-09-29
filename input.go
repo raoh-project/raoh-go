@@ -60,6 +60,12 @@ func AsObject(v any) (*JSONObject, bool) {
 	return nil, false
 }
 
+// asArray returns v as the []any of the input model, if it is an array.
+func asArray(v any) ([]any, bool) {
+	a, ok := plain(v).([]any)
+	return a, ok
+}
+
 // Len returns the number of members.
 func (o *JSONObject) Len() int { return len(o.names) }
 
