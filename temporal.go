@@ -190,8 +190,8 @@ type temporalKind struct {
 	ops *temporalOps
 }
 
-// temporalOps is what a kind does with a value. The kinds below are the only
-// ones, and each has every field.
+// temporalOps is what a kind does with a value. Every kind defined below
+// provides every operation.
 type temporalOps struct {
 	parse func(string) (time.Time, bool)
 	key   string
