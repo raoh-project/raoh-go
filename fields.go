@@ -17,13 +17,21 @@ type part[T any] func(in any, m *JSONObject, at Path) outcome[T]
 // PresenceOf an absent Presence.
 type FieldSource[T any] interface {
 	decodeAt(in any, at Path) outcome[T]
+	// valid reports whether the source has a decoder to read with, which the
+	// zero value of a source has not.
+	valid() bool
 }
 
 // decodeAt carries the input type I in its signature, which is what keeps a
 // Decoder[I, T] with I other than any out of [FieldSource].
 func (d Decoder[I, T]) decodeAt(in I, at Path) outcome[T] { return d.run(in, at) }
 
+func (d Decoder[I, T]) valid() bool { return d.run != nil }
+
+func (s OptionalSource[T]) valid() bool { return s.d.run != nil }
+
 func toPart[T any](name string, src FieldSource[T]) part[T] {
+	requireArgument(src != nil && src.valid(), "Field", "src")
 	return func(_ any, m *JSONObject, at Path) outcome[T] {
 		return src.decodeAt(m.member(name), at.Key(name))
 	}
@@ -31,7 +39,7 @@ func toPart[T any](name string, src FieldSource[T]) part[T] {
 
 // toFlatPart reads with d the same input as the object, at the object's path.
 func toFlatPart[T any](d DecoderOf[T]) part[T] {
-	dec := d.decoder()
+	dec := decoderOf(d, "Flat", "d")
 	return func(in any, _ *JSONObject, at Path) outcome[T] { return dec.run(in, at) }
 }
 
@@ -44,7 +52,7 @@ type OptionalSource[T any] struct {
 // a present one, null included, is decoded with d. Wrap d with [Nullable] to
 // accept null, or use [PresenceOf] to tell the three apart.
 func Optional[T any](d DecoderOf[T]) OptionalSource[T] {
-	return OptionalSource[T]{d.decoder()}
+	return OptionalSource[T]{decoderOf(d, "Optional", "d")}
 }
 
 func (s OptionalSource[T]) decodeAt(in any, at Path) outcome[*T] {

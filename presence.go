@@ -40,13 +40,15 @@ func (p Presence[T]) Value() (T, bool) { return p.value, p.state == present }
 // member gives an absent Presence, null a null one, and anything else is decoded
 // with d.
 func PresenceOf[T any](d DecoderOf[T]) PresenceSource[T] {
-	return PresenceSource[T]{d.decoder()}
+	return PresenceSource[T]{decoderOf(d, "PresenceOf", "d")}
 }
 
 // PresenceSource is the [FieldSource] that [PresenceOf] returns.
 type PresenceSource[T any] struct {
 	d Decoder[any, T]
 }
+
+func (s PresenceSource[T]) valid() bool { return s.d.run != nil }
 
 func (s PresenceSource[T]) decodeAt(in any, at Path) outcome[Presence[T]] {
 	switch {

@@ -22,7 +22,7 @@ type ListDecoder[T any] struct {
 
 // List returns a decoder of an array whose elements element decodes.
 func List[T any](element DecoderOf[T]) ListDecoder[T] {
-	return newList(element.decoder(), scalar[[]T]{})
+	return newList(decoderOf(element, "List", "element"), scalar[[]T]{})
 }
 
 func newList[T any](element Decoder[any, T], s scalar[[]T]) ListDecoder[T] {
@@ -136,7 +136,7 @@ func (l ListDecoder[T]) ContainsAll(elements ...T) ListDecoder[T] {
 // decoder is built, if T holds an interface anywhere, as Unique does.
 func ToSet[T comparable](d DecoderOf[[]T]) Decoder[any, map[T]struct{}] {
 	requireHashable(reflect.TypeFor[T](), "ToSet")
-	return d.decoder().Map(func(v []T) map[T]struct{} {
+	return decoderOf(d, "ToSet", "d").Map(func(v []T) map[T]struct{} {
 		set := make(map[T]struct{}, len(v))
 		for _, e := range v {
 			set[e] = struct{}{}
@@ -228,7 +228,7 @@ type DictDecoder[T any] struct {
 // Dict returns a decoder of an object used as a map, whose member values value
 // decodes.
 func Dict[T any](value DecoderOf[T]) DictDecoder[T] {
-	return newDict(value.decoder(), scalar[map[string]T]{})
+	return newDict(decoderOf(value, "Dict", "value"), scalar[map[string]T]{})
 }
 
 func newDict[T any](value Decoder[any, T], s scalar[map[string]T]) DictDecoder[T] {

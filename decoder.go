@@ -141,6 +141,13 @@ func (d Decoder[I, T]) decoder() Decoder[I, T] {
 	return d
 }
 
+// decoderOf is d.decoder() for a decoder a constructor is given, refused when
+// it is nil.
+func decoderOf[T any](d DecoderOf[T], constructor, argument string) Decoder[any, T] {
+	requireArgument(d != nil, constructor, argument)
+	return d.decoder()
+}
+
 // requireArgument panics, when a decoder is built, if a function or decoder it
 // is given is nil: the decode would call it and panic, whatever the input.
 func requireArgument(ok bool, constructor, argument string) {
@@ -342,7 +349,7 @@ func (d Decoder[I, T]) FallbackFunc(f func(Issues) T) Decoder[I, T] {
 // with d. A missing member is not null: it is handed to d, which reports it as
 // required. Use [Optional] for a member that may be left out.
 func Nullable[T any](d DecoderOf[T]) Decoder[any, *T] {
-	dd := d.decoder()
+	dd := decoderOf(d, "Nullable", "d")
 	return Decoder[any, *T]{func(in any, at Path) outcome[*T] {
 		if in == nil {
 			return succeed[*T](nil)
@@ -378,7 +385,7 @@ func Lazy[T any](f func() Decoder[any, T]) Decoder[any, T] {
 func OneOf[T any](alternatives ...DecoderOf[T]) Decoder[any, T] {
 	ds := make([]Decoder[any, T], len(alternatives))
 	for i, a := range alternatives {
-		ds[i] = a.decoder()
+		ds[i] = decoderOf(a, "OneOf", "each alternative")
 	}
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		candidates := make([]any, 0, len(ds))

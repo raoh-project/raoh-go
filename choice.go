@@ -43,7 +43,7 @@ func EnumOfWith[T any](values map[string]T, stringDecoder DecoderOf[string]) Dec
 		allowed = append(allowed, k)
 	}
 	slices.Sort(allowed)
-	str := stringDecoder.decoder()
+	str := decoderOf(stringDecoder, "EnumOfWith", "stringDecoder")
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		o := str.run(in, at)
 		if o.failed() {
@@ -68,7 +68,7 @@ func Literal(expected string) Decoder[any, string] {
 // value it returns compared with expected. What stringDecoder reports is
 // reported as it is.
 func LiteralWith(expected string, stringDecoder DecoderOf[string]) Decoder[any, string] {
-	str := stringDecoder.decoder()
+	str := decoderOf(stringDecoder, "LiteralWith", "stringDecoder")
 	return Decoder[any, string]{func(in any, at Path) outcome[string] {
 		o := str.run(in, at)
 		if o.failed() || o.value == expected {
@@ -87,7 +87,7 @@ type variant[T any] struct {
 
 // Variant returns the choice of [Discriminate] that tag names, decoded with d.
 func Variant[T any](tag string, d DecoderOf[T]) variant[T] {
-	return variant[T]{tag, d.decoder()}
+	return variant[T]{tag, decoderOf(d, "Variant", "d")}
 }
 
 // Discriminate returns a decoder of an object whose member tagField names the
@@ -120,9 +120,9 @@ func Discriminate[T any](tagField string, variants ...variant[T]) Decoder[any, T
 func DiscriminateWith[T any](tagField string, tagDecoder DecoderOf[string], variants map[string]DecoderOf[T]) Decoder[any, T] {
 	byTag := make(map[string]Decoder[any, T], len(variants))
 	for tag, d := range variants {
-		byTag[tag] = d.decoder()
+		byTag[tag] = decoderOf(d, "DiscriminateWith", "each variant")
 	}
-	return discriminate(tagField, tagDecoder.decoder(), byTag)
+	return discriminate(tagField, decoderOf(tagDecoder, "DiscriminateWith", "tagDecoder"), byTag)
 }
 
 func discriminate[T any](tagField string, tagDecoder Decoder[any, string], byTag map[string]Decoder[any, T]) Decoder[any, T] {

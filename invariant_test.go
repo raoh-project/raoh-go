@@ -317,6 +317,23 @@ func TestANilArgumentIsRefusedWhenTheDecoderIsBuilt(t *testing.T) {
 		{func() { flat.Map[int](nil) }, "raoh: Object.Map needs fn that is not nil"},
 		{func() { empty.Map[int](nil) }, "raoh: Object.Map needs fn that is not nil"},
 		{func() { d.Pipe(raoh.Decoder[int, int]{}) }, "raoh: Decoder.Pipe needs a next decoder that is not the zero Decoder"},
+		{func() { raoh.List[int](nil) }, "raoh: List needs element that is not nil"},
+		{func() { raoh.Dict[int](nil) }, "raoh: Dict needs value that is not nil"},
+		{func() { raoh.ToSet[int](nil) }, "raoh: ToSet needs d that is not nil"},
+		{func() { raoh.Nullable[int](nil) }, "raoh: Nullable needs d that is not nil"},
+		{func() { raoh.Optional[int](nil) }, "raoh: Optional needs d that is not nil"},
+		{func() { raoh.PresenceOf[int](nil) }, "raoh: PresenceOf needs d that is not nil"},
+		{func() { raoh.OneOf[int](d, nil) }, "raoh: OneOf needs each alternative that is not nil"},
+		{func() { raoh.Strict[int](nil) }, "raoh: Strict needs d that is not nil"},
+		{func() { raoh.Variant[int]("t", nil) }, "raoh: Variant needs d that is not nil"},
+		{func() { raoh.EnumOfWith(map[string]int{"a": 1}, nil) }, "raoh: EnumOfWith needs stringDecoder that is not nil"},
+		{func() { raoh.LiteralWith("a", nil) }, "raoh: LiteralWith needs stringDecoder that is not nil"},
+		{func() { raoh.DiscriminateWith[int]("k", nil, nil) }, "raoh: DiscriminateWith needs tagDecoder that is not nil"},
+		{func() { raoh.DiscriminateWith("k", raoh.String(), map[string]raoh.DecoderOf[int]{"a": nil}) }, "raoh: DiscriminateWith needs each variant that is not nil"},
+		{func() { raoh.DecodeJSONFrom[int](strings.NewReader(""), 1, nil) }, "raoh: DecodeJSONFrom needs d that is not nil"},
+		{func() { raoh.DecodeJSON[int](nil, nil) }, "raoh: DecodeJSON needs d that is not nil"},
+		{func() { raoh.Fields().Field[int]("a", nil) }, "raoh: Field needs src that is not nil"},
+		{func() { raoh.Fields().Flat[int](nil) }, "raoh: Flat needs d that is not nil"},
 	}
 	for _, tt := range tests {
 		if got := panicText(tt.build); got != tt.want {
@@ -329,12 +346,15 @@ func TestANilArgumentIsRefusedWhenTheDecoderIsBuilt(t *testing.T) {
 func TestTheZeroDecoderIsRefusedWhenAnotherIsBuiltFromIt(t *testing.T) {
 	var zero raoh.Decoder[any, int]
 	for name, build := range map[string]func(){
-		"List":       func() { raoh.List(zero) },
-		"Dict":       func() { raoh.Dict(zero) },
-		"Nullable":   func() { raoh.Nullable(zero) },
-		"Optional":   func() { raoh.Optional(zero) },
-		"PresenceOf": func() { raoh.PresenceOf(zero) },
-		"OneOf":      func() { raoh.OneOf[int](zero) },
+		"List":                func() { raoh.List(zero) },
+		"Dict":                func() { raoh.Dict(zero) },
+		"Nullable":            func() { raoh.Nullable(zero) },
+		"Optional":            func() { raoh.Optional(zero) },
+		"PresenceOf":          func() { raoh.PresenceOf(zero) },
+		"OneOf":               func() { raoh.OneOf[int](zero) },
+		"Field":               func() { raoh.Fields().Field("a", zero) },
+		"Field of Optional":   func() { raoh.Fields().Field("a", raoh.OptionalSource[int]{}) },
+		"Field of PresenceOf": func() { raoh.Fields().Field("a", raoh.PresenceSource[int]{}) },
 	} {
 		if !panics(build) {
 			t.Errorf("%s of the zero Decoder", name)
