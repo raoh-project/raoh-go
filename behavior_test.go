@@ -511,3 +511,28 @@ func TestURIKeepsTheTextAndItsComponents(t *testing.T) {
 		t.Error("a relative reference is not a URI")
 	}
 }
+
+func TestZeroURIIsNotAURI(t *testing.T) {
+	var u raoh.URI
+	if _, ok := u.Authority(); ok {
+		t.Error("Authority")
+	}
+	if _, ok := u.Host(); ok {
+		t.Error("Host")
+	}
+	if _, ok := u.Query(); ok {
+		t.Error("Query")
+	}
+	if _, ok := u.Fragment(); ok {
+		t.Error("Fragment")
+	}
+	if u.String() != "" || u.Scheme() != "" || u.Path() != "" {
+		t.Error("text")
+	}
+	if _, err := u.URL(); err == nil {
+		t.Error("URL")
+	}
+	if _, err := u.MarshalText(); err == nil {
+		t.Error("MarshalText")
+	}
+}

@@ -323,8 +323,9 @@ body, err := json.Marshal(userEncoder.Encode(user))
 - `Object`, `List`, `Dict`, `Lazy` and `Discriminate` are the counterparts of the decoders of the
   same name. `Discriminate` picks the variant by the value's dynamic type and writes its tag.
 - `String`, `Int` and the other scalars give a value as it is; `Decimal` gives a `json.Number`
-  that keeps the scale; `UUID`, `URL` and the temporal encoders `Instant`, `Date`, `Time`,
-  `DateTime` and `OffsetDateTime` give text as Raoh for Java's encoders do. `EnumOf` takes the
+  that keeps the scale; `UUID`, `URI` (for the `raoh.URI` that `String().URI()` and
+  `String().URL()` give), `URL` (for a `*url.URL`) and the temporal encoders `Instant`, `Date`,
+  `Time`, `DateTime` and `OffsetDateTime` give text as Raoh for Java's encoders do. `EnumOf` takes the
   map `raoh.EnumOf` decodes with.
 - `Contramap` and `AndThen` adapt an encoder on either side.
 

@@ -92,7 +92,9 @@ func UUID() Encoder[raoh.UUID, string] { return raoh.UUID.String }
 // URL returns the encoder of a URL as text.
 func URL() Encoder[*url.URL, string] { return (*url.URL).String }
 
-// URI returns the encoder of a URI as the text it was written in.
+// URI returns the encoder of a URI as the text it was written in. It is the
+// encoder of what StringDecoder.URI and URL give; URL is the one for a *url.URL.
+// The zero URI is not a URI and gives an empty string.
 func URI() Encoder[raoh.URI, string] { return raoh.URI.String }
 
 // Instant returns the encoder of a moment as Instant.toString writes it: in

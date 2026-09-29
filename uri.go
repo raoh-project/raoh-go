@@ -21,10 +21,15 @@ import (
 // empty query or fragment kept. The components are not percent-decoded. Use
 // [URI.URL] to get a *url.URL, which does not exist for every URI.
 //
-// A URI is comparable, and its zero value is not a URI: String is empty.
+// A URI is comparable. Its zero value is not a URI, since every URI has a
+// scheme: String is empty, no component is present, URL and MarshalText report
+// an error.
 type URI struct {
 	p parsedURI
 }
+
+// isZero reports whether u is the zero value.
+func (u URI) isZero() bool { return u.p.value == "" }
 
 // ParseURI reads s as an RFC 3986 URI of any scheme, by the rule of
 // [StringDecoder.URI].
@@ -55,7 +60,7 @@ func (u URI) Scheme() string { return u.p.value[:u.p.schemeEnd] }
 // Authority returns the authority, without the two slashes that start it, and
 // whether the URI has one. An empty authority (file:///a) is present and empty.
 func (u URI) Authority() (string, bool) {
-	if u.p.authorityStart < 0 {
+	if u.isZero() || u.p.authorityStart < 0 {
 		return "", false
 	}
 	return u.p.value[u.p.authorityStart:u.p.authorityEnd], true
@@ -64,7 +69,7 @@ func (u URI) Authority() (string, bool) {
 // Host returns the host as written, an IPv6 address in its brackets, and
 // whether the URI has an authority. The host of a registered name can be empty.
 func (u URI) Host() (string, bool) {
-	if u.p.authorityStart < 0 {
+	if u.isZero() || u.p.authorityStart < 0 {
 		return "", false
 	}
 	return u.p.value[u.p.hostStart:u.p.hostEnd], true
@@ -96,10 +101,21 @@ func (u URI) Fragment() (string, bool) {
 // cannot hold the text, as it cannot for a percent-encoded host. The *url.URL
 // may write itself differently from String: the scheme in lower case and an
 // empty fragment left out.
-func (u URI) URL() (*url.URL, error) { return url.Parse(u.p.value) }
+func (u URI) URL() (*url.URL, error) {
+	if u.isZero() {
+		return nil, errNotURI
+	}
+	return url.Parse(u.p.value)
+}
 
-// MarshalText writes the URI as String does.
-func (u URI) MarshalText() ([]byte, error) { return []byte(u.p.value), nil }
+// MarshalText writes the URI as String does. The zero value is not a URI, and
+// writing it would give text that cannot be read back, so it is an error.
+func (u URI) MarshalText() ([]byte, error) {
+	if u.isZero() {
+		return nil, errNotURI
+	}
+	return []byte(u.p.value), nil
+}
 
 // parsedURI is the components of an accepted URI, as offsets into the text.
 type parsedURI struct {
