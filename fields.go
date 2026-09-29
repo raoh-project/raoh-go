@@ -101,7 +101,7 @@ func read[T any](c *collector, p part[T], m *JSONObject, at Path) T {
 		c.err = o.err
 		return zero
 	}
-	c.issues.add(o.issues.items...)
+	c.issues.appendInPlace(o.issues.items...)
 	return o.value
 }
 
@@ -110,7 +110,7 @@ func read[T any](c *collector, p part[T], m *JSONObject, at Path) T {
 func (c *collector) unknown(m *JSONObject, at Path, names []string) {
 	for _, k := range m.names {
 		if !slices.Contains(names, k) {
-			c.issues.add(NewIssue(CodeUnknownField).WithMeta("field", k).At(at.Key(k)))
+			c.issues.appendInPlace(NewIssue(CodeUnknownField).WithMeta("field", k).At(at.Key(k)))
 		}
 	}
 }

@@ -179,7 +179,7 @@ func TestPathsAreJSONPointers(t *testing.T) {
 	if got := root.Key("").String(); got != "/" {
 		t.Error(got)
 	}
-	if got := root.Key("end").under(root.Key("period")).String(); got != "/period/end" {
+	if got := root.Key("period").Append(root.Key("end")).String(); got != "/period/end" {
 		t.Error(got)
 	}
 }
