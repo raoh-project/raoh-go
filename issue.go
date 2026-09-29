@@ -4,7 +4,9 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
+	"unicode"
 )
 
 // Issue is one problem found in the input: where it is, what kind it is, and
@@ -94,13 +96,35 @@ func (i Issue) Message(r Resolver) string {
 	return r.Resolve(i)
 }
 
-// String returns the path and the English message.
+// String returns the path and the English message, for a log. The path and
+// the message may hold text from the input, such as the name of an unknown
+// member, so a character that is not graphic, such as a newline, is written as
+// a Go escape, and a backslash as two: no input can make the text read as
+// more than one issue.
 func (i Issue) String() string {
 	p := i.path.String()
 	if p == "" {
 		p = "(root)"
 	}
-	return p + ": " + i.Message(English)
+	return escapeForLog(p) + ": " + escapeForLog(i.Message(English))
+}
+
+func escapeForLog(s string) string {
+	if !strings.ContainsFunc(s, func(r rune) bool { return r == '\\' || !unicode.IsGraphic(r) }) {
+		return s
+	}
+	var b strings.Builder
+	for _, r := range s {
+		switch {
+		case r == '\\':
+			b.WriteString(`\\`)
+		case unicode.IsGraphic(r):
+			b.WriteRune(r)
+		default:
+			b.WriteString(strings.Trim(strconv.QuoteRune(r), "'"))
+		}
+	}
+	return b.String()
 }
 
 // Issues is every problem a decode found, in the order it found them. A
@@ -135,6 +159,13 @@ func (is *Issues) Error() string {
 
 // RenderedIssue is an issue with its message written, in the form Raoh for
 // Java and PHP give an issue as JSON.
+//
+// Its fields can hold text from the input. Path names the members the input
+// has, such as an unknown member; Meta holds values the input gave, such as
+// actual, the duplicates of a list or the name of an unknown member, and what a
+// caller put there with WithMeta; and Message is filled from Meta. Write them
+// to a response only where showing the input back to its sender is intended,
+// and filter or omit Meta otherwise.
 type RenderedIssue struct {
 	Path    string         `json:"path"`
 	Code    string         `json:"code"`
@@ -143,7 +174,8 @@ type RenderedIssue struct {
 }
 
 // Render returns the issues with their messages written by r, ready to be
-// written out as JSON: [{"path", "code", "message", "meta"}, ...].
+// written out as JSON: [{"path", "code", "message", "meta"}, ...]. See
+// [RenderedIssue] for what in them can come from the input.
 func (is Issues) Render(r Resolver) []RenderedIssue {
 	out := make([]RenderedIssue, len(is.items))
 	for n, i := range is.items {

@@ -73,6 +73,11 @@ For `{"email": "not an email", "age": 200}` the response body is:
 ]
 ```
 
+The body shows the input back to its sender: `path` names the members the input has, and `meta`
+holds values from it, such as `actual`, the duplicates of a list or the name of an unknown member,
+along with anything your own code put there with `WithMeta`. That suits a form that points at its
+fields; for a public API, filter or omit `meta` before writing the response.
+
 ## The model
 
 ### `Decoder`
@@ -100,12 +105,15 @@ same:
 - `nil`, for `null`
 - a missing member, which `raoh.IsMissing` tells apart from `null`; only the decoder of an
   object's field is handed one
-- `bool` and `string`
-- a number: `json.Number`, or any Go integer or float type
-- `[]any`
-- an object: `map[string]any`, or a `*raoh.JSONObject`; `raoh.AsObject` reads either
+- a boolean or a string: a value of any type whose underlying type is `bool` or `string`, such as
+  `type Status string`, except `json.Number`
+- a number: `json.Number`, or a value of any integer or float type, named types such as
+  `time.Duration` included
+- an array: a value of any type whose underlying type is `[]any`
+- an object: a value of any type whose underlying type is `map[string]any`, or a
+  `*raoh.JSONObject`; `raoh.AsObject` reads either
 
-These are the values `encoding/json` gives when it decodes into an `any`, with or without
+These include the values `encoding/json` gives when it decodes into an `any`, with or without
 `UseNumber`. `DecodeJSON` gives no others: it keeps each number as written, as a `json.Number`, so
 a large integer or a decimal is read exactly, and each object as a `*raoh.JSONObject`, which keeps
 the members in the order written, so unknown members are reported in input order. Text that is not

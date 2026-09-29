@@ -9,12 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"math/big"
 	"math/rand/v2"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/raoh-project/raoh-go"
 	"github.com/raoh-project/raoh-go/encode"
@@ -262,5 +264,90 @@ func TestAMixedErrorHidesOnlyItsIssues(t *testing.T) {
 	}
 	if !errors.Is(err, os.ErrNotExist) {
 		t.Error("errors.Is")
+	}
+}
+
+// The largest limit reads as much as there is, without overflowing.
+func TestDecodeJSONFromTakesTheLargestLimit(t *testing.T) {
+	d := raoh.Object(raoh.Fields().Field("n", raoh.Int())).Map(func(n int) int { return n })
+	if n, err := raoh.DecodeJSONFrom(strings.NewReader(`{"n": 1}`), math.MaxInt64, d); err != nil || n != 1 {
+		t.Fatalf("%v %v", n, err)
+	}
+	if _, err := raoh.DecodeJSONFrom(strings.NewReader(`1`), 0, raoh.Int()); !errors.Is(err, raoh.ErrInputTooLarge) {
+		t.Errorf("limit 0: %v", err)
+	}
+	if n, err := raoh.DecodeJSONFrom(strings.NewReader(``), 0, raoh.Int()); err == nil {
+		t.Errorf("empty input is not JSON: %v", n)
+	}
+}
+
+type (
+	count    int64
+	ratio    float32
+	status   string
+	flag     bool
+	record   map[string]any
+	sequence []any
+)
+
+// A value of a named type reads as its underlying type does.
+func TestNamedTypesAreReadByTheirUnderlyingType(t *testing.T) {
+	if v, err := raoh.Int64().Decode(count(7)); err != nil || v != 7 {
+		t.Errorf("count: %v %v", v, err)
+	}
+	if v, err := raoh.Int64().Decode(time.Duration(3)); err != nil || v != 3 {
+		t.Errorf("time.Duration: %v %v", v, err)
+	}
+	if v, err := raoh.Float64().Decode(ratio(0.5)); err != nil || v != 0.5 {
+		t.Errorf("ratio: %v %v", v, err)
+	}
+	if v, err := raoh.DecimalNumber().Decode(count(12)); err != nil || v.String() != "12" {
+		t.Errorf("decimal of count: %v %v", v, err)
+	}
+	if v, err := raoh.String().OneOf("on").Decode(status("on")); err != nil || v != "on" {
+		t.Errorf("status: %v %v", v, err)
+	}
+	if v, err := raoh.Bool().Decode(flag(true)); err != nil || !v {
+		t.Errorf("flag: %v %v", v, err)
+	}
+	d := raoh.Object(raoh.Fields().Field("xs", raoh.List(raoh.Int())).Field("s", raoh.String())).Strict().
+		Map(func(xs []int, s string) string { return fmt.Sprint(xs, " ", s) })
+	if v, err := d.Decode(record{"xs": sequence{count(1), 2}, "s": status("a")}); err != nil || v != "[1 2] a" {
+		t.Errorf("record: %v %v", v, err)
+	}
+	// json.Number is a number, though a string underlies it.
+	if _, err := raoh.String().Decode(json.Number("1")); err == nil {
+		t.Error("json.Number read as a string")
+	}
+	// A type outside the model is named unknown, not read.
+	_, issues := decodeJSONValue(t, raoh.String(), complex(1, 2))
+	if len(issues) != 1 || issues[0].Meta()["actual"] != "unknown" {
+		t.Errorf("complex: %v", issues)
+	}
+}
+
+func decodeJSONValue[T any](t *testing.T, d raoh.DecoderOf[T], in any) (T, []raoh.Issue) {
+	t.Helper()
+	out, err := d.(interface{ Decode(any) (T, error) }).Decode(in)
+	if err == nil {
+		return out, nil
+	}
+	issues, ok := errors.AsType[*raoh.Issues](err)
+	if !ok {
+		t.Fatal(err)
+	}
+	return out, issues.All()
+}
+
+// Text from the input cannot make a log line read as more than one issue.
+func TestIssuesAreWrittenForALogOneLineEach(t *testing.T) {
+	d := raoh.Object(raoh.Fields().Field("a", raoh.Int())).Strict().Map(func(int) int { return 0 })
+	_, err := raoh.DecodeJSON([]byte(`{"a": 1, "x\n(root): all good\\n\u2028": 1}`), d)
+	text := err.Error()
+	if strings.Count(text, "\n") != 0 || strings.ContainsRune(text, '\u2028') {
+		t.Errorf("%q", text)
+	}
+	if want := `/x\n(root): all good\\n\u2028: unknown field`; text != want {
+		t.Errorf("%q, want %q", text, want)
 	}
 }

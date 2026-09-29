@@ -11,7 +11,7 @@ type BoolDecoder struct {
 // Bool returns a decoder of a boolean.
 func Bool() BoolDecoder {
 	return newBool(scalar[bool]{read: func(in any) (bool, *Issue) {
-		b, ok := in.(bool)
+		b, ok := plain(in).(bool)
 		if !ok {
 			i := unexpected("boolean", in)
 			return false, &i

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"reflect"
 	"slices"
 	"unicode/utf8"
 )
@@ -18,15 +19,19 @@ import (
 //   - nil, for null
 //   - a missing member, which [IsMissing] tells apart from null; only the
 //     decoder of an object's field is handed one
-//   - bool and string
-//   - a number: json.Number, or any Go integer or float type
-//   - []any
-//   - an object: map[string]any, or a *JSONObject, which DecodeJSON gives to
-//     keep the members in the order written; [AsObject] reads either
+//   - a boolean: a value of any type whose underlying type is bool
+//   - a string: a value of any type whose underlying type is string, except
+//     json.Number
+//   - a number: json.Number, or a value of any integer or float type, named
+//     types such as time.Duration included
+//   - an array: a value of any type whose underlying type is []any
+//   - an object: a value of any type whose underlying type is map[string]any,
+//     or a *JSONObject, which DecodeJSON gives to keep the members in the order
+//     written; [AsObject] reads either
 //
-// These are the values encoding/json gives when it decodes into an any, with
-// or without UseNumber, and DecodeJSON gives no others: it keeps each number as
-// written, as a json.Number, and each object as a *JSONObject.
+// These include the values encoding/json gives when it decodes into an any,
+// with or without UseNumber, and DecodeJSON gives no others: it keeps each
+// number as written, as a json.Number, and each object as a *JSONObject.
 
 // JSONObject is an object with its members in the order they were written.
 // It is read only.
@@ -38,7 +43,7 @@ type JSONObject struct {
 // AsObject returns v as a JSONObject if v is an object: a *JSONObject as it
 // is, or a map[string]any with its members in the order of Go strings.
 func AsObject(v any) (*JSONObject, bool) {
-	switch o := v.(type) {
+	switch o := plain(v).(type) {
 	case *JSONObject:
 		return o, o != nil
 	case map[string]any:
@@ -101,9 +106,51 @@ func isNull(v any) bool {
 	return v == nil || v == missing
 }
 
+var (
+	anySlice = reflect.TypeFor[[]any]()
+	anyMap   = reflect.TypeFor[map[string]any]()
+)
+
+// plain returns v as a value of the predeclared type the input model reads it
+// as: a named boolean, string or number type as bool, string, int64, uint64,
+// float32 or float64, and a named []any or map[string]any as the unnamed
+// type. Any other value is returned as it is.
+func plain(v any) any {
+	switch v.(type) {
+	case nil, missingValue, bool, string, json.Number,
+		int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64,
+		[]any, map[string]any, *JSONObject:
+		return v
+	}
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Bool:
+		return rv.Bool()
+	case reflect.String:
+		return rv.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return rv.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return rv.Uint()
+	case reflect.Float32:
+		return float32(rv.Float())
+	case reflect.Float64:
+		return rv.Float()
+	case reflect.Slice:
+		if rv.Type().ConvertibleTo(anySlice) {
+			return rv.Convert(anySlice).Interface()
+		}
+	case reflect.Map:
+		if rv.Type().ConvertibleTo(anyMap) {
+			return rv.Convert(anyMap).Interface()
+		}
+	}
+	return v
+}
+
 // kind names the type of an input value as an issue reports it in actual.
 func kind(v any) string {
-	switch v.(type) {
+	switch plain(v).(type) {
 	case missingValue:
 		return "missing"
 	case nil:
@@ -113,7 +160,7 @@ func kind(v any) string {
 	case string:
 		return "string"
 	case json.Number,
-		int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
 		return "number"
 	case []any:
 		return "array"
@@ -168,12 +215,20 @@ func DecodeJSONFrom[T any](r io.Reader, limit int64, d DecoderOf[T]) (T, error) 
 	if limit < 0 {
 		panic("raoh: negative limit")
 	}
-	data, err := io.ReadAll(io.LimitReader(r, limit+1))
+	data, err := io.ReadAll(io.LimitReader(r, limit))
 	if err != nil {
 		return zero, err
 	}
-	if int64(len(data)) > limit {
-		return zero, fmt.Errorf("%w: more than %d bytes", ErrInputTooLarge, limit)
+	// The input is over the limit when a byte follows the limit's worth. It
+	// is read rather than counted as limit+1, which overflows for the
+	// largest limit.
+	if int64(len(data)) == limit {
+		switch _, err := io.ReadFull(r, make([]byte, 1)); {
+		case err == nil:
+			return zero, fmt.Errorf("%w: more than %d bytes", ErrInputTooLarge, limit)
+		case err != io.EOF:
+			return zero, err
+		}
 	}
 	return DecodeJSON(data, d)
 }

@@ -112,6 +112,7 @@ func readInteger[T Integer](in any) (T, *Issue) {
 
 // integerOf returns the integer in, if in is a number that is one.
 func integerOf(in any) (*big.Int, bool) {
+	in = plain(in)
 	if text, ok := numberText(in); ok {
 		return integerText(text)
 	}
@@ -136,6 +137,8 @@ func integerOf(in any) (*big.Int, bool) {
 		return big.NewInt(int64(n)), true
 	case uint64:
 		return new(big.Int).SetUint64(n), true
+	case uintptr:
+		return new(big.Int).SetUint64(uint64(n)), true
 	case float32:
 		return floatInteger(float64(n))
 	case float64:
@@ -279,6 +282,7 @@ func Float64() Float64Decoder {
 func newFloat(s scalar[float64]) Float64Decoder { return Float64Decoder{s.build(), s} }
 
 func readFloat(in any) (float64, *Issue) {
+	in = plain(in)
 	if isNull(in) {
 		i := NewIssue(CodeRequired)
 		return 0, &i

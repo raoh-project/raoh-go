@@ -280,6 +280,7 @@ func DecimalNumber() DecimalDecoder {
 func newDecimal(s scalar[Decimal]) DecimalDecoder { return DecimalDecoder{s.build(), s} }
 
 func readDecimal(in any) (Decimal, *Issue) {
+	in = plain(in)
 	if isNull(in) {
 		i := NewIssue(CodeRequired)
 		return Decimal{}, &i

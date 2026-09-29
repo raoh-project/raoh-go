@@ -27,7 +27,7 @@ type StringDecoder struct {
 // String returns a decoder of a string.
 func String() StringDecoder {
 	return newString(scalar[string]{read: func(in any) (string, *Issue) {
-		s, ok := in.(string)
+		s, ok := plain(in).(string)
 		if !ok {
 			i := unexpected("string", in)
 			return "", &i

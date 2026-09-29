@@ -22,7 +22,7 @@ type ListDecoder[T any] struct {
 // List returns a decoder of an array whose elements element decodes.
 func List[T any](element DecoderOf[T]) ListDecoder[T] {
 	return newList(element.decoder(), scalar[[]T]{read: func(in any) ([]T, *Issue) {
-		if _, ok := in.([]any); !ok {
+		if _, ok := plain(in).([]any); !ok {
 			i := unexpected("array", in)
 			return nil, &i
 		}
@@ -35,7 +35,7 @@ func newList[T any](element Decoder[any, T], s scalar[[]T]) ListDecoder[T] {
 		if _, issue := s.read(in); issue != nil {
 			return s.typeIssue(*issue, at)
 		}
-		items := in.([]any)
+		items := plain(in).([]any)
 		values := make([]T, 0, len(items))
 		var issues Issues
 		for n, item := range items {
