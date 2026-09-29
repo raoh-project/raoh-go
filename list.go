@@ -3,6 +3,8 @@ package raoh
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/raoh-project/raoh-go/internal/hashable"
 )
 
 // ListDecoder decodes an array into a []T.
@@ -93,26 +95,49 @@ func (l ListDecoder[T]) Size(n int) ListDecoder[T] {
 
 // Unique requires every element to differ from the others, compared with ==:
 // duplicate_element with duplicates, each repeated element once, in the order
-// it was first repeated. It panics when T is not comparable.
+// it was first repeated.
+//
+// It panics, when the decoder is built, if T holds an interface anywhere, such
+// as any: comparing two interface values panics when they hold slices or maps,
+// so the input could make the decode panic. Use UniqueBy with a key of a type
+// that holds none.
 func (l ListDecoder[T]) Unique() ListDecoder[T] {
-	if t := reflect.TypeFor[T](); !t.Comparable() {
-		panic(fmt.Sprintf("raoh: Unique needs comparable elements, not %v", t))
+	requireHashable(reflect.TypeFor[T](), "Unique")
+	return l.unique(func(v T) any { return v })
+}
+
+// UniqueBy requires the elements to have different keys: duplicate_element
+// with duplicates, each element whose key repeats an earlier one's, once per
+// key, in the order the key was first repeated. It panics, when the decoder is
+// built, if K holds an interface anywhere, as Unique does.
+func (l ListDecoder[T]) UniqueBy[K comparable](key func(T) K) ListDecoder[T] {
+	requireHashable(reflect.TypeFor[K](), "UniqueBy")
+	return l.unique(func(v T) any { return key(v) })
+}
+
+func requireHashable(t reflect.Type, name string) {
+	if !hashable.Type(t) {
+		panic(fmt.Sprintf("raoh: %s needs a type that holds no interface, not %v", name, t))
 	}
-	return l.require(func(v []T) bool { return len(duplicates(v)) == 0 }, func(v []T) Issue {
-		return NewIssue(CodeDuplicateElement).WithMeta("duplicates", duplicates(v))
+}
+
+func (l ListDecoder[T]) unique(key func(T) any) ListDecoder[T] {
+	return l.require(func(v []T) bool { return len(duplicates(v, key)) == 0 }, func(v []T) Issue {
+		return NewIssue(CodeDuplicateElement).WithMeta("duplicates", duplicates(v, key))
 	})
 }
 
-func duplicates[T any](items []T) []T {
+func duplicates[T any](items []T, key func(T) any) []T {
 	seen := map[any]bool{}
 	repeated := map[any]bool{}
 	var out []T
 	for _, item := range items {
-		if seen[item] && !repeated[item] {
-			repeated[item] = true
+		k := key(item)
+		if seen[k] && !repeated[k] {
+			repeated[k] = true
 			out = append(out, item)
 		}
-		seen[item] = true
+		seen[k] = true
 	}
 	return out
 }
@@ -124,7 +149,7 @@ func duplicates[T any](items []T) []T {
 func Dict[T any](value DecoderOf[T]) Decoder[any, map[string]T] {
 	d := value.decoder()
 	return Decoder[any, map[string]T]{func(in any, at Path) outcome[map[string]T] {
-		m, ok := asMembers(in)
+		m, ok := AsObject(in)
 		if !ok {
 			return invalid[map[string]T](unexpected("object", in).At(at))
 		}

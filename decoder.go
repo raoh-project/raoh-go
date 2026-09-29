@@ -1,6 +1,9 @@
 package raoh
 
-import "errors"
+import (
+	"errors"
+	"reflect"
+)
 
 // outcome is what a decoder produces at one step. Exactly one holds:
 // success (no issues, nil err), invalid input (issues, nil err) or a failure
@@ -42,19 +45,59 @@ func fromError[T any](v T, err error, at Path) outcome[T] {
 }
 
 // executionError is a failure of the program whose error tree also holds
-// issues. It has no Unwrap, so errors.As and errors.AsType never find the
-// issues inside; errors.Is still sees every other error in the tree.
+// issues. It hides the issues and nothing else: errors.Is, errors.As and
+// errors.AsType see every error in the tree except an *Issues, so the caller
+// can still find, say, the *os.PathError it holds, but never takes it for
+// invalid input.
 type executionError struct {
 	cause error
 }
 
 func (e *executionError) Error() string { return e.cause.Error() }
 
+// It has no Unwrap, which would show the issues; Is and As walk the tree in
+// its place.
+
 func (e *executionError) Is(target error) bool {
 	if _, ok := target.(*Issues); ok {
 		return false
 	}
 	return errors.Is(e.cause, target)
+}
+
+func (e *executionError) As(target any) bool { return asOutsideIssues(e.cause, target) }
+
+// asOutsideIssues is errors.As over the tree of err with every *Issues in it
+// and beneath it left out.
+func asOutsideIssues(err error, target any) bool {
+	if err == nil {
+		return false
+	}
+	if _, ok := err.(*Issues); ok {
+		return false
+	}
+	dst := reflect.ValueOf(target).Elem()
+	if reflect.TypeOf(err).AssignableTo(dst.Type()) {
+		dst.Set(reflect.ValueOf(err))
+		return true
+	}
+	if x, ok := err.(interface{ As(any) bool }); ok && x.As(target) {
+		if _, found := dst.Interface().(*Issues); !found {
+			return true
+		}
+		dst.SetZero()
+	}
+	switch u := err.(type) {
+	case interface{ Unwrap() error }:
+		return asOutsideIssues(u.Unwrap(), target)
+	case interface{ Unwrap() []error }:
+		for _, branch := range u.Unwrap() {
+			if asOutsideIssues(branch, target) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Decoder decodes an I into a T. A decoder holds no state and can be reused

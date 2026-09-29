@@ -113,10 +113,7 @@ func readInteger[T Integer](in any) (T, *Issue) {
 // integerOf returns the integer in, if in is a number that is one.
 func integerOf(in any) (*big.Int, bool) {
 	if text, ok := numberText(in); ok {
-		if strings.ContainsAny(text, ".eE") {
-			return nil, false
-		}
-		return new(big.Int).SetString(text, 10)
+		return integerText(text)
 	}
 	switch n := in.(type) {
 	case int:
@@ -145,6 +142,30 @@ func integerOf(in any) (*big.Int, bool) {
 		return floatInteger(n)
 	}
 	return nil, false
+}
+
+// beyondAnyInteger stands for an integer written with more digits than any Go
+// integer type holds, so it is out of range for all of them without being read.
+var beyondAnyInteger = new(big.Int).Lsh(big.NewInt(1), 70)
+
+// integerText returns the integer a number's text writes, if it writes one:
+// without a fraction or an exponent. An integer of more than 20 digits is out
+// of range for every Go integer type; it is given as beyondAnyInteger with its
+// sign rather than read, since reading a decimal string into a big.Int takes
+// time that grows faster than its length.
+func integerText(text string) (*big.Int, bool) {
+	if strings.ContainsAny(text, ".eE") {
+		return nil, false
+	}
+	neg := strings.HasPrefix(text, "-")
+	digits := strings.TrimLeft(strings.TrimLeft(text, "+-"), "0")
+	if len(digits) > 20 {
+		if neg {
+			return new(big.Int).Neg(beyondAnyInteger), true
+		}
+		return beyondAnyInteger, true
+	}
+	return new(big.Int).SetString(text, 10)
 }
 
 func floatInteger(f float64) (*big.Int, bool) {

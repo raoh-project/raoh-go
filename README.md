@@ -48,7 +48,11 @@ var userDecoder = raoh.Object(
 ).Map(NewUser)
 
 func createUser(w http.ResponseWriter, r *http.Request) error {
-	user, err := raoh.DecodeJSONFrom(r.Body, userDecoder)
+	user, err := raoh.DecodeJSONFrom(r.Body, 1<<20, userDecoder) // at most 1 MiB
+	if errors.Is(err, raoh.ErrInputTooLarge) {
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		return nil
+	}
 	if issues, ok := errors.AsType[*raoh.Issues](err); ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return json.NewEncoder(w).Encode(issues.Render(raoh.English))
@@ -88,13 +92,34 @@ shared between goroutines. The built-in decoders, such as `raoh.String()`, embed
 `Decoder[any, T]` and add their own constraints, so `raoh.String().Trim().Email().Map(...)` reads
 as one chain.
 
-The input a decoder reads is what `encoding/json` gives when it decodes into an `any`: `nil`,
-`bool`, `string`, `float64` or `json.Number`, `[]any` and `map[string]any`. `DecodeJSON` and
-`DecodeJSONFrom` read JSON text into the same shapes, but keep each number as written and each
-object's members in the order written, so a large integer or a decimal is read exactly and
-unknown members are reported in input order. Text that is not JSON is one `invalid_format` issue
-at the root, under the message key `invalid_format.json`, with the `line` and `column` where it
-stopped being JSON.
+### The input model
+
+A decoder is handed one of these values, and a decoder you write with `raoh.NewDecoder` sees the
+same:
+
+- `nil`, for `null`
+- a missing member, which `raoh.IsMissing` tells apart from `null`; only the decoder of an
+  object's field is handed one
+- `bool` and `string`
+- a number: `json.Number`, or any Go integer or float type
+- `[]any`
+- an object: `map[string]any`, or a `*raoh.JSONObject`; `raoh.AsObject` reads either
+
+These are the values `encoding/json` gives when it decodes into an `any`, with or without
+`UseNumber`. `DecodeJSON` gives no others: it keeps each number as written, as a `json.Number`, so
+a large integer or a decimal is read exactly, and each object as a `*raoh.JSONObject`, which keeps
+the members in the order written, so unknown members are reported in input order. Text that is not
+JSON is one `invalid_format` issue at the root, under the message key `invalid_format.json`, with
+the `line` and `column` where it stopped being JSON.
+
+`DecodeJSONFrom` takes a limit on the bytes it reads. The value a decoder reads is built in
+memory, in proportion to the input, so a bound on the input is what bounds the memory a request
+can take; input over the limit gives an error wrapping `raoh.ErrInputTooLarge`, not issues.
+
+What decoding costs is in proportion to the input's length, not to the values written in it: an
+integer of more digits than any Go integer holds is out of range without being read, and a
+`raoh.Decimal` keeps its digits and compares them without building a power of ten from its scale,
+so `1e-1000000000` costs no more than its dozen bytes.
 
 ### `error`, `Issues` and failures of the program
 
@@ -210,8 +235,10 @@ fields the kind has, so a date bound is compared by its date alone. In an issue,
 written in a message as the Java type's `toString` writes it (`09:00`) and in JSON as Jackson
 writes it (`09:00:00`), as Raoh for Java gives them.
 
-`raoh.List(d)`: `[]T`, with `NonEmpty`, `MinSize`, `MaxSize`, `Size` and `Unique`. Every element
-is decoded and its issues reported under its index.
+`raoh.List(d)`: `[]T`, with `NonEmpty`, `MinSize`, `MaxSize`, `Size`, `Unique` and `UniqueBy`.
+Every element is decoded and its issues reported under its index. `Unique` compares elements with
+`==` and is refused, when the decoder is built, for an element type that holds an interface, such
+as `any`, whose values could panic when compared; `UniqueBy(key)` compares a key instead.
 
 `raoh.Dict(d)`: a `map[string]T` from an object used as a map.
 

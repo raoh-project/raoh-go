@@ -28,9 +28,11 @@
 // added, and the compiler checks that it does.
 //
 // The input is what encoding/json gives when it decodes into an any: nil,
-// bool, string, float64 or json.Number, []any and map[string]any. [DecodeJSON]
-// reads JSON text into the same shapes but keeps numbers as written and object
-// members in the order written.
+// bool, string, a Go number or json.Number, []any and map[string]any.
+// [DecodeJSON] reads JSON text into the same shapes, with numbers as
+// json.Number and objects as *JSONObject to keep the members in the order
+// written; [AsObject] reads either kind of object, and [IsMissing] tells the
+// decoder of a field that its member is not there.
 package raoh
 
 //go:generate go run ./internal/gen

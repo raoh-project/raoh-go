@@ -196,8 +196,6 @@ func display(v any) string {
 		return doubleToString(float64(x))
 	case json.Number:
 		return string(x)
-	case jsonNumber:
-		return string(x)
 	case Decimal:
 		return x.String()
 	case bool:

@@ -5,35 +5,96 @@ import (
 	"encoding/json"
 	"encoding/json/jsontext"
 	"errors"
+	"fmt"
 	"io"
+	"iter"
 	"slices"
 	"unicode/utf8"
 )
 
-// The input a decoder reads is one of the values encoding/json gives when it
-// decodes into an any: nil, bool, string, float64 or json.Number, []any and
-// map[string]any. Other Go integer and float types are read as numbers too.
+// The input a decoder is handed is one of these values, and a decoder written
+// with NewDecoder sees the same:
 //
-// DecodeJSON reads JSON text into the same shapes, except that it keeps each
-// number as written and each object's members in the order written, in the
-// private types below, so that a large integer or a decimal is read exactly and
-// unknown members are reported in input order.
+//   - nil, for null
+//   - a missing member, which [IsMissing] tells apart from null; only the
+//     decoder of an object's field is handed one
+//   - bool and string
+//   - a number: json.Number, or any Go integer or float type
+//   - []any
+//   - an object: map[string]any, or a *JSONObject, which DecodeJSON gives to
+//     keep the members in the order written; [AsObject] reads either
+//
+// These are the values encoding/json gives when it decodes into an any, with
+// or without UseNumber, and DecodeJSON gives no others: it keeps each number as
+// written, as a json.Number, and each object as a *JSONObject.
 
-// jsonNumber is a number read from JSON text, as written.
-type jsonNumber string
-
-// jsonObject is an object read from JSON text, with its members in the order
-// written.
-type jsonObject struct {
+// JSONObject is an object with its members in the order they were written.
+// It is read only.
+type JSONObject struct {
 	names  []string
 	values map[string]any
 }
 
-// missingValue is what a field reads when its member is not there. It is told
-// apart from nil, which is a member present as null.
+// AsObject returns v as a JSONObject if v is an object: a *JSONObject as it
+// is, or a map[string]any with its members in the order of Go strings.
+func AsObject(v any) (*JSONObject, bool) {
+	switch o := v.(type) {
+	case *JSONObject:
+		return o, o != nil
+	case map[string]any:
+		if o == nil {
+			return nil, false
+		}
+		names := make([]string, 0, len(o))
+		for k := range o {
+			names = append(names, k)
+		}
+		slices.Sort(names)
+		return &JSONObject{names, o}, true
+	}
+	return nil, false
+}
+
+// Len returns the number of members.
+func (o *JSONObject) Len() int { return len(o.names) }
+
+// Keys returns the names of the members in order.
+func (o *JSONObject) Keys() []string { return slices.Clone(o.names) }
+
+// Get returns the member name.
+func (o *JSONObject) Get(name string) (any, bool) {
+	v, ok := o.values[name]
+	return v, ok
+}
+
+// All returns the members in order.
+func (o *JSONObject) All() iter.Seq2[string, any] {
+	return func(yield func(string, any) bool) {
+		for _, k := range o.names {
+			if !yield(k, o.values[k]) {
+				return
+			}
+		}
+	}
+}
+
+// member returns the member name, or the missing member when there is none.
+func (o *JSONObject) member(name string) any {
+	if v, ok := o.values[name]; ok {
+		return v
+	}
+	return missing
+}
+
+// missingValue is what a field's decoder is handed when its member is not
+// there.
 type missingValue struct{}
 
 var missing any = missingValue{}
+
+// IsMissing reports whether v is a member that is not there, as the decoder of
+// an object's field is handed one, rather than null or a value.
+func IsMissing(v any) bool { return v == missing }
 
 // isNull reports whether v is null or a missing member.
 func isNull(v any) bool {
@@ -51,12 +112,12 @@ func kind(v any) string {
 		return "boolean"
 	case string:
 		return "string"
-	case jsonNumber, json.Number,
+	case json.Number,
 		int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 		return "number"
 	case []any:
 		return "array"
-	case *jsonObject, map[string]any:
+	case *JSONObject, map[string]any:
 		return "object"
 	}
 	return "unknown"
@@ -73,43 +134,8 @@ func unexpected(expected string, v any) Issue {
 
 // numberText returns the text of a number kept as written.
 func numberText(v any) (string, bool) {
-	switch n := v.(type) {
-	case jsonNumber:
-		return string(n), true
-	case json.Number:
-		return string(n), true
-	}
-	return "", false
-}
-
-// members is an object's members, in the order a decoder visits them: input
-// order for JSON text, and the order of Go strings for a map[string]any.
-type members struct {
-	names  []string
-	values map[string]any
-}
-
-func asMembers(v any) (members, bool) {
-	switch o := v.(type) {
-	case *jsonObject:
-		return members{o.names, o.values}, true
-	case map[string]any:
-		names := make([]string, 0, len(o))
-		for k := range o {
-			names = append(names, k)
-		}
-		slices.Sort(names)
-		return members{names, o}, true
-	}
-	return members{}, false
-}
-
-// get returns the member name, or missing when there is none.
-func (m members) get(name string) any {
-	if v, ok := m.values[name]; ok {
-		return v
-	}
-	return missing
+	n, ok := v.(json.Number)
+	return string(n), ok
 }
 
 // DecodeJSON parses data as JSON and decodes it with d. Text that is not JSON
@@ -125,13 +151,29 @@ func DecodeJSON[T any](data []byte, d DecoderOf[T]) (T, error) {
 	return d.decoder().Decode(v)
 }
 
-// DecodeJSONFrom reads all of r and decodes it as [DecodeJSON] does. An error
-// reading r is returned as it is.
-func DecodeJSONFrom[T any](r io.Reader, d DecoderOf[T]) (T, error) {
-	data, err := io.ReadAll(r)
+// ErrInputTooLarge is the error DecodeJSONFrom returns, wrapped, when the
+// input is longer than its limit.
+var ErrInputTooLarge = errors.New("raoh: input too large")
+
+// DecodeJSONFrom reads r and decodes it as [DecodeJSON] does, reading at most
+// limit bytes. Input longer than that is not decoded: the error wraps
+// [ErrInputTooLarge], and is not an *Issues, so that an HTTP handler can answer
+// 413 rather than 400. An error reading r is returned as it is.
+//
+// The limit is required because the value a decoder reads is built in memory,
+// and takes memory in proportion to the input whether the text is read at once
+// or as a stream; a bound on the input is what bounds it.
+func DecodeJSONFrom[T any](r io.Reader, limit int64, d DecoderOf[T]) (T, error) {
+	var zero T
+	if limit < 0 {
+		panic("raoh: negative limit")
+	}
+	data, err := io.ReadAll(io.LimitReader(r, limit+1))
 	if err != nil {
-		var zero T
 		return zero, err
+	}
+	if int64(len(data)) > limit {
+		return zero, fmt.Errorf("%w: more than %d bytes", ErrInputTooLarge, limit)
 	}
 	return DecodeJSON(data, d)
 }
@@ -166,7 +208,7 @@ func readJSON(dec *jsontext.Decoder) (any, error) {
 		if _, err := dec.ReadToken(); err != nil {
 			return nil, err
 		}
-		obj := &jsonObject{values: map[string]any{}}
+		obj := &JSONObject{values: map[string]any{}}
 		for dec.PeekKind() != '}' {
 			tok, err := dec.ReadToken()
 			if err != nil {
@@ -212,7 +254,7 @@ func readJSON(dec *jsontext.Decoder) (any, error) {
 	case '"':
 		return tok.String(), nil
 	case '0':
-		return jsonNumber(tok.String()), nil
+		return json.Number(tok.String()), nil
 	}
 	return nil, errors.New("raoh: unexpected JSON token " + tok.String())
 }

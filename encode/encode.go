@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/raoh-project/raoh-go"
+	"github.com/raoh-project/raoh-go/internal/hashable"
 	"github.com/raoh-project/raoh-go/internal/javatime"
 )
 
@@ -113,8 +114,12 @@ func OffsetDateTime() Encoder[time.Time, string] { return javatime.OffsetDateTim
 
 // EnumOf returns the encoder of a value as the name names gives it, the map
 // raoh.EnumOf decodes with, so one map serves both directions. It panics when
-// two names have the same value, and the encoder panics on a value no name has.
+// two names have the same value or T holds an interface anywhere, whose values
+// could panic when compared, and the encoder panics on a value no name has.
 func EnumOf[T comparable](names map[string]T) Encoder[T, string] {
+	if t := reflect.TypeFor[T](); !hashable.Type(t) {
+		panic(fmt.Sprintf("raoh/encode: EnumOf needs a type that holds no interface, not %v", t))
+	}
 	byValue := make(map[T]string, len(names))
 	for name, v := range names {
 		if other, dup := byValue[v]; dup {

@@ -76,13 +76,13 @@ func Object[F interface{ object() O }, O any](f F) O { return f.object() }
 
 // openObject returns the input's members, or the issue why it is not an
 // object.
-func openObject(in any, at Path) (members, *Issue) {
-	m, ok := asMembers(in)
+func openObject(in any, at Path) (*JSONObject, *Issue) {
+	o, ok := AsObject(in)
 	if !ok {
 		i := unexpected("object", in).At(at)
-		return members{}, &i
+		return nil, &i
 	}
-	return m, nil
+	return o, nil
 }
 
 // collector gathers the outcomes of the fields of one object.
@@ -91,12 +91,12 @@ type collector struct {
 	err    error
 }
 
-func read[T any](c *collector, p part[T], m members, at Path) T {
+func read[T any](c *collector, p part[T], m *JSONObject, at Path) T {
 	var zero T
 	if c.err != nil {
 		return zero
 	}
-	o := p.src.decodeAt(m.get(p.name), at.Key(p.name))
+	o := p.src.decodeAt(m.member(p.name), at.Key(p.name))
 	if o.err != nil {
 		c.err = o.err
 		return zero
@@ -107,7 +107,7 @@ func read[T any](c *collector, p part[T], m members, at Path) T {
 
 // unknown reports unknown_field with the member's name as field for each
 // member not in names, in the order the input has its members.
-func (c *collector) unknown(m members, at Path, names []string) {
+func (c *collector) unknown(m *JSONObject, at Path, names []string) {
 	for _, k := range m.names {
 		if !slices.Contains(names, k) {
 			c.issues.add(NewIssue(CodeUnknownField).WithMeta("field", k).At(at.Key(k)))
