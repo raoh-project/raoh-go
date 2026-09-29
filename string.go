@@ -244,9 +244,36 @@ func (d StringDecoder) URL() Conversion[*url.URL] {
 		if !ok || !p.representableAsJavaURI() || !(p.schemeIs("http") || p.schemeIs("https")) || !p.hasHost() {
 			return nil, false
 		}
-		u, err := url.Parse(v)
-		return u, err == nil
+		return parseURL(v)
 	})
+}
+
+// URI returns a decoder that reads the string as an RFC 3986 URI of any
+// scheme: invalid_format.uri when it is not one.
+//
+// It is the rule URL applies without the check for the http or https scheme
+// and a host. A scheme is still required, so a relative reference such as
+// foo/bar or #top is refused, and so are raw non-ASCII characters. A URI that
+// java.net.URI cannot hold is refused as Raoh for Java refuses it: a: and
+// a:#f, a:// with nothing after it, an IPvFuture host, and an IPv6 host with a
+// port above 2147483647. An IPv6 host is checked as IPv6 checks it, without a
+// zone ID.
+//
+// The value is what url.Parse makes of the accepted text, so its String may
+// write the URI in the form package net/url prefers: the scheme in lower case
+// and an empty fragment left out. Raoh for Java keeps the text as it was given.
+func (d StringDecoder) URI() Conversion[*url.URL] {
+	return newConversion(d.s, KeyInvalidFormatURI, func(v string) (*url.URL, bool) {
+		if p, ok := parseURI(v); !ok || !p.representableAsJavaURI() {
+			return nil, false
+		}
+		return parseURL(v)
+	})
+}
+
+func parseURL(v string) (*url.URL, bool) {
+	u, err := url.Parse(v)
+	return u, err == nil
 }
 
 // Conversion is a decoder that reads a string and converts it to a T,

@@ -19,6 +19,8 @@ type step[T any] struct {
 // stops the rest.
 type scalar[T any] struct {
 	read        func(in any) (T, *Issue)
+	from        *scalar[string]
+	parse       func(string) (T, *Issue)
 	steps       []step[T]
 	baseMessage *string
 }
@@ -66,7 +68,29 @@ func withCustom(i Issue, message *string) Issue {
 	return i
 }
 
+// viaString is a scalar that reads a string with from and converts it with
+// parse. Only the issue parse gives is the type check's: it takes the custom
+// message given to Message before any constraint, and the issues of from keep
+// their own.
+func viaString[T any](from scalar[string], parse func(string) (T, *Issue)) scalar[T] {
+	return scalar[T]{from: &from, parse: parse}
+}
+
 func (s scalar[T]) build() Decoder[any, T] {
+	if s.from != nil {
+		str := s.from.build()
+		return Decoder[any, T]{func(in any, at Path) outcome[T] {
+			o := str.run(in, at)
+			if o.failed() {
+				return failAs[T](o)
+			}
+			v, issue := s.parse(o.value)
+			if issue != nil {
+				return s.typeIssue(*issue, at)
+			}
+			return s.run(v, at)
+		}}
+	}
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		v, issue := s.read(in)
 		if issue != nil {

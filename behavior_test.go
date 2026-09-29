@@ -422,3 +422,46 @@ func TestTemporalDecoders(t *testing.T) {
 		t.Error("Between with from after to")
 	}
 }
+
+func TestStringConversionsContinueAsTheTypeTheyRead(t *testing.T) {
+	v, issues := decodeJSON(t, raoh.String().ToInt().Min(1), `"+007"`)
+	if len(issues) > 0 || v != 7 {
+		t.Errorf("got %v %v", v, codes(issues))
+	}
+	expect(t, raoh.String().ToInt().Min(1), `"0"`, " out_of_range")
+	expect(t, raoh.String().ToInt(), `"2147483648"`, " type_mismatch")
+	expect(t, raoh.String().ToLong(), `"2147483648"`)
+	expect(t, raoh.String().ToBool().IsTrue(), `"NO"`, " invalid_value")
+	expect(t, raoh.String().ToDecimal().Scale(1), `"1.25"`, " invalid_scale")
+	expect(t, raoh.String().ToInt(), `1`, " type_mismatch")
+	expect(t, raoh.String().ToInt(), `null`, " required")
+}
+
+func TestStringConversionMessageIsForTheConversionOnly(t *testing.T) {
+	d := raoh.String().MaxLength(3).ToInt().Message("bad number")
+	message := func(text string) string {
+		_, issues := decodeJSON(t, d, text)
+		if len(issues) != 1 {
+			t.Fatalf("%s: %v", text, codes(issues))
+		}
+		return issues[0].Message(raoh.English)
+	}
+	if got := message(`"abc"`); got != "bad number" {
+		t.Errorf("conversion: %q", got)
+	}
+	if got := message(`"99999"`); got == "bad number" {
+		t.Errorf("a string constraint takes the message of the conversion: %q", got)
+	}
+	if got := message(`1`); got == "bad number" {
+		t.Errorf("the type check of the string takes the message of the conversion: %q", got)
+	}
+}
+
+func TestURIAcceptsAnySchemeAndKeepsSchemeRequired(t *testing.T) {
+	for _, ok := range []string{"HTTP://EXAMPLE.COM", "http://host#", "mailto:ken@example.com", "urn:isbn:0451450523"} {
+		expect(t, raoh.String().URI(), `"`+ok+`"`)
+	}
+	for _, bad := range []string{"foo/bar", "#top", "a:", "http://[v1.abc]/"} {
+		expect(t, raoh.String().URI(), `"`+bad+`"`, " invalid_format")
+	}
+}

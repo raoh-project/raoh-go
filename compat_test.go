@@ -109,6 +109,28 @@ func compatDecoder(name string) func([]byte) (any, error) {
 		return out(s().UUID(), func(u raoh.UUID) any { return u.String() })
 	case "string_url":
 		return out(s().URL(), func(u *url.URL) any { return u.String() })
+	case "string_uri":
+		return out(s().URI(), func(u *url.URL) any { return u.String() })
+	case "string_to_int":
+		return out(s().ToInt(), same)
+	case "string_to_int_min_1":
+		return out(s().ToInt().Min(1), same)
+	case "string_to_long":
+		return out(s().ToLong(), same)
+	case "string_to_long_positive":
+		return out(s().ToLong().Positive(), same)
+	case "string_max_3_to_int_message":
+		return out(s().MaxLength(3).ToInt().Message("bad"), same)
+	case "string_to_decimal":
+		return out(s().ToDecimal(), same)
+	case "string_to_decimal_scale_2":
+		return out(s().ToDecimal().Scale(2), same)
+	case "string_to_decimal_positive":
+		return out(s().ToDecimal().Positive(), same)
+	case "string_to_bool":
+		return out(s().ToBool(), same)
+	case "string_to_bool_is_true":
+		return out(s().ToBool().IsTrue(), same)
 
 	case "int":
 		return out(i(), same)

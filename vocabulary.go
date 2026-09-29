@@ -49,6 +49,7 @@ const (
 	KeyTooSmallNonEmpty            = "too_small.nonempty"
 	KeyInvalidFormatEmail          = "invalid_format.email"
 	KeyInvalidFormatURL            = "invalid_format.url"
+	KeyInvalidFormatURI            = "invalid_format.uri"
 	KeyInvalidFormatUUID           = "invalid_format.uuid"
 	KeyInvalidFormatIP             = "invalid_format.ip"
 	KeyInvalidFormatIPv4           = "invalid_format.ipv4"

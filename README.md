@@ -213,7 +213,15 @@ reported.
 
 `raoh.String()`: `Trim`, `ToLower`, `ToUpper`, `NonBlank`, `MinLength`, `MaxLength`, `Length`,
 `StartsWith`, `EndsWith`, `Contains`, `OneOf`, `Email`, `IP`, `IPv4`, `IPv6`, `ULID`, `CUID`,
-`Pattern`, and the conversions `UUID()` and `URL()`. Lengths count characters, not bytes.
+`Pattern`, and the conversions `UUID()`, `URL()` and `URI()`. Lengths count characters, not bytes.
+
+`ToInt()`, `ToLong()`, `ToDecimal()` and `ToBool()` read the string as that type and continue as its
+decoder, so `String().MaxLength(40).ToDecimal().Positive()` is one decoder. Text that does not
+convert is `type_mismatch` with `expected` set to `integer`, `long`, `decimal` or `boolean`, and
+`Message` after the conversion is the message of that issue alone. `ToInt()` is a 32-bit integer
+and `ToLong()` a 64-bit one, as in Raoh for Java, and not Go's `int`, which `Int()` reads and
+whose width depends on the platform. `URI()` is `URL()` without the http or https scheme and the
+host: any scheme, but a scheme is required.
 
 `raoh.Int()`, `Int32()`, `Int64()`, `Uint()`, `Uint32()`, `Uint64()`: `Min`, `Max`, `Range`,
 `Positive`, `Negative`, `NonNegative`, `NonPositive`, `MultipleOf`, `OneOf`. In JSON text a number

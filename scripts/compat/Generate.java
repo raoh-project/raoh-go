@@ -59,6 +59,17 @@ public class Generate {
             case "string_one_of_astral" -> string().oneOf("\uff21", "\ud83d\ude00");
             case "string_uuid" -> string().uuid().map(Object::toString);
             case "string_url" -> string().url().map(Object::toString);
+            case "string_uri" -> string().uri().map(Object::toString);
+            case "string_to_int" -> string().toInt();
+            case "string_to_int_min_1" -> string().toInt().min(1);
+            case "string_to_long" -> string().toLong();
+            case "string_to_long_positive" -> string().toLong().positive();
+            case "string_max_3_to_int_message" -> string().maxLength(3).toInt("bad");
+            case "string_to_decimal" -> string().toDecimal();
+            case "string_to_decimal_scale_2" -> string().toDecimal().scale(2);
+            case "string_to_decimal_positive" -> string().toDecimal().positive();
+            case "string_to_bool" -> string().toBool();
+            case "string_to_bool_is_true" -> string().toBool().isTrue();
 
             case "int" -> int_();
             case "int_min_1" -> int_().min(1);
