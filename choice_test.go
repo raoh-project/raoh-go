@@ -121,3 +121,16 @@ func TestStrictDoesNotTurnAnErrorIntoAnInvalidInput(t *testing.T) {
 type errBoom struct{}
 
 func (errBoom) Error() string { return "boom" }
+
+func TestStrictChecksTheMembersBeforeTheDecoderRuns(t *testing.T) {
+	d := raoh.Strict(raoh.NewDecoder(func(in any) (int, error) {
+		m := in.(map[string]any)
+		delete(m, "extra")
+		m["added"] = 1
+		return 1, nil
+	}), "kept")
+	_, issues := decodeJSONValue(t, d, map[string]any{"extra": 1.0, "kept": 1.0})
+	if got := codes(issues); len(got) != 1 || got[0] != "/extra unknown_field" {
+		t.Error(got)
+	}
+}
