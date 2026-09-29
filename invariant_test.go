@@ -421,6 +421,24 @@ func TestTheZeroValueOfADecoderTypeIsRefusedWhenAnotherIsDerivedFromIt(t *testin
 	}
 }
 
+// errReader fails every read, to show that a definition is refused before the
+// input is touched.
+type errReader struct{}
+
+func (errReader) Read([]byte) (int, error) { return 0, errors.New("read") }
+
+func TestDecodeJSONFromRefusesTheDecoderBeforeItReads(t *testing.T) {
+	var zero raoh.Decoder[any, int]
+	want := "raoh: a decoder was built from the zero Decoder, which has nothing to run"
+	if got := panicText(func() { raoh.DecodeJSONFrom(errReader{}, 1, zero) }); got != want {
+		t.Errorf("zero Decoder: panic = %q, want %q", got, want)
+	}
+	want = "raoh: DecodeJSONFrom needs d that is not nil"
+	if got := panicText(func() { raoh.DecodeJSONFrom[int](errReader{}, 1, nil) }); got != want {
+		t.Errorf("nil: panic = %q, want %q", got, want)
+	}
+}
+
 func panicText(f func()) (text string) {
 	defer func() {
 		if r := recover(); r != nil {

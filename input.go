@@ -256,7 +256,7 @@ func DecodeJSONFrom[T any](r io.Reader, limit int64, d DecoderOf[T]) (T, error) 
 	if limit < 0 {
 		panic("raoh: negative limit")
 	}
-	requireArgument(d != nil, "DecodeJSONFrom", "d")
+	dec := decoderOf(d, "DecodeJSONFrom", "d")
 	data, err := io.ReadAll(io.LimitReader(r, limit))
 	if err != nil {
 		return zero, err
@@ -272,7 +272,7 @@ func DecodeJSONFrom[T any](r io.Reader, limit int64, d DecoderOf[T]) (T, error) 
 			return zero, err
 		}
 	}
-	return DecodeJSON(data, d)
+	return DecodeJSON(data, dec)
 }
 
 func parseJSON(data []byte) (any, *Issue) {
