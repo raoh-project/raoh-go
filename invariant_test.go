@@ -262,6 +262,25 @@ func TestContainsAndToSetAreRefusedForTypesWhoseValuesMayNotCompare(t *testing.T
 	}
 }
 
+// Raoh for Java refuses a null element of contains and containsAll when the
+// decoder is built; a nil pointer is the null of a Go element.
+func TestContainsRefusesANilElementWhenBuilt(t *testing.T) {
+	l := raoh.List(raoh.Nullable(raoh.Int()))
+	one := 1
+	if !panics(func() { l.Contains(nil) }) {
+		t.Error("Contains(nil)")
+	}
+	if !panics(func() { l.ContainsAll(&one, nil) }) {
+		t.Error("ContainsAll with a nil")
+	}
+	if panics(func() { l.Contains(&one) }) {
+		t.Error("Contains of a pointer")
+	}
+	if !panics(func() { raoh.List(raoh.Int()).UniqueBy[int](nil) }) {
+		t.Error("UniqueBy(nil)")
+	}
+}
+
 // Mixing issues into another error hides the issues and nothing else.
 func TestAMixedErrorHidesOnlyItsIssues(t *testing.T) {
 	pathErr := &fs.PathError{Op: "open", Path: "x", Err: os.ErrNotExist}

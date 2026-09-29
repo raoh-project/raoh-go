@@ -257,8 +257,9 @@ writes it (`09:00:00`), as Raoh for Java gives them.
 `Unique` and `UniqueBy`. Every element is decoded and its issues reported under its index.
 `Contains`, `ContainsAll` and `Unique` compare elements with `==` and are refused, when the decoder
 is built, for an element type that holds an interface, such as `any`, whose values could panic when
-compared; `UniqueBy(key)` compares a key instead. Pointers are compared by identity, and `0.0` and
-`-0.0` are equal, which Java's `equals` does not give. `ContainsAll` with no element is refused too.
+compared; `UniqueBy(key)` compares a key instead. Pointers are compared by identity, `0.0` and
+`-0.0` are equal, and NaN is not equal to itself, none of which Java's `equals` gives. `Contains`
+and `ContainsAll` are refused a nil element, and `ContainsAll` no element, as Java refuses a null.
 Java has no custom message for `containsAll`; here `.Message` works on it as on every constraint.
 
 `raoh.ToSet(d)` turns a decoder of `[]T`, such as `raoh.List(...).MaxSize(3)`, into a decoder of

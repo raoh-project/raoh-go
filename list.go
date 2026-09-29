@@ -22,21 +22,15 @@ type ListDecoder[T any] struct {
 
 // List returns a decoder of an array whose elements element decodes.
 func List[T any](element DecoderOf[T]) ListDecoder[T] {
-	return newList(element.decoder(), scalar[[]T]{read: func(in any) ([]T, *Issue) {
-		if _, ok := plain(in).([]any); !ok {
-			i := unexpected("array", in)
-			return nil, &i
-		}
-		return nil, nil
-	}})
+	return newList(element.decoder(), scalar[[]T]{})
 }
 
 func newList[T any](element Decoder[any, T], s scalar[[]T]) ListDecoder[T] {
 	return ListDecoder[T]{Decoder[any, []T]{func(in any, at Path) outcome[[]T] {
-		if _, issue := s.read(in); issue != nil {
-			return s.typeIssue(*issue, at)
+		items, ok := asArray(in)
+		if !ok {
+			return s.typeIssue(unexpected("array", in), at)
 		}
-		items := plain(in).([]any)
 		values := make([]T, 0, len(items))
 		var issues Issues
 		for n, item := range items {
@@ -56,6 +50,12 @@ func newList[T any](element Decoder[any, T], s scalar[[]T]) ListDecoder[T] {
 
 func (l ListDecoder[T]) require(ok func([]T) bool, fail func([]T) Issue) ListDecoder[T] {
 	return newList(l.element, l.s.require(ok, fail))
+}
+
+// check adds a constraint that reports its issue, or nil, from one scan of the
+// list, for those whose issue is found by the work that decides them.
+func (l ListDecoder[T]) check(f func([]T) *Issue) ListDecoder[T] {
+	return newList(l.element, l.s.with(step[[]T]{check: f}))
 }
 
 // Message gives the most recent constraint written before it, or the type
@@ -88,9 +88,11 @@ func (l ListDecoder[T]) Size(n int) ListDecoder[T] {
 
 // Contains requires the list to hold element, compared with ==:
 // missing_element with expected. It panics, when the decoder is built, if T
-// holds an interface anywhere, as Unique does.
+// holds an interface anywhere, as Unique does, or if element is nil, as Raoh
+// for Java refuses a null element.
 func (l ListDecoder[T]) Contains(element T) ListDecoder[T] {
 	requireHashable(reflect.TypeFor[T](), "Contains")
+	requireNotNil(element, "Contains")
 	return l.require(func(v []T) bool { return slices.ContainsFunc(v, func(e T) bool { return equal(e, element) }) },
 		func([]T) Issue { return NewIssue(CodeMissingElement).WithMeta("expected", element) })
 }
@@ -98,24 +100,33 @@ func (l ListDecoder[T]) Contains(element T) ListDecoder[T] {
 // ContainsAll requires the list to hold every one of elements, compared with
 // ==: missing_elements with expected, all of elements, and missing, those the
 // list lacks, in the order given. It panics, when the decoder is built, if
-// elements is empty or T holds an interface anywhere, as Unique does.
+// elements is empty, if one is nil, or if T holds an interface anywhere, as
+// Contains does.
 func (l ListDecoder[T]) ContainsAll(elements ...T) ListDecoder[T] {
 	requireHashable(reflect.TypeFor[T](), "ContainsAll")
 	if len(elements) == 0 {
 		panic("raoh: ContainsAll needs at least one element")
 	}
+	for _, e := range elements {
+		requireNotNil(e, "ContainsAll")
+	}
 	required := slices.Clone(elements)
-	missing := func(v []T) []T {
-		var out []T
+	return l.check(func(v []T) *Issue {
+		held := make(map[any]struct{}, len(v))
+		for _, e := range v {
+			held[e] = struct{}{}
+		}
+		var missing []T
 		for _, r := range required {
-			if !slices.ContainsFunc(v, func(e T) bool { return equal(e, r) }) {
-				out = append(out, r)
+			if _, ok := held[r]; !ok {
+				missing = append(missing, r)
 			}
 		}
-		return out
-	}
-	return l.require(func(v []T) bool { return len(missing(v)) == 0 }, func(v []T) Issue {
-		return NewIssue(CodeMissingElements).WithMeta("expected", required).WithMeta("missing", missing(v))
+		if missing == nil {
+			return nil
+		}
+		i := NewIssue(CodeMissingElements).WithMeta("expected", required).WithMeta("missing", missing)
+		return &i
 	})
 }
 
@@ -136,6 +147,17 @@ func ToSet[T comparable](d DecoderOf[[]T]) Decoder[any, map[T]struct{}] {
 
 func equal[T any](a, b T) bool { return any(a) == any(b) }
 
+// requireNotNil panics if v is nil: a nil pointer or channel, the only nil a
+// type that holds no interface has.
+func requireNotNil[T any](v T, name string) {
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Chan:
+		if rv.IsNil() {
+			panic(fmt.Sprintf("raoh: %s needs an element that is not nil", name))
+		}
+	}
+}
+
 // Unique requires every element to differ from the others, compared with ==:
 // duplicate_element with duplicates, each repeated element once, in the order
 // it was first repeated.
@@ -155,6 +177,9 @@ func (l ListDecoder[T]) Unique() ListDecoder[T] {
 // built, if K holds an interface anywhere, as Unique does.
 func (l ListDecoder[T]) UniqueBy[K comparable](key func(T) K) ListDecoder[T] {
 	requireHashable(reflect.TypeFor[K](), "UniqueBy")
+	if key == nil {
+		panic("raoh: UniqueBy needs a key function")
+	}
 	return l.unique(func(v T) any { return key(v) })
 }
 
@@ -165,8 +190,13 @@ func requireHashable(t reflect.Type, name string) {
 }
 
 func (l ListDecoder[T]) unique(key func(T) any) ListDecoder[T] {
-	return l.require(func(v []T) bool { return len(duplicates(v, key)) == 0 }, func(v []T) Issue {
-		return NewIssue(CodeDuplicateElement).WithMeta("duplicates", duplicates(v, key))
+	return l.check(func(v []T) *Issue {
+		repeated := duplicates(v, key)
+		if len(repeated) == 0 {
+			return nil
+		}
+		i := NewIssue(CodeDuplicateElement).WithMeta("duplicates", repeated)
+		return &i
 	})
 }
 
@@ -200,21 +230,15 @@ type DictDecoder[T any] struct {
 // Dict returns a decoder of an object used as a map, whose member values value
 // decodes.
 func Dict[T any](value DecoderOf[T]) DictDecoder[T] {
-	return newDict(value.decoder(), scalar[map[string]T]{read: func(in any) (map[string]T, *Issue) {
-		if _, ok := AsObject(in); !ok {
-			i := unexpected("object", in)
-			return nil, &i
-		}
-		return nil, nil
-	}})
+	return newDict(value.decoder(), scalar[map[string]T]{})
 }
 
 func newDict[T any](value Decoder[any, T], s scalar[map[string]T]) DictDecoder[T] {
 	return DictDecoder[T]{Decoder[any, map[string]T]{func(in any, at Path) outcome[map[string]T] {
-		if _, issue := s.read(in); issue != nil {
-			return s.typeIssue(*issue, at)
+		m, ok := AsObject(in)
+		if !ok {
+			return s.typeIssue(unexpected("object", in), at)
 		}
-		m, _ := AsObject(in)
 		values := make(map[string]T, len(m.names))
 		var issues Issues
 		for _, name := range m.names {

@@ -222,6 +222,53 @@ func TestDictSizeConstraintsRunAfterEveryMemberDecodes(t *testing.T) {
 	}
 }
 
+// A map[string]any has to be sorted into its member order to be read; a
+// decode does that once, however many constraints the decoder has.
+func TestDictReadsANativeMapOnce(t *testing.T) {
+	m := map[string]any{"a": 1, "b": 2, "c": 3, "d": 4}
+	object, _ := raoh.AsObject(m)
+	d := raoh.Dict(raoh.Int()).NonEmpty().MaxSize(9)
+	native := testing.AllocsPerRun(100, func() { d.Decode(m) })
+	given := testing.AllocsPerRun(100, func() { d.Decode(object) })
+	read := testing.AllocsPerRun(100, func() { raoh.AsObject(m) })
+	if native-given > read {
+		t.Errorf("a native map costs %v allocations more than an object, reading it costs %v", native-given, read)
+	}
+}
+
+func TestUniqueByCallsTheKeyOncePerElement(t *testing.T) {
+	calls := 0
+	d := raoh.List(raoh.Int()).UniqueBy(func(n int) int { calls++; return n })
+	expect(t, d, `[1, 2, 1]`, " duplicate_element")
+	if calls != 3 {
+		t.Errorf("%d calls for 3 elements", calls)
+	}
+}
+
+func TestContainsAllOnALargeList(t *testing.T) {
+	const n = 20000
+	want := make([]int, n)
+	items := make([]any, n)
+	for i := range n {
+		want[i] = i
+		items[i] = n - 1 - i
+	}
+	d := raoh.List(raoh.Int()).ContainsAll(want...)
+	if _, err := d.Decode(items); err != nil {
+		t.Error(err)
+	}
+	if _, err := d.Decode(items[1:]); err == nil {
+		t.Error("an element is lacking")
+	}
+}
+
+func TestToSetKeepsANilElement(t *testing.T) {
+	v, issues := decodeJSON(t, raoh.ToSet(raoh.List(raoh.Nullable(raoh.Int()))), `[null, 1, null]`)
+	if len(issues) != 0 || len(v) != 2 {
+		t.Error(v, issues)
+	}
+}
+
 type shape struct {
 	kind string
 	area int
