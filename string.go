@@ -2,7 +2,6 @@ package raoh
 
 import (
 	"encoding/hex"
-	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -237,14 +236,12 @@ func (d StringDecoder) UUID() Conversion[UUID] {
 // The text is an RFC 3986 URI, with the http or https scheme in any case, an
 // authority and a non-empty host, as Raoh for Java accepts it. The host is the
 // RFC 3986 host, not a DNS name, so a reg-name such as my_host is accepted, and
-// raw non-ASCII characters are not.
-func (d StringDecoder) URL() Conversion[*url.URL] {
-	return newConversion(d.s, KeyInvalidFormatURL, func(v string) (*url.URL, bool) {
-		p, ok := parseURI(v)
-		if !ok || !p.representableAsJavaURI() || !(p.schemeIs("http") || p.schemeIs("https")) || !p.hasHost() {
-			return nil, false
-		}
-		return parseURL(v)
+// raw non-ASCII characters are not. The value is a [URI], which keeps the text
+// as written.
+func (d StringDecoder) URL() Conversion[URI] {
+	return newConversion(d.s, KeyInvalidFormatURL, func(v string) (URI, bool) {
+		u, ok := newURI(v)
+		return u, ok && (u.p.schemeIs("http") || u.p.schemeIs("https")) && u.p.hasHost()
 	})
 }
 
@@ -259,21 +256,11 @@ func (d StringDecoder) URL() Conversion[*url.URL] {
 // port above 2147483647. An IPv6 host is checked as IPv6 checks it, without a
 // zone ID.
 //
-// The value is what url.Parse makes of the accepted text, so its String may
-// write the URI in the form package net/url prefers: the scheme in lower case
-// and an empty fragment left out. Raoh for Java keeps the text as it was given.
-func (d StringDecoder) URI() Conversion[*url.URL] {
-	return newConversion(d.s, KeyInvalidFormatURI, func(v string) (*url.URL, bool) {
-		if p, ok := parseURI(v); !ok || !p.representableAsJavaURI() {
-			return nil, false
-		}
-		return parseURL(v)
-	})
-}
-
-func parseURL(v string) (*url.URL, bool) {
-	u, err := url.Parse(v)
-	return u, err == nil
+// Whether the text is a URI does not depend on package net/url. The value is a
+// [URI] that keeps the text as written; [URI.URL] gives a *url.URL when net/url
+// can hold it.
+func (d StringDecoder) URI() Conversion[URI] {
+	return newConversion(d.s, KeyInvalidFormatURI, newURI)
 }
 
 // Conversion is a decoder that reads a string and converts it to a T,

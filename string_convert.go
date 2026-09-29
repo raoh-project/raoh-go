@@ -25,9 +25,8 @@ func (d StringDecoder) ToLong() IntDecoder[int64] { return toInteger[int64](d) }
 // white space, NaN and Infinity are type_mismatch with expected decimal, as is
 // an exponent a Decimal cannot hold.
 //
-// The time it takes to read the digits grows faster than linearly with their
-// number, and the decoder sets no limit of its own. For input from an
-// untrusted source, bound the length first: String().MaxLength(40).ToDecimal().
+// The decoder sets no limit on the number of digits. Put MaxLength before it
+// when the input's contract has one.
 func (d StringDecoder) ToDecimal() DecimalDecoder {
 	return newDecimal(viaString(d.s, func(v string) (Decimal, *Issue) {
 		if n, err := ParseDecimal(v); err == nil {

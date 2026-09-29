@@ -209,6 +209,7 @@ func TestValueEncoders(t *testing.T) {
 		"negative offset":  {encode.OffsetDateTime()(time.Date(2024, 1, 15, 10, 30, 0, 0, time.FixedZone("", -3*3600))), "2024-01-15T10:30-03:00"},
 		"uuid":             {encode.UUID()(raoh.UUID{0x12, 0x3e, 0x45, 0x67}), "123e4567-0000-0000-0000-000000000000"},
 		"url":              {encode.URL()(&url.URL{Scheme: "https", Host: "example.com", Path: "/a"}), "https://example.com/a"},
+		"uri":              {encode.URI()(mustURI("HTTP://%41.example/#")), "HTTP://%41.example/#"},
 		"decimal":          {string(encode.Decimal()(raoh.MustDecimal("1.20"))), "1.20"},
 	} {
 		if pair[0] != pair[1] {
@@ -223,4 +224,12 @@ func TestValueEncoders(t *testing.T) {
 	if got := encode.Dict(encode.Int()).Encode(map[string]int{"a": 1}); !reflect.DeepEqual(got, map[string]any{"a": 1}) {
 		t.Error(got)
 	}
+}
+
+func mustURI(s string) raoh.URI {
+	u, err := raoh.ParseURI(s)
+	if err != nil {
+		panic(err)
+	}
+	return u
 }

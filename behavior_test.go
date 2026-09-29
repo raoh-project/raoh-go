@@ -465,3 +465,49 @@ func TestURIAcceptsAnySchemeAndKeepsSchemeRequired(t *testing.T) {
 		expect(t, raoh.String().URI(), `"`+bad+`"`, " invalid_format")
 	}
 }
+
+func TestURIAcceptanceDoesNotDependOnNetURL(t *testing.T) {
+	// net/url refuses a percent-encoded host; the URI grammar allows it.
+	const text = "http://%41.example/"
+	for name, d := range map[string]raoh.DecoderOf[raoh.URI]{"URI": raoh.String().URI(), "URL": raoh.String().URL()} {
+		u, issues := decodeJSON(t, d, `"`+text+`"`)
+		if len(issues) > 0 || u.String() != text {
+			t.Errorf("%s: %q %v", name, u.String(), codes(issues))
+		}
+		if _, err := u.URL(); err == nil {
+			t.Errorf("%s: net/url unexpectedly holds %s", name, text)
+		}
+	}
+}
+
+func TestURIKeepsTheTextAndItsComponents(t *testing.T) {
+	u, err := raoh.ParseURI("HTTP://user@Host:80/a%2Fb?q=1#f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	authority, _ := u.Authority()
+	host, _ := u.Host()
+	query, hasQuery := u.Query()
+	fragment, hasFragment := u.Fragment()
+	if u.String() != "HTTP://user@Host:80/a%2Fb?q=1#f" || u.Scheme() != "HTTP" || authority != "user@Host:80" ||
+		host != "Host" || u.Path() != "/a%2Fb" || query != "q=1" || !hasQuery || fragment != "f" || !hasFragment {
+		t.Errorf("%q %q %q %q %q %q", u.String(), u.Scheme(), authority, host, u.Path(), query)
+	}
+	empty, _ := raoh.ParseURI("a:b?#")
+	if q, ok := empty.Query(); q != "" || !ok {
+		t.Errorf("empty query: %q %v", q, ok)
+	}
+	if f, ok := empty.Fragment(); f != "" || !ok {
+		t.Errorf("empty fragment: %q %v", f, ok)
+	}
+	plain, _ := raoh.ParseURI("mailto:ken@example.com")
+	if _, ok := plain.Authority(); ok || plain.Path() != "ken@example.com" {
+		t.Errorf("mailto: %q", plain.Path())
+	}
+	if _, ok := plain.Query(); ok {
+		t.Error("mailto has no query")
+	}
+	if _, err := raoh.ParseURI("foo/bar"); err == nil {
+		t.Error("a relative reference is not a URI")
+	}
+}

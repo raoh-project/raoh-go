@@ -221,7 +221,9 @@ convert is `type_mismatch` with `expected` set to `integer`, `long`, `decimal` o
 `Message` after the conversion is the message of that issue alone. `ToInt()` is a 32-bit integer
 and `ToLong()` a 64-bit one, as in Raoh for Java, and not Go's `int`, which `Int()` reads and
 whose width depends on the platform. `URI()` is `URL()` without the http or https scheme and the
-host: any scheme, but a scheme is required.
+host: any scheme, but a scheme is required. Both give a `raoh.URI`, which holds the text as it was
+written and does not depend on `net/url` for what is a URI, so `http://%41.example/` is accepted
+though `url.Parse` refuses it; `URI.URL()` converts to a `*url.URL` and can fail.
 
 `raoh.Int()`, `Int32()`, `Int64()`, `Uint()`, `Uint32()`, `Uint64()`: `Min`, `Max`, `Range`,
 `Positive`, `Negative`, `NonNegative`, `NonPositive`, `MultipleOf`, `OneOf`. In JSON text a number

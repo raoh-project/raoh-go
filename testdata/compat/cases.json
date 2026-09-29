@@ -2013,5 +2013,61 @@
   {
     "decoder": "string_uri",
     "input": 1
+  },
+  {
+    "decoder": "string_uri",
+    "input": "HTTP://EXAMPLE.COM"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://host#"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://%41.example/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://%zz.example/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://us%40er@host/"
+  },
+  {
+    "decoder": "string_uri",
+    "input": "http://[::1]:80/%7e?q=%20#%41"
+  },
+  {
+    "decoder": "string_url",
+    "input": "HTTP://EXAMPLE.COM"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://host#"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://host?"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://%41.example/"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://%zz.example/"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://host/%41"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://us%40er@host/"
+  },
+  {
+    "decoder": "string_url",
+    "input": "http://[::1]:80/%7e?q=%20#%41"
   }
 ]

@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -108,9 +107,9 @@ func compatDecoder(name string) func([]byte) (any, error) {
 	case "string_uuid":
 		return out(s().UUID(), func(u raoh.UUID) any { return u.String() })
 	case "string_url":
-		return out(s().URL(), func(u *url.URL) any { return u.String() })
+		return out(s().URL(), func(u raoh.URI) any { return u.String() })
 	case "string_uri":
-		return out(s().URI(), func(u *url.URL) any { return u.String() })
+		return out(s().URI(), func(u raoh.URI) any { return u.String() })
 	case "string_to_int":
 		return out(s().ToInt(), same)
 	case "string_to_int_min_1":

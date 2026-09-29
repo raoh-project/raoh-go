@@ -4304,4 +4304,72 @@
     },
     "path" : ""
   } ]
+}, {
+  "decoder" : "string_uri",
+  "input" : "HTTP://EXAMPLE.COM",
+  "ok" : "HTTP://EXAMPLE.COM"
+}, {
+  "decoder" : "string_uri",
+  "input" : "http://host#",
+  "ok" : "http://host#"
+}, {
+  "decoder" : "string_uri",
+  "input" : "http://%41.example/",
+  "ok" : "http://%41.example/"
+}, {
+  "decoder" : "string_uri",
+  "input" : "http://%zz.example/",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid URI",
+    "message_key" : "invalid_format.uri",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "string_uri",
+  "input" : "http://us%40er@host/",
+  "ok" : "http://us%40er@host/"
+}, {
+  "decoder" : "string_uri",
+  "input" : "http://[::1]:80/%7e?q=%20#%41",
+  "ok" : "http://[::1]:80/%7e?q=%20#%41"
+}, {
+  "decoder" : "string_url",
+  "input" : "HTTP://EXAMPLE.COM",
+  "ok" : "HTTP://EXAMPLE.COM"
+}, {
+  "decoder" : "string_url",
+  "input" : "http://host#",
+  "ok" : "http://host#"
+}, {
+  "decoder" : "string_url",
+  "input" : "http://host?",
+  "ok" : "http://host?"
+}, {
+  "decoder" : "string_url",
+  "input" : "http://%41.example/",
+  "ok" : "http://%41.example/"
+}, {
+  "decoder" : "string_url",
+  "input" : "http://%zz.example/",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "not a valid URL",
+    "message_key" : "invalid_format.url",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "string_url",
+  "input" : "http://host/%41",
+  "ok" : "http://host/%41"
+}, {
+  "decoder" : "string_url",
+  "input" : "http://us%40er@host/",
+  "ok" : "http://us%40er@host/"
+}, {
+  "decoder" : "string_url",
+  "input" : "http://[::1]:80/%7e?q=%20#%41",
+  "ok" : "http://[::1]:80/%7e?q=%20#%41"
 } ]
