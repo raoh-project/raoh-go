@@ -2,7 +2,9 @@ package raoh_test
 
 import (
 	"errors"
+	"fmt"
 	"math"
+	"math/big"
 	"testing"
 
 	"github.com/raoh-project/raoh-go"
@@ -141,5 +143,19 @@ func TestBytesReadsAByteSliceAsItIs(t *testing.T) {
 	}
 	if _, err := raoh.DecodeJSON([]byte(`[1,2,3]`), raoh.Bytes()); err == nil {
 		t.Error("a JSON array is not bytes")
+	}
+}
+
+func TestFloatReadsAnIntegerTypeRoundedOnce(t *testing.T) {
+	for _, in := range []any{int64(16777217), int64(math.MaxInt64), int64(math.MinInt64), uint64(math.MaxUint64),
+		uint64(1<<53 + 1), int32(math.MaxInt32), uint8(255), int(-3)} {
+		n, _ := new(big.Int).SetString(fmt.Sprint(in), 10)
+		want, _ := new(big.Float).SetInt(n).Float32()
+		if got, err := raoh.Float32().Decode(in); err != nil || got != want {
+			t.Errorf("%T %v as float32: %v, %v; want %v", in, in, got, err, want)
+		}
+	}
+	if got, err := raoh.Float64().Decode(uint64(1<<53 + 1)); err != nil || got != 1<<53 {
+		t.Errorf("1<<53+1 as float64: %v, %v", got, err)
 	}
 }

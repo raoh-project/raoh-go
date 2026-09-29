@@ -348,6 +348,30 @@ func floatOf[T binaryFloat](in any) (T, bool) {
 		return T(n), true
 	case float32:
 		return T(n), true
+	// An integer type converts directly, rounded once to the nearest, without the
+	// big numbers integerOf makes.
+	case int:
+		return T(n), true
+	case int8:
+		return T(n), true
+	case int16:
+		return T(n), true
+	case int32:
+		return T(n), true
+	case int64:
+		return T(n), true
+	case uint:
+		return T(n), true
+	case uint8:
+		return T(n), true
+	case uint16:
+		return T(n), true
+	case uint32:
+		return T(n), true
+	case uint64:
+		return T(n), true
+	case uintptr:
+		return T(n), true
 	}
 	n, ok := integerOf(in)
 	if !ok {
