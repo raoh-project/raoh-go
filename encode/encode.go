@@ -175,6 +175,27 @@ func OptionalProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]
 	}
 }
 
+// PropertyWithDefault writes the member key as what get reads from the value,
+// encoded with enc, and as defaultValue, encoded with enc, when get gives nil.
+// It is the counterpart of Raoh for Java's MapEncoders.propertyWithDefault, and
+// of a field read with a decoder's Default or DefaultFunc.
+func PropertyWithDefault[T, V, O any](key string, get func(T) *V, enc Encoder[V, O], defaultValue V) Entry[T] {
+	return PropertyWithDefaultFunc(key, get, enc, func() V { return defaultValue })
+}
+
+// PropertyWithDefaultFunc is [PropertyWithDefault] with a default that is made
+// when it is needed: defaultValue is called once for each value get gives nil
+// for, and not called for any other.
+func PropertyWithDefaultFunc[T, V, O any](key string, get func(T) *V, enc Encoder[V, O], defaultValue func() V) Entry[T] {
+	return func(v T, out map[string]any) {
+		if p := get(v); p != nil {
+			out[key] = enc(*p)
+		} else {
+			out[key] = enc(defaultValue())
+		}
+	}
+}
+
 // PresenceProperty leaves the member key out for an absent Presence, writes
 // null for a null one, and writes the value of a present one, encoded with
 // enc. It is the counterpart of a field read with raoh.PresenceOf, so such a

@@ -1,6 +1,8 @@
 package raoh
 
 import (
+	"encoding/json"
+	"errors"
 	"math"
 	"math/big"
 	"slices"
@@ -260,9 +262,211 @@ func (d IntDecoder[T]) MultipleOf(divisor T) IntDecoder[T] {
 }
 
 // OneOf requires one of allowed: not_allowed with allowed sorted, and actual.
+// It panics when a value is repeated.
 func (d IntDecoder[T]) OneOf(allowed ...T) IntDecoder[T] {
-	sorted := sortedUnique(allowed)
+	sorted := sortedDistinct(allowed)
 	return d.require(func(v T) bool { _, ok := slices.BinarySearch(sorted, v); return ok }, func(v T) Issue {
+		return NewIssue(CodeNotAllowed).WithMeta("allowed", sorted).WithMeta("actual", v)
+	})
+}
+
+// binaryFloat is the floating-point types a decoder reads, the counterparts of
+// Java's double and float.
+type binaryFloat interface{ float32 | float64 }
+
+// floatName is the name Raoh for Java gives the type in expected.
+func floatName[T binaryFloat]() string {
+	var zero T
+	if _, ok := any(zero).(float32); ok {
+		return "float"
+	}
+	return "double"
+}
+
+// compareFloat is Double.compare and Float.compare, which order the values the
+// operators of Go leave equal or unordered: -0 is below +0, and NaN is above
+// every other value and equal to itself.
+func compareFloat[T binaryFloat](a, b T) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	}
+	aNaN, bNaN := a != a, b != b
+	switch {
+	case aNaN && bNaN:
+		return 0
+	case aNaN:
+		return 1
+	case bNaN:
+		return -1
+	}
+	// Equal as numbers; only the sign of a zero tells them apart.
+	aNeg, bNeg := math.Signbit(float64(a)), math.Signbit(float64(b))
+	switch {
+	case aNeg && !bNeg:
+		return -1
+	case !aNeg && bNeg:
+		return 1
+	}
+	return 0
+}
+
+// numericRangeIssue is the issue for a number the type cannot hold: the
+// message key type_mismatch.numeric_range, with expected alone.
+func numericRangeIssue(expected string) *Issue {
+	i := NewIssue(CodeTypeMismatch).WithMessageKey(KeyTypeMismatchNumericRange).WithMeta("expected", expected)
+	return &i
+}
+
+func readFloat[T binaryFloat](in any) (T, *Issue) {
+	name := floatName[T]()
+	in = plain(in)
+	if isNull(in) {
+		i := NewIssue(CodeRequired)
+		return 0, &i
+	}
+	f, ok := floatOf[T](in)
+	if !ok {
+		i := NewIssue(CodeTypeMismatch).WithMeta("expected", name).WithMeta("actual", kind(in))
+		return 0, &i
+	}
+	// NaN is let through, for a constraint to reject as Raoh for Java does.
+	if math.IsInf(float64(f), 0) {
+		return 0, numericRangeIssue(name)
+	}
+	return f, nil
+}
+
+// floatOf returns the number in as a T, rounded to the nearest, or an infinity
+// for one beyond the range of T.
+func floatOf[T binaryFloat](in any) (T, bool) {
+	switch n := in.(type) {
+	case json.Number:
+		return floatText[T](string(n))
+	case float64:
+		return T(n), true
+	case float32:
+		return T(n), true
+	// An integer type converts directly, rounded once to the nearest, without the
+	// big numbers integerOf makes.
+	case int:
+		return T(n), true
+	case int8:
+		return T(n), true
+	case int16:
+		return T(n), true
+	case int32:
+		return T(n), true
+	case int64:
+		return T(n), true
+	case uint:
+		return T(n), true
+	case uint8:
+		return T(n), true
+	case uint16:
+		return T(n), true
+	case uint32:
+		return T(n), true
+	case uint64:
+		return T(n), true
+	case uintptr:
+		return T(n), true
+	}
+	n, ok := integerOf(in)
+	if !ok {
+		return 0, false
+	}
+	bf := new(big.Float).SetInt(n)
+	var zero T
+	if _, is32 := any(zero).(float32); is32 {
+		f, _ := bf.Float32()
+		return T(f), true
+	}
+	f, _ := bf.Float64()
+	return T(f), true
+}
+
+// floatText reads the text of a number as Raoh for Java's JSON does. An
+// integer is rounded to the type once. Anything else is a double first and
+// then rounded to the type, which for a float differs from rounding once in the
+// rare value that lies just past the middle of two floats. A -0 written as an
+// integer is 0.
+func floatText[T binaryFloat](text string) (T, bool) {
+	var zero T
+	_, is32 := any(zero).(float32)
+	integer := !strings.ContainsAny(text, ".eE")
+	bits := 64
+	if integer && is32 {
+		bits = 32
+	}
+	f, err := strconv.ParseFloat(text, bits)
+	// A number beyond the range is reported with the infinity, which the
+	// caller turns into the issue.
+	if err != nil && !errors.Is(err, strconv.ErrRange) {
+		return 0, false
+	}
+	if integer && f == 0 {
+		f = 0
+	}
+	return T(f), true
+}
+
+// floatBound requires ok, or is out_of_range under key with the bounds, given
+// as name and value pairs, and actual.
+func floatBound[T binaryFloat](s scalar[T], ok func(T) bool, key string, bounds ...any) scalar[T] {
+	return s.require(ok, func(v T) Issue {
+		i := outOfRange(key)
+		for n := 0; n < len(bounds); n += 2 {
+			i = i.WithMeta(bounds[n].(string), bounds[n+1])
+		}
+		return i.WithMeta("actual", v)
+	})
+}
+
+func floatMin[T binaryFloat](s scalar[T], min T) scalar[T] {
+	return floatBound(s, func(v T) bool { return compareFloat(v, min) >= 0 }, KeyOutOfRangeMinimum, "min", min)
+}
+
+func floatMax[T binaryFloat](s scalar[T], max T) scalar[T] {
+	return floatBound(s, func(v T) bool { return compareFloat(v, max) <= 0 }, KeyOutOfRangeMaximum, "max", max)
+}
+
+func floatRange[T binaryFloat](s scalar[T], min, max T) scalar[T] {
+	if compareFloat(min, max) > 0 {
+		panic("raoh: min must not be greater than max")
+	}
+	return floatBound(s, func(v T) bool { return compareFloat(min, v) <= 0 && compareFloat(v, max) <= 0 },
+		KeyOutOfRangeRange, "min", min, "max", max)
+}
+
+func floatPositive[T binaryFloat](s scalar[T]) scalar[T] {
+	var zero T
+	return floatBound(s, func(v T) bool { return compareFloat(v, zero) > 0 }, KeyOutOfRangePositive, "min", zero)
+}
+
+func floatNegative[T binaryFloat](s scalar[T]) scalar[T] {
+	var zero T
+	return floatBound(s, func(v T) bool { return compareFloat(v, zero) < 0 }, KeyOutOfRangeNegative, "max", zero)
+}
+
+func floatNonNegative[T binaryFloat](s scalar[T]) scalar[T] {
+	var zero T
+	return floatBound(s, func(v T) bool { return compareFloat(v, zero) >= 0 }, KeyOutOfRangeNonNegative, "min", zero)
+}
+
+func floatNonPositive[T binaryFloat](s scalar[T]) scalar[T] {
+	var zero T
+	return floatBound(s, func(v T) bool { return compareFloat(v, zero) <= 0 }, KeyOutOfRangeNonPositive, "max", zero)
+}
+
+func floatOneOf[T binaryFloat](s scalar[T], allowed []T) scalar[T] {
+	sorted := sortedDistinctFunc(allowed, compareFloat[T])
+	return s.require(func(v T) bool {
+		_, ok := slices.BinarySearchFunc(sorted, v, compareFloat[T])
+		return ok
+	}, func(v T) Issue {
 		return NewIssue(CodeNotAllowed).WithMeta("allowed", sorted).WithMeta("actual", v)
 	})
 }
@@ -270,7 +474,11 @@ func (d IntDecoder[T]) OneOf(allowed ...T) IntDecoder[T] {
 // Float64Decoder decodes a number into a float64.
 //
 // Null or a missing member is required; any other type is type_mismatch. An
-// integer is read as the nearest float64. Bounds appear in messages as Java's
+// integer is read as the nearest float64. A number beyond the range of a
+// float64, and an infinity, is type_mismatch under the message key
+// type_mismatch.numeric_range; NaN is read, for a constraint to reject.
+// Constraints compare as Java's Double.compare does, so -0 is below 0 and NaN
+// is above every other value. Bounds appear in messages as Java's
 // Double.toString writes them, such as 1.0E7.
 type Float64Decoder struct {
 	Decoder[any, float64]
@@ -279,96 +487,103 @@ type Float64Decoder struct {
 
 // Float64 returns a decoder of a number into a float64.
 func Float64() Float64Decoder {
-	return newFloat(scalar[float64]{read: readFloat})
+	return newFloat64(scalar[float64]{read: readFloat[float64]})
 }
 
-func newFloat(s scalar[float64]) Float64Decoder { return Float64Decoder{s.build(), s} }
-
-func readFloat(in any) (float64, *Issue) {
-	in = plain(in)
-	if isNull(in) {
-		i := NewIssue(CodeRequired)
-		return 0, &i
-	}
-	if text, ok := numberText(in); ok {
-		f, err := strconv.ParseFloat(text, 64)
-		if err != nil || math.IsInf(f, 0) {
-			i := NewIssue(CodeTypeMismatch).WithMeta("expected", "double")
-			return 0, &i
-		}
-		return f, nil
-	}
-	switch n := in.(type) {
-	case float64:
-		return n, nil
-	case float32:
-		return float64(n), nil
-	}
-	if n, ok := integerOf(in); ok {
-		f, _ := new(big.Float).SetInt(n).Float64()
-		return f, nil
-	}
-	i := NewIssue(CodeTypeMismatch).WithMeta("expected", "double").WithMeta("actual", kind(in))
-	return 0, &i
-}
-
-func (d Float64Decoder) bound(ok func(float64) bool, key string, bounds ...any) Float64Decoder {
-	return newFloat(d.s.require(ok, func(v float64) Issue {
-		i := outOfRange(key)
-		for n := 0; n < len(bounds); n += 2 {
-			i = i.WithMeta(bounds[n].(string), bounds[n+1])
-		}
-		return i.WithMeta("actual", v)
-	}))
-}
+func newFloat64(s scalar[float64]) Float64Decoder { return Float64Decoder{s.build(), s} }
 
 // Message gives the most recent constraint written before it, or the type
 // check when there is none, a custom message that every language shows as
 // written.
 func (d Float64Decoder) Message(message string) Float64Decoder {
-	return newFloat(d.s.message(message))
+	return newFloat64(d.s.message(message))
 }
 
 // Min requires at least min: out_of_range with min and actual.
-func (d Float64Decoder) Min(min float64) Float64Decoder {
-	return d.bound(func(v float64) bool { return v >= min }, KeyOutOfRangeMinimum, "min", min)
-}
+func (d Float64Decoder) Min(min float64) Float64Decoder { return newFloat64(floatMin(d.s, min)) }
 
 // Max allows at most max: out_of_range with max and actual.
-func (d Float64Decoder) Max(max float64) Float64Decoder {
-	return d.bound(func(v float64) bool { return v <= max }, KeyOutOfRangeMaximum, "max", max)
-}
+func (d Float64Decoder) Max(max float64) Float64Decoder { return newFloat64(floatMax(d.s, max)) }
 
 // Range requires a value from min to max, both included: out_of_range with
-// min, max and actual.
+// min, max and actual. It panics when min is above max.
 func (d Float64Decoder) Range(min, max float64) Float64Decoder {
-	return d.bound(func(v float64) bool { return min <= v && v <= max }, KeyOutOfRangeRange, "min", min, "max", max)
+	return newFloat64(floatRange(d.s, min, max))
 }
 
 // Positive requires a value above zero: out_of_range with min 0.0 and actual.
-func (d Float64Decoder) Positive() Float64Decoder {
-	return d.bound(func(v float64) bool { return v > 0 }, KeyOutOfRangePositive, "min", 0.0)
-}
+func (d Float64Decoder) Positive() Float64Decoder { return newFloat64(floatPositive(d.s)) }
 
 // Negative requires a value below zero: out_of_range with max 0.0 and actual.
-func (d Float64Decoder) Negative() Float64Decoder {
-	return d.bound(func(v float64) bool { return v < 0 }, KeyOutOfRangeNegative, "max", 0.0)
-}
+func (d Float64Decoder) Negative() Float64Decoder { return newFloat64(floatNegative(d.s)) }
 
 // NonNegative requires zero or above: out_of_range with min 0.0 and actual.
-func (d Float64Decoder) NonNegative() Float64Decoder {
-	return d.bound(func(v float64) bool { return v >= 0 }, KeyOutOfRangeNonNegative, "min", 0.0)
-}
+func (d Float64Decoder) NonNegative() Float64Decoder { return newFloat64(floatNonNegative(d.s)) }
 
 // NonPositive requires zero or below: out_of_range with max 0.0 and actual.
-func (d Float64Decoder) NonPositive() Float64Decoder {
-	return d.bound(func(v float64) bool { return v <= 0 }, KeyOutOfRangeNonPositive, "max", 0.0)
-}
+func (d Float64Decoder) NonPositive() Float64Decoder { return newFloat64(floatNonPositive(d.s)) }
 
 // OneOf requires one of allowed: not_allowed with allowed sorted, and actual.
+// It panics when a value is repeated; NaN is equal to NaN, and -0 is not equal
+// to 0.
 func (d Float64Decoder) OneOf(allowed ...float64) Float64Decoder {
-	sorted := sortedUnique(allowed)
-	return newFloat(d.s.require(func(v float64) bool { return slices.Contains(sorted, v) }, func(v float64) Issue {
-		return NewIssue(CodeNotAllowed).WithMeta("allowed", sorted).WithMeta("actual", v)
-	}))
+	return newFloat64(floatOneOf(d.s, allowed))
+}
+
+// Float32Decoder decodes a number into a float32, the counterpart of Raoh for
+// Java's FloatDecoder.
+//
+// It reads what a [Float64Decoder] reads, rounded to the nearest float32, so
+// 16777217 is read as 16777216. A number beyond the range of a float32 is
+// type_mismatch under the message key type_mismatch.numeric_range, with expected
+// float. Constraints compare as Java's Float.compare does, and bounds appear in
+// messages as Java's Float.toString writes them.
+type Float32Decoder struct {
+	Decoder[any, float32]
+	s scalar[float32]
+}
+
+// Float32 returns a decoder of a number into a float32.
+func Float32() Float32Decoder {
+	return newFloat32(scalar[float32]{read: readFloat[float32]})
+}
+
+func newFloat32(s scalar[float32]) Float32Decoder { return Float32Decoder{s.build(), s} }
+
+// Message gives the most recent constraint written before it, or the type
+// check when there is none, a custom message that every language shows as
+// written.
+func (d Float32Decoder) Message(message string) Float32Decoder {
+	return newFloat32(d.s.message(message))
+}
+
+// Min requires at least min: out_of_range with min and actual.
+func (d Float32Decoder) Min(min float32) Float32Decoder { return newFloat32(floatMin(d.s, min)) }
+
+// Max allows at most max: out_of_range with max and actual.
+func (d Float32Decoder) Max(max float32) Float32Decoder { return newFloat32(floatMax(d.s, max)) }
+
+// Range requires a value from min to max, both included: out_of_range with
+// min, max and actual. It panics when min is above max.
+func (d Float32Decoder) Range(min, max float32) Float32Decoder {
+	return newFloat32(floatRange(d.s, min, max))
+}
+
+// Positive requires a value above zero: out_of_range with min 0.0 and actual.
+func (d Float32Decoder) Positive() Float32Decoder { return newFloat32(floatPositive(d.s)) }
+
+// Negative requires a value below zero: out_of_range with max 0.0 and actual.
+func (d Float32Decoder) Negative() Float32Decoder { return newFloat32(floatNegative(d.s)) }
+
+// NonNegative requires zero or above: out_of_range with min 0.0 and actual.
+func (d Float32Decoder) NonNegative() Float32Decoder { return newFloat32(floatNonNegative(d.s)) }
+
+// NonPositive requires zero or below: out_of_range with max 0.0 and actual.
+func (d Float32Decoder) NonPositive() Float32Decoder { return newFloat32(floatNonPositive(d.s)) }
+
+// OneOf requires one of allowed: not_allowed with allowed sorted, and actual.
+// It panics when a value is repeated; NaN is equal to NaN, and -0 is not equal
+// to 0.
+func (d Float32Decoder) OneOf(allowed ...float32) Float32Decoder {
+	return newFloat32(floatOneOf(d.s, allowed))
 }

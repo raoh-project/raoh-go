@@ -233,3 +233,29 @@ func mustURI(s string) raoh.URI {
 	}
 	return u
 }
+
+func TestPropertyWithDefaultWritesTheDefaultForNil(t *testing.T) {
+	get := func(p *string) *string { return p }
+	enc := encode.Object(encode.PropertyWithDefault("v", get, encode.String(), "d"))
+	hello := "hello"
+	if got := enc(&hello); !reflect.DeepEqual(got, map[string]any{"v": "hello"}) {
+		t.Errorf("value: %v", got)
+	}
+	if got := enc(nil); !reflect.DeepEqual(got, map[string]any{"v": "d"}) {
+		t.Errorf("nil: %v", got)
+	}
+}
+
+func TestPropertyWithDefaultFuncMakesTheDefaultOnlyForNil(t *testing.T) {
+	calls := 0
+	get := func(p *int) *int { return p }
+	enc := encode.Object(encode.PropertyWithDefaultFunc("v", get, encode.Int(), func() int { calls++; return 7 }))
+	one := 1
+	enc(&one)
+	if calls != 0 {
+		t.Errorf("called for a value: %d", calls)
+	}
+	if got := enc(nil); !reflect.DeepEqual(got, map[string]any{"v": 7}) || calls != 1 {
+		t.Errorf("nil: %v after %d calls", got, calls)
+	}
+}

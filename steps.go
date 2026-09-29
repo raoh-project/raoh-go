@@ -120,9 +120,22 @@ func (s scalar[T]) run(v T, at Path) outcome[T] {
 	return succeed(v)
 }
 
-// sortedUnique returns the values sorted and without repeats.
-func sortedUnique[T cmp.Ordered](values []T) []T {
+// sortedDistinct returns the values sorted. It panics when a value is repeated:
+// Raoh for Java builds the allowed values of oneOf with Set.of, which refuses
+// a repeat, so a repeat is a mistake in the definition of the decoder.
+func sortedDistinct[T cmp.Ordered](values []T) []T {
+	return sortedDistinctFunc(values, cmp.Compare[T])
+}
+
+// sortedDistinctFunc is sortedDistinct with the order, and the equality that
+// goes with it, given by compare.
+func sortedDistinctFunc[T any](values []T, compare func(a, b T) int) []T {
 	out := slices.Clone(values)
-	slices.Sort(out)
-	return slices.Compact(out)
+	slices.SortFunc(out, compare)
+	for i := 1; i < len(out); i++ {
+		if compare(out[i-1], out[i]) == 0 {
+			panic("raoh: OneOf contains a repeated value")
+		}
+	}
+	return out
 }

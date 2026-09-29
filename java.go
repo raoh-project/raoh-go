@@ -27,7 +27,13 @@ func utf16Len(s string) int {
 // doubleToString is Double.toString(double): the shortest decimal that reads
 // back as v, written plainly with at least one fraction digit when
 // 10⁻³ ≤ |v| < 10⁷ (100.0, 0.001), and as d.dddE±n otherwise (1.0E7, 1.0E-4).
-func doubleToString(v float64) string {
+func doubleToString(v float64) string { return javaFloatString(v, 64) }
+
+// floatToString is Float.toString(float): the same, with the shortest decimal
+// that reads back as the float32 v, so 0.1f is 0.1 and not 0.10000000149011612.
+func floatToString(v float32) string { return javaFloatString(float64(v), 32) }
+
+func javaFloatString(v float64, bitSize int) string {
 	switch {
 	case math.IsNaN(v):
 		return "NaN"
@@ -44,7 +50,7 @@ func doubleToString(v float64) string {
 		return sign + "0.0"
 	}
 	// strconv writes the same shortest digits Java chooses, as d.ddde±nn.
-	scientific := strconv.FormatFloat(math.Abs(v), 'e', -1, 64)
+	scientific := strconv.FormatFloat(math.Abs(v), 'e', -1, bitSize)
 	mantissa, exp, _ := strings.Cut(scientific, "e")
 	exponent, _ := strconv.Atoi(exp)
 	digits := strings.Replace(mantissa, ".", "", 1)
