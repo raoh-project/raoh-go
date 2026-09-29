@@ -120,10 +120,12 @@ func writeArity(b *bytes.Buffer, n int, flat bool) {
 
 	p("\n// Map returns the decoder that builds the value with fn once every component\n// has decoded.\n")
 	p("func (o %s%s) Map[R any](fn func(%s) R) Decoder[any, R] {\n", object, use, types)
+	p("\trequireArgument(fn != nil, \"%s.Map\", \"fn\")\n", "Object")
 	p("\treturn o.AndThen(func(%s) (R, error) { return fn(%s), nil })\n}\n", args, vals)
 
 	p("\n// AndThen returns the decoder that builds the value with fn once every\n// component has decoded. Issues fn returns (see Invalid) are reported at the\n// object; any other error stops the decode.\n")
 	p("func (o %s%s) AndThen[R any](fn func(%s) (R, error)) Decoder[any, R] {\n", object, use, types)
+	p("\trequireArgument(fn != nil, \"%s.AndThen\", \"fn\")\n", "Object")
 	p("\treturn Decoder[any, R]{func(in any, at Path) outcome[R] {\n")
 	p("\t\tm, issue := openObject(in, at)\n\t\tif issue != nil {\n\t\t\treturn invalid[R](*issue)\n\t\t}\n")
 	p("\t\tvar c collector\n")
@@ -140,6 +142,7 @@ func writeArity(b *bytes.Buffer, n int, flat bool) {
 	}
 	p("\n// AndThenWithPath is AndThen for a function that is given the path of the\n// object, so it can report an issue at that path or beside it. Unlike\n// AndThen, it does not move the issues fn returns: their paths are kept as fn\n// gives them, so build them from the path it was given, as at.Key(\"end\").\n")
 	p("func (o %s%s) AndThenWithPath[R any](fn func(%sPath) (R, error)) Decoder[any, R] {\n", object, use, ptypes)
+	p("\trequireArgument(fn != nil, \"%s.AndThenWithPath\", \"fn\")\n", "Object")
 	p("\treturn Decoder[any, R]{func(in any, at Path) outcome[R] {\n")
 	p("\t\tm, issue := openObject(in, at)\n\t\tif issue != nil {\n\t\t\treturn invalid[R](*issue)\n\t\t}\n")
 	p("\t\tvar c collector\n")

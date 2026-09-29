@@ -11,7 +11,7 @@ package raoh
 // no members, so Strict adds nothing to what d reports for it. It is the same as
 // the Strict method of an [Object] for a decoder that is not one.
 func Strict[T any](d DecoderOf[T], fields ...string) Decoder[any, T] {
-	dec := d.decoder()
+	dec := decoderOf(d, "Strict", "d")
 	known := make(map[string]struct{}, len(fields))
 	for _, f := range fields {
 		known[f] = struct{}{}
