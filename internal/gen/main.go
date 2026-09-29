@@ -78,29 +78,26 @@ func writeArity(b *bytes.Buffer, n int, flat bool) {
 	if n < maxArity {
 		next := letters[n]
 		nextUse := "[" + strings.Join(letters[:n+1], ", ") + "]"
-		prev := func() string {
-			var sb strings.Builder
+		// with returns the components the set holds followed by last.
+		with := func(last string) string {
+			parts := make([]string, 0, n+1)
 			for i := range n {
-				fmt.Fprintf(&sb, ", f.p%d", i)
+				parts = append(parts, fmt.Sprintf("f.p%d", i))
 			}
-			return sb.String()
-		}()
+			return strings.Join(append(parts, last), ", ")
+		}
 		if flat {
 			p("\n// Field returns the set with one more field, name, read with src.\n")
 			p("func (f %s%s) Field[%s any](name string, src FieldSource[%s]) flatfields%d%s {\n", fields, use, next, next, n+1, nextUse)
-			p("\treturn flatfields%d%s{%s toPart(name, src)}\n}\n", n+1, nextUse, strings.TrimPrefix(prev, ", ")+",")
+			p("\treturn flatfields%d%s{%s}\n}\n", n+1, nextUse, with("toPart(name, src)"))
 		} else {
 			p("\n// Field returns the set with one more field, name, read with src.\n")
 			p("func (f %s%s) Field[%s any](name string, src FieldSource[%s]) fields%d%s {\n", fields, use, next, next, n+1, nextUse)
-			p("\treturn fields%d%s{append(slices.Clip(f.names), name)%s, toPart(name, src)}\n}\n", n+1, nextUse, prev)
+			p("\treturn fields%d%s{append(slices.Clip(f.names), name), %s}\n}\n", n+1, nextUse, with("toPart(name, src)"))
 		}
 		p("\n// Flat returns the set with one more component, d, read from the same\n// object as the fields: d is given the object itself, at the path of the\n// object, and its value is the next argument of the function given to Map.\n// The members d reads are not known, so an object with a Flat has no Strict.\n")
 		p("func (f %s%s) Flat[%s any](d DecoderOf[%s]) flatfields%d%s {\n", fields, use, next, next, n+1, nextUse)
-		if n == 0 {
-			p("\treturn flatfields%d%s{toFlatPart(d)}\n}\n", n+1, nextUse)
-		} else {
-			p("\treturn flatfields%d%s{%s, toFlatPart(d)}\n}\n", n+1, nextUse, strings.TrimPrefix(prev, ", "))
-		}
+		p("\treturn flatfields%d%s{%s}\n}\n", n+1, nextUse, with("toFlatPart(d)"))
 	}
 
 	p("\nfunc (f %s%s) object() %s%s { return %s%s{f: f} }\n", fields, use, object, use, object, use)

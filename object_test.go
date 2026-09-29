@@ -258,3 +258,21 @@ func TestFlatNestsToAnyDepth(t *testing.T) {
 		t.Fatalf("got %v, %v", got, err)
 	}
 }
+
+func TestFlatStopsTheDecodeOnAnErrorThatIsNotIssues(t *testing.T) {
+	boom := errors.New("boom")
+	failing := raoh.NewDecoder(func(any) (int, error) { return 0, boom })
+	d := raoh.Object(raoh.Fields().Field("a", raoh.Int()).Flat(failing)).Map(func(a, b int) int { return a })
+	if _, err := d.Decode(map[string]any{"a": 1}); !errors.Is(err, boom) {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestFlatObjectAndThenWithPathIsGivenThePathOfTheObject(t *testing.T) {
+	inner := raoh.Object(raoh.Fields().Field("b", raoh.Int())).Map(func(b int) int { return b })
+	d := raoh.Object(raoh.Fields().Field("a", raoh.Int()).Flat(inner)).
+		AndThenWithPath(func(a, b int, at raoh.Path) (int, error) { return a + b, nil })
+	if got, err := d.Decode(map[string]any{"a": 1, "b": 2}); err != nil || got != 3 {
+		t.Fatalf("got %v, %v", got, err)
+	}
+}
