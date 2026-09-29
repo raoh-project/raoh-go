@@ -351,6 +351,21 @@ func compatDecoder(name string) func([]byte) (any, error) {
 			raoh.Variant("rect", raoh.Object(raoh.Fields().Field("w", i()).Field("h", i())).
 				Map(func(w, h int32) int32 { return w * h })),
 		), same)
+	case "strict_discriminate":
+		square := raoh.Strict(raoh.Object(raoh.Fields().Field("side", i())).
+			Map(func(side int32) int32 { return side * side }), "kind", "side")
+		rect := raoh.Strict(raoh.Object(raoh.Fields().Field("w", i()).Field("h", i())).
+			Map(func(w, h int32) int32 { return w * h }), "kind", "w", "h")
+		return out(raoh.Strict(raoh.Discriminate("kind", raoh.Variant("square", square), raoh.Variant("rect", rect)),
+			"kind", "side", "w", "h"), same)
+	case "enum_custom_string":
+		return out(raoh.EnumOfWith(map[string]string{"RED": "red", "GREEN": "green"}, s().Trim()), same)
+	case "literal_custom_string":
+		return out(raoh.LiteralWith("v1", s().Trim().ToLower()), same)
+	case "discriminate_custom_tag":
+		return out(raoh.DiscriminateWith("kind", s().Trim().ToLower(), compatShapes()), same)
+	case "discriminate_map":
+		return out(raoh.DiscriminateWith("kind", s(), compatShapes()), same)
 	case "one_of":
 		return out(raoh.OneOf[string](
 			i().Map(func(n int32) string { return fmt.Sprint(n) }),
@@ -513,6 +528,9 @@ func divergences() []divergence {
 		{"optional_only", `null`, required, objectScope},
 		{"optional_only", `[1]`, notAnObject("array"), objectScope},
 		{"shape", `"rect"`, notAnObject("string"), objectScope},
+		{"strict_discriminate", `"rect"`, notAnObject("string"), objectScope},
+		{"discriminate_custom_tag", `"rect"`, notAnObject("string"), objectScope},
+		{"discriminate_map", `"rect"`, notAnObject("string"), objectScope},
 		{"flat", `[1]`, notAnObject("array"), objectScope},
 		{"flat", `null`, required, objectScope},
 		{"flat_first", `[1]`, notAnObject("array"), objectScope},
@@ -721,5 +739,14 @@ func TestTheCataloguesHoldRaohForJavasTemplates(t *testing.T) {
 				t.Errorf("%s %s: %q, want %q", file, key, got, template)
 			}
 		}
+	}
+}
+
+func compatShapes() map[string]raoh.DecoderOf[int32] {
+	return map[string]raoh.DecoderOf[int32]{
+		"square": raoh.Object(raoh.Fields().Field("side", raoh.Int32()).Field("kind", raoh.String())).
+			Map(func(side int32, _ string) int32 { return side * side }),
+		"rect": raoh.Object(raoh.Fields().Field("w", raoh.Int32()).Field("h", raoh.Int32())).
+			Map(func(w, h int32) int32 { return w * h }),
 	}
 }

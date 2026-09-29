@@ -183,3 +183,20 @@ func TestPathsAreJSONPointers(t *testing.T) {
 		t.Error(got)
 	}
 }
+
+func TestStrictDoesNotChangeTheIssuesADecoderReturns(t *testing.T) {
+	// The issues a decoder returns may share their array with others, and
+	// have room in it.
+	items := make([]Issue, 1, 4)
+	items[0] = NewIssue(CodeInvalidValue)
+	shared := Decoder[any, int]{func(any, Path) outcome[int] { return outcome[int]{issues: Issues{items: items}} }}
+	d := Strict(shared)
+	for range 2 {
+		if _, err := d.Decode(map[string]any{"x": 1.0}); err == nil {
+			t.Fatal("no issues")
+		}
+	}
+	if len(items) != 1 || items[:2][1].Code() != "" {
+		t.Error("the array of the issues a decoder returned was written to")
+	}
+}

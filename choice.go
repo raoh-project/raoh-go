@@ -23,6 +23,13 @@ func asciiLower(s string) string {
 // and sorted by code point. It panics when two names are equal under ASCII case
 // folding.
 func EnumOf[T any](values map[string]T) Decoder[any, T] {
+	return EnumOfWith(values, String())
+}
+
+// EnumOfWith is [EnumOf] with the string read by stringDecoder, such as one
+// that trims or lower-cases it first. What stringDecoder reports, at the path
+// it reports, is reported as it is.
+func EnumOfWith[T any](values map[string]T, stringDecoder DecoderOf[string]) Decoder[any, T] {
 	folded := make(map[string]T, len(values))
 	for name, v := range values {
 		key := asciiLower(name)
@@ -36,7 +43,7 @@ func EnumOf[T any](values map[string]T) Decoder[any, T] {
 		allowed = append(allowed, k)
 	}
 	slices.Sort(allowed)
-	str := String().Decoder
+	str := stringDecoder.decoder()
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		o := str.run(in, at)
 		if o.failed() {
@@ -54,7 +61,14 @@ func EnumOf[T any](values map[string]T) Decoder[any, T] {
 // under the message key invalid_format.literal, with expected, for any other
 // string.
 func Literal(expected string) Decoder[any, string] {
-	str := String().Decoder
+	return LiteralWith(expected, String())
+}
+
+// LiteralWith is [Literal] with the string read by stringDecoder, and the
+// value it returns compared with expected. What stringDecoder reports is
+// reported as it is.
+func LiteralWith(expected string, stringDecoder DecoderOf[string]) Decoder[any, string] {
+	str := stringDecoder.decoder()
 	return Decoder[any, string]{func(in any, at Path) outcome[string] {
 		o := str.run(in, at)
 		if o.failed() || o.value == expected {
@@ -86,16 +100,38 @@ func Variant[T any](tag string, d DecoderOf[T]) variant[T] {
 // variants have the same tag.
 func Discriminate[T any](tagField string, variants ...variant[T]) Decoder[any, T] {
 	byTag := make(map[string]Decoder[any, T], len(variants))
-	allowed := make([]string, 0, len(variants))
 	for _, v := range variants {
 		if _, dup := byTag[v.tag]; dup {
 			panic(fmt.Sprintf("raoh: duplicate variant tag %q", v.tag))
 		}
 		byTag[v.tag] = v.d
-		allowed = append(allowed, v.tag)
+	}
+	return discriminate(tagField, String().Decoder, byTag)
+}
+
+// DiscriminateWith is [Discriminate] with the variants given as a map from tag,
+// and the tag read by tagDecoder, such as one that trims or lower-cases it
+// first.
+//
+// tagDecoder decodes the value of the member tagField, not the whole object:
+// what it reports is reported at that member, and the value it returns is the
+// tag looked up in variants. The keys of variants are not changed by it. The map
+// is copied, so changing it afterwards does not change the decoder.
+func DiscriminateWith[T any](tagField string, tagDecoder DecoderOf[string], variants map[string]DecoderOf[T]) Decoder[any, T] {
+	byTag := make(map[string]Decoder[any, T], len(variants))
+	for tag, d := range variants {
+		byTag[tag] = d.decoder()
+	}
+	return discriminate(tagField, tagDecoder.decoder(), byTag)
+}
+
+func discriminate[T any](tagField string, tagDecoder Decoder[any, string], byTag map[string]Decoder[any, T]) Decoder[any, T] {
+	allowed := make([]string, 0, len(byTag))
+	for tag := range byTag {
+		allowed = append(allowed, tag)
 	}
 	slices.Sort(allowed)
-	tag := Object(Fields().Field(tagField, String())).Map(func(t string) string { return t })
+	tag := Object(Fields().Field(tagField, tagDecoder)).Map(func(t string) string { return t })
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		t := tag.run(in, at)
 		if t.failed() {
