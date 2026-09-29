@@ -12,9 +12,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"os"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -57,6 +59,14 @@ func presence(p raoh.Presence[int32]) any {
 }
 
 func list(values ...any) any { return values }
+
+func sortedKeys(set map[int32]struct{}) any {
+	keys := slices.Sorted(maps.Keys(set))
+	if keys == nil {
+		keys = []int32{}
+	}
+	return keys
+}
 
 func compatDecoder(name string) func([]byte) (any, error) {
 	s := raoh.String
@@ -211,6 +221,18 @@ func compatDecoder(name string) func([]byte) (any, error) {
 		return out(raoh.List(i()).Size(2), same)
 	case "list_unique":
 		return out(raoh.List(i()).Unique(), same)
+	case "list_contains_2":
+		return out(raoh.List(i()).Contains(2), same)
+	case "list_contains_all":
+		return out(raoh.List(i()).ContainsAll(1, 3, 3), same)
+	case "list_contains_all_max_2":
+		return out(raoh.List(i()).ContainsAll(1, 3).MaxSize(2), same)
+	// The Java set is compared as a sorted list: what is held is what is
+	// compared, not the order a Go map has no way to keep.
+	case "list_to_set":
+		return out(raoh.ToSet(raoh.List(i())), sortedKeys)
+	case "list_max_2_to_set":
+		return out(raoh.ToSet(raoh.List(i()).MaxSize(2)), sortedKeys)
 
 	case "person":
 		return out(raoh.Object(raoh.Fields().Field("name", s()).Field("age", i())).
@@ -237,6 +259,16 @@ func compatDecoder(name string) func([]byte) (any, error) {
 			Map(func(items []any, count int32) any { return list(items, count) }), same)
 	case "dict":
 		return out(raoh.Dict(i()), same)
+	case "dict_non_empty":
+		return out(raoh.Dict(i()).NonEmpty(), same)
+	case "dict_non_empty_message":
+		return out(raoh.Dict(i()).NonEmpty().Message("empty"), same)
+	case "dict_min_2", "dict_min_2_member_issue":
+		return out(raoh.Dict(i()).MinSize(2), same)
+	case "dict_max_1":
+		return out(raoh.Dict(i()).MaxSize(1), same)
+	case "dict_size_2":
+		return out(raoh.Dict(i()).Size(2), same)
 	case "optional_only":
 		return out(raoh.Object(raoh.Fields().Field("a", raoh.Optional(s())).Field("b", raoh.Optional(s()))).
 			Map(func(a, b *string) any { return list(opt(a), opt(b)) }), same)

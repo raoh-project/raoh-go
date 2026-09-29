@@ -253,12 +253,21 @@ fields the kind has, so a date bound is compared by its date alone. In an issue,
 written in a message as the Java type's `toString` writes it (`09:00`) and in JSON as Jackson
 writes it (`09:00:00`), as Raoh for Java gives them.
 
-`raoh.List(d)`: `[]T`, with `NonEmpty`, `MinSize`, `MaxSize`, `Size`, `Unique` and `UniqueBy`.
-Every element is decoded and its issues reported under its index. `Unique` compares elements with
-`==` and is refused, when the decoder is built, for an element type that holds an interface, such
-as `any`, whose values could panic when compared; `UniqueBy(key)` compares a key instead.
+`raoh.List(d)`: `[]T`, with `NonEmpty`, `MinSize`, `MaxSize`, `Size`, `Contains`, `ContainsAll`,
+`Unique` and `UniqueBy`. Every element is decoded and its issues reported under its index.
+`Contains`, `ContainsAll` and `Unique` compare elements with `==` and are refused, when the decoder
+is built, for an element type that holds an interface, such as `any`, whose values could panic when
+compared; `UniqueBy(key)` compares a key instead. Pointers are compared by identity, and `0.0` and
+`-0.0` are equal, which Java's `equals` does not give. `ContainsAll` with no element is refused too.
+Java has no custom message for `containsAll`; here `.Message` works on it as on every constraint.
 
-`raoh.Dict(d)`: a `map[string]T` from an object used as a map.
+`raoh.ToSet(d)` turns a decoder of `[]T`, such as `raoh.List(...).MaxSize(3)`, into a decoder of
+`map[T]struct{}`. The constraints of `d` run first, then the elements are gathered, each once. The
+order of the list is not kept, unlike Java's `toSet`.
+
+`raoh.Dict(d)`: a `map[string]T` from an object used as a map, with `NonEmpty`, `MinSize`,
+`MaxSize` and `Size`, which report `too_small`, `too_big` and `invalid_size` as a list does. They
+run after every member has decoded.
 
 Every built-in decoder takes `.Message("...")`, which gives the most recent constraint written
 before it a custom message. Transformations such as `Trim` cannot fail and are passed over, so

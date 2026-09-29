@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import net.unit8.raoh.Err;
 import net.unit8.raoh.Issue;
+import net.unit8.raoh.MessageResolver;
 import net.unit8.raoh.Ok;
 import net.unit8.raoh.Presence;
 import net.unit8.raoh.Result;
@@ -114,6 +115,12 @@ public class Generate {
             case "list_max_2" -> list(int_()).maxSize(2);
             case "list_size_2" -> list(int_()).fixedSize(2);
             case "list_unique" -> list(int_()).unique();
+            case "list_contains_2" -> list(int_()).contains(2);
+            case "list_contains_all" -> list(int_()).containsAll(1, 3, 3);
+            case "list_contains_all_max_2" -> list(int_()).containsAll(1, 3).maxSize(2);
+            // A set has no order Go's map keeps, so the elements are compared as a sorted list.
+            case "list_to_set" -> list(int_()).toSet().map(s -> s.stream().sorted().toList());
+            case "list_max_2_to_set" -> list(int_()).maxSize(2).toSet().map(s -> s.stream().sorted().toList());
 
             case "person" -> combine(field("name", string()), field("age", int_()))
                     .map((n, a) -> List.of(n, a));
@@ -135,6 +142,12 @@ public class Generate {
                     field("count", Decoders.withDefault(int_(), 0)))
                     .map((items, count) -> List.of(items, count));
             case "dict" -> map(int_());
+            case "dict_non_empty" -> map(int_()).nonempty();
+            case "dict_non_empty_message" -> map(int_()).nonempty("empty");
+            case "dict_min_2" -> map(int_()).minSize(2);
+            case "dict_max_1" -> map(int_()).maxSize(1);
+            case "dict_size_2" -> map(int_()).fixedSize(2);
+            case "dict_min_2_member_issue" -> map(int_()).minSize(2);
             case "optional_only" -> combine(optionalField("a", string()), optionalField("b", string()))
                     .map((a, b) -> listOf(a.orElse(null), b.orElse(null)));
 
@@ -156,8 +169,8 @@ public class Generate {
             case "period" -> combine(field("start", int_()), field("end", int_()))
                     .flatMap((s, e) -> s <= e
                             ? Result.ok(List.of(s, e))
-                            : Result.fail(net.unit8.raoh.Path.ROOT.append("end"),
-                                    "invalid_value", "end is before start"));
+                            : Result.failCustom(net.unit8.raoh.Path.ROOT.append("end"),
+                                    "invalid_value", "end is before start", Map.of()));
 
             case "instant" -> string().iso8601().map(Object::toString);
             case "instant_after" -> string().iso8601()
@@ -218,7 +231,9 @@ public class Generate {
                 case Ok<?> ok -> result.put("ok", ok.value());
                 case Err<?> err -> {
                     var issues = new ArrayList<Map<String, Object>>();
-                    for (Issue issue : err.issues().asList()) {
+                    // Go gives the message its catalogue resolves, so the Java one is resolved too:
+                    // the default a decoder writes says "entries" where the catalogue says "elements".
+                    for (Issue issue : err.issues().resolve(MessageResolver.DEFAULT).asList()) {
                         var i = new LinkedHashMap<String, Object>();
                         i.put("path", issue.path().toJsonPointer());
                         i.put("code", issue.code());

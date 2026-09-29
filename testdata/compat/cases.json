@@ -2629,5 +2629,179 @@
   {
     "decoder": "string_url",
     "input": "http://[::1]:80/%7e?q=%20#%41"
+  },
+  {
+    "decoder": "list_contains_2",
+    "input": [
+      1,
+      2
+    ]
+  },
+  {
+    "decoder": "list_contains_2",
+    "input": [
+      1,
+      3
+    ]
+  },
+  {
+    "decoder": "list_contains_2",
+    "input": []
+  },
+  {
+    "decoder": "list_contains_all",
+    "input": [
+      1,
+      2,
+      3
+    ]
+  },
+  {
+    "decoder": "list_contains_all",
+    "input": [
+      2
+    ]
+  },
+  {
+    "decoder": "list_contains_all",
+    "input": []
+  },
+  {
+    "decoder": "list_contains_all",
+    "input": [
+      3,
+      1
+    ]
+  },
+  {
+    "decoder": "list_contains_all_max_2",
+    "input": [
+      1,
+      3
+    ]
+  },
+  {
+    "decoder": "list_contains_all_max_2",
+    "input": [
+      1,
+      2,
+      3
+    ]
+  },
+  {
+    "decoder": "list_contains_all_max_2",
+    "input": [
+      2,
+      4,
+      5
+    ]
+  },
+  {
+    "decoder": "list_to_set",
+    "input": [
+      1,
+      2,
+      1,
+      3
+    ]
+  },
+  {
+    "decoder": "list_to_set",
+    "input": []
+  },
+  {
+    "decoder": "list_to_set",
+    "input": [
+      1,
+      "a"
+    ]
+  },
+  {
+    "decoder": "list_max_2_to_set",
+    "input": [
+      1,
+      2
+    ]
+  },
+  {
+    "decoder": "list_max_2_to_set",
+    "input": [
+      1,
+      2,
+      3
+    ]
+  },
+  {
+    "decoder": "dict_non_empty",
+    "input": {}
+  },
+  {
+    "decoder": "dict_non_empty",
+    "input": {
+      "a": 1
+    }
+  },
+  {
+    "decoder": "dict_non_empty",
+    "input": [
+      1
+    ]
+  },
+  {
+    "decoder": "dict_non_empty_message",
+    "input": {}
+  },
+  {
+    "decoder": "dict_min_2",
+    "input": {
+      "a": 1
+    }
+  },
+  {
+    "decoder": "dict_min_2",
+    "input": {
+      "a": 1,
+      "b": 2
+    }
+  },
+  {
+    "decoder": "dict_max_1",
+    "input": {
+      "a": 1,
+      "b": 2
+    }
+  },
+  {
+    "decoder": "dict_max_1",
+    "input": {
+      "a": 1
+    }
+  },
+  {
+    "decoder": "dict_size_2",
+    "input": {
+      "a": 1
+    }
+  },
+  {
+    "decoder": "dict_size_2",
+    "input": {
+      "a": 1,
+      "b": 2
+    }
+  },
+  {
+    "decoder": "dict_size_2",
+    "input": {
+      "a": 1,
+      "b": 2,
+      "c": 3
+    }
+  },
+  {
+    "decoder": "dict_min_2_member_issue",
+    "input": {
+      "a": "x"
+    }
   }
 ]

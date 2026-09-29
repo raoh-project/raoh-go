@@ -246,6 +246,22 @@ func TestUniqueIsRefusedForTypesWhoseValuesMayNotCompare(t *testing.T) {
 	}
 }
 
+func TestContainsAndToSetAreRefusedForTypesWhoseValuesMayNotCompare(t *testing.T) {
+	anyList := raoh.List(raoh.OneOf[any](raoh.List(raoh.Int()).Map(func(v []int) any { return v })))
+	if !panics(func() { anyList.Contains(1) }) {
+		t.Error("Contains on []any")
+	}
+	if !panics(func() { anyList.ContainsAll(1) }) {
+		t.Error("ContainsAll on []any")
+	}
+	if !panics(func() { raoh.ToSet(anyList) }) {
+		t.Error("ToSet on []any")
+	}
+	if !panics(func() { raoh.List(raoh.Int()).ContainsAll() }) {
+		t.Error("ContainsAll without elements")
+	}
+}
+
 // Mixing issues into another error hides the issues and nothing else.
 func TestAMixedErrorHidesOnlyItsIssues(t *testing.T) {
 	pathErr := &fs.PathError{Op: "open", Path: "x", Err: os.ErrNotExist}

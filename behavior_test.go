@@ -171,6 +171,57 @@ func TestDictKeepsEveryMember(t *testing.T) {
 	expect(t, raoh.Dict(raoh.Int()), `{"b": "x", "a": "y"}`, "/b type_mismatch", "/a type_mismatch")
 }
 
+func TestContainsReportsWhatTheListLacks(t *testing.T) {
+	d := raoh.List(raoh.Int()).Contains(2)
+	expect(t, d, `[1, 2]`)
+	_, issues := decodeJSON(t, d, `[1, 3]`)
+	if issues[0].Code() != raoh.CodeMissingElement || issues[0].Message(raoh.English) != "must contain 2" {
+		t.Error(issues[0])
+	}
+	all := raoh.List(raoh.Int()).ContainsAll(1, 3, 3, 4)
+	_, issues = decodeJSON(t, all, `[1, 2]`)
+	if issues[0].Message(raoh.English) != "must contain all of [1, 3, 3, 4] (missing: [3, 3, 4])" {
+		t.Error(issues[0].Message(raoh.English))
+	}
+	expect(t, raoh.List(raoh.Int()).ContainsAll(1).Message("need 1"), `[]`, " missing_elements")
+}
+
+func TestContainsAllKeepsItsOwnCopyOfTheElements(t *testing.T) {
+	elements := []int{1, 2}
+	d := raoh.List(raoh.Int()).ContainsAll(elements...)
+	elements[0] = 9
+	expect(t, d, `[1, 2]`)
+}
+
+func TestToSetKeepsEachElementOnce(t *testing.T) {
+	v, _ := decodeJSON(t, raoh.ToSet(raoh.List(raoh.Int())), `[1, 2, 1, 3]`)
+	if len(v) != 3 {
+		t.Error(v)
+	}
+	for _, n := range []int{1, 2, 3} {
+		if _, ok := v[n]; !ok {
+			t.Error(n, v)
+		}
+	}
+	expect(t, raoh.ToSet(raoh.List(raoh.Int()).MaxSize(2)), `[1, 2, 3]`, " too_big")
+	expect(t, raoh.ToSet(raoh.List(raoh.Int())), `[1, "a"]`, "/1 type_mismatch")
+}
+
+func TestDictSizeConstraintsRunAfterEveryMemberDecodes(t *testing.T) {
+	d := raoh.Dict(raoh.Int()).MinSize(2).MaxSize(3)
+	expect(t, d, `{"a": 1, "b": 2}`)
+	expect(t, d, `{"a": 1}`, " too_small")
+	expect(t, d, `{"a": 1, "b": 2, "c": 3, "d": 4}`, " too_big")
+	expect(t, d, `{"a": "x"}`, "/a type_mismatch")
+	expect(t, raoh.Dict(raoh.Int()).NonEmpty(), `{}`, " too_small")
+	expect(t, raoh.Dict(raoh.Int()).Size(2), `{"a": 1}`, " invalid_size")
+	expect(t, raoh.Dict(raoh.Int()).Message("m"), `[]`, " type_mismatch")
+	_, issues := decodeJSON(t, raoh.Dict(raoh.Int()).NonEmpty().Message("empty"), `{}`)
+	if issues[0].Message(raoh.English) != "empty" || issues[0].MessageKey() != raoh.KeyTooSmallNonEmpty {
+		t.Error(issues[0])
+	}
+}
+
 type shape struct {
 	kind string
 	area int

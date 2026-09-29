@@ -4950,4 +4950,287 @@
   "decoder" : "string_url",
   "input" : "http://[::1]:80/%7e?q=%20#%41",
   "ok" : "http://[::1]:80/%7e?q=%20#%41"
+}, {
+  "decoder" : "list_contains_2",
+  "input" : [ 1, 2 ],
+  "ok" : [ 1, 2 ]
+}, {
+  "decoder" : "list_contains_2",
+  "input" : [ 1, 3 ],
+  "issues" : [ {
+    "code" : "missing_element",
+    "message" : "must contain 2",
+    "message_key" : "missing_element",
+    "meta" : {
+      "expected" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "list_contains_2",
+  "input" : [ ],
+  "issues" : [ {
+    "code" : "missing_element",
+    "message" : "must contain 2",
+    "message_key" : "missing_element",
+    "meta" : {
+      "expected" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "list_contains_all",
+  "input" : [ 1, 2, 3 ],
+  "ok" : [ 1, 2, 3 ]
+}, {
+  "decoder" : "list_contains_all",
+  "input" : [ 2 ],
+  "issues" : [ {
+    "code" : "missing_elements",
+    "message" : "must contain all of [1, 3, 3] (missing: [1, 3, 3])",
+    "message_key" : "missing_elements",
+    "meta" : {
+      "expected" : [ 1, 3, 3 ],
+      "missing" : [ 1, 3, 3 ]
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "list_contains_all",
+  "input" : [ ],
+  "issues" : [ {
+    "code" : "missing_elements",
+    "message" : "must contain all of [1, 3, 3] (missing: [1, 3, 3])",
+    "message_key" : "missing_elements",
+    "meta" : {
+      "expected" : [ 1, 3, 3 ],
+      "missing" : [ 1, 3, 3 ]
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "list_contains_all",
+  "input" : [ 3, 1 ],
+  "ok" : [ 3, 1 ]
+}, {
+  "decoder" : "list_contains_all_max_2",
+  "input" : [ 1, 3 ],
+  "ok" : [ 1, 3 ]
+}, {
+  "decoder" : "list_contains_all_max_2",
+  "input" : [ 1, 2, 3 ],
+  "issues" : [ {
+    "code" : "too_big",
+    "message" : "must have at most 2 elements",
+    "message_key" : "too_big",
+    "meta" : {
+      "actual" : 3,
+      "max" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "list_contains_all_max_2",
+  "input" : [ 2, 4, 5 ],
+  "issues" : [ {
+    "code" : "missing_elements",
+    "message" : "must contain all of [1, 3] (missing: [1, 3])",
+    "message_key" : "missing_elements",
+    "meta" : {
+      "expected" : [ 1, 3 ],
+      "missing" : [ 1, 3 ]
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "list_to_set",
+  "input" : [ 1, 2, 1, 3 ],
+  "ok" : [ 1, 2, 3 ]
+}, {
+  "decoder" : "list_to_set",
+  "input" : [ ],
+  "ok" : [ ]
+}, {
+  "decoder" : "list_to_set",
+  "input" : [ 1, "a" ],
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/1"
+  } ]
+}, {
+  "decoder" : "list_max_2_to_set",
+  "input" : [ 1, 2 ],
+  "ok" : [ 1, 2 ]
+}, {
+  "decoder" : "list_max_2_to_set",
+  "input" : [ 1, 2, 3 ],
+  "issues" : [ {
+    "code" : "too_big",
+    "message" : "must have at most 2 elements",
+    "message_key" : "too_big",
+    "meta" : {
+      "actual" : 3,
+      "max" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_non_empty",
+  "input" : { },
+  "issues" : [ {
+    "code" : "too_small",
+    "message" : "must not be empty",
+    "message_key" : "too_small.nonempty",
+    "meta" : {
+      "actual" : 0,
+      "min" : 1
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_non_empty",
+  "input" : {
+    "a" : 1
+  },
+  "ok" : {
+    "a" : 1
+  }
+}, {
+  "decoder" : "dict_non_empty",
+  "input" : [ 1 ],
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "array",
+      "expected" : "object"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_non_empty_message",
+  "input" : { },
+  "issues" : [ {
+    "code" : "too_small",
+    "message" : "empty",
+    "message_key" : "too_small.nonempty",
+    "meta" : {
+      "actual" : 0,
+      "min" : 1
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_min_2",
+  "input" : {
+    "a" : 1
+  },
+  "issues" : [ {
+    "code" : "too_small",
+    "message" : "must have at least 2 elements",
+    "message_key" : "too_small",
+    "meta" : {
+      "actual" : 1,
+      "min" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_min_2",
+  "input" : {
+    "a" : 1,
+    "b" : 2
+  },
+  "ok" : {
+    "a" : 1,
+    "b" : 2
+  }
+}, {
+  "decoder" : "dict_max_1",
+  "input" : {
+    "a" : 1,
+    "b" : 2
+  },
+  "issues" : [ {
+    "code" : "too_big",
+    "message" : "must have at most 1 elements",
+    "message_key" : "too_big",
+    "meta" : {
+      "actual" : 2,
+      "max" : 1
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_max_1",
+  "input" : {
+    "a" : 1
+  },
+  "ok" : {
+    "a" : 1
+  }
+}, {
+  "decoder" : "dict_size_2",
+  "input" : {
+    "a" : 1
+  },
+  "issues" : [ {
+    "code" : "invalid_size",
+    "message" : "must have exactly 2 elements",
+    "message_key" : "invalid_size",
+    "meta" : {
+      "actual" : 1,
+      "expected" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_size_2",
+  "input" : {
+    "a" : 1,
+    "b" : 2
+  },
+  "ok" : {
+    "a" : 1,
+    "b" : 2
+  }
+}, {
+  "decoder" : "dict_size_2",
+  "input" : {
+    "a" : 1,
+    "b" : 2,
+    "c" : 3
+  },
+  "issues" : [ {
+    "code" : "invalid_size",
+    "message" : "must have exactly 2 elements",
+    "message_key" : "invalid_size",
+    "meta" : {
+      "actual" : 3,
+      "expected" : 2
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "dict_min_2_member_issue",
+  "input" : {
+    "a" : "x"
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/a"
+  } ]
 } ]
