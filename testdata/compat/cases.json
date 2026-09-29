@@ -2803,5 +2803,102 @@
     "input": {
       "a": "x"
     }
+  },
+  {
+    "decoder": "period_nested",
+    "input": {
+      "id": 1,
+      "period": {
+        "start": 1,
+        "end": 2
+      }
+    }
+  },
+  {
+    "decoder": "period_nested",
+    "input": {
+      "id": 1,
+      "period": {
+        "start": 3,
+        "end": 2
+      }
+    }
+  },
+  {
+    "decoder": "period_nested",
+    "input": {
+      "id": 1,
+      "period": {
+        "start": "a",
+        "end": 2
+      }
+    }
+  },
+  {
+    "decoder": "even_meta",
+    "input": 4
+  },
+  {
+    "decoder": "even_meta",
+    "input": 3
+  },
+  {
+    "decoder": "even_meta",
+    "input": "x"
+  },
+  {
+    "decoder": "even_meta",
+    "input": null
+  },
+  {
+    "decoder": "recover_issues",
+    "input": {
+      "id": 1,
+      "page": 2
+    }
+  },
+  {
+    "decoder": "recover_issues",
+    "input": {
+      "id": 1,
+      "page": "x"
+    }
+  },
+  {
+    "decoder": "recover_issues",
+    "input": {
+      "id": 1
+    }
+  },
+  {
+    "decoder": "recover_issues",
+    "input": {
+      "id": "x",
+      "page": "y"
+    }
+  },
+  {
+    "decoder": "default_supplier",
+    "input": {}
+  },
+  {
+    "decoder": "default_supplier",
+    "input": {
+      "id": null,
+      "page": null
+    }
+  },
+  {
+    "decoder": "default_supplier",
+    "input": {
+      "id": 3,
+      "page": 4
+    }
+  },
+  {
+    "decoder": "default_supplier",
+    "input": {
+      "id": "x"
+    }
   }
 ]

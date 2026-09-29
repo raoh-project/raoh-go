@@ -27,16 +27,33 @@ func failAs[U, T any](o outcome[T]) outcome[U] {
 	return outcome[U]{issues: o.issues, err: o.err}
 }
 
-// fromError turns what a caller's function returned into an outcome. An error
-// made of issues only is invalid input, moved to at. Any other error is a
+// fromRelativeError turns what a caller's function returned into an outcome. An
+// error made of issues only is invalid input, moved to at. Any other error is a
 // failure of the program; when issues are mixed into it, it is hidden behind
 // an executionError so that no *Issues can be found in what Decode returns.
-func fromError[T any](v T, err error, at Path) outcome[T] {
+func fromRelativeError[T any](v T, err error, at Path) outcome[T] {
 	if err == nil {
 		return succeed(v)
 	}
+	o := failedError[T](err)
+	if o.issues.Len() > 0 {
+		o.issues = Issues{items: o.issues.under(at)}
+	}
+	return o
+}
+
+// fromAbsoluteError is fromRelativeError for a function that was given the
+// path: the paths of its issues are kept as it returned them.
+func fromAbsoluteError[T any](v T, err error) outcome[T] {
+	if err == nil {
+		return succeed(v)
+	}
+	return failedError[T](err)
+}
+
+func failedError[T any](err error) outcome[T] {
 	if is, ok := asIssues(err); ok {
-		return invalid[T](is.under(at)...)
+		return invalid[T](is.items...)
 	}
 	if _, mixed := errors.AsType[*Issues](err); mixed {
 		err = &executionError{err}
@@ -122,7 +139,17 @@ func (d Decoder[I, T]) decoder() Decoder[I, T] { return d }
 func NewDecoder[I, T any](f func(in I) (T, error)) Decoder[I, T] {
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		v, err := f(in)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// NewDecoderWithPath returns a decoder that runs f, which is given the path the
+// decoder is at. The paths of the issues f returns are kept as f gives them,
+// so build them from the path it was given, as at.Key("end").
+func NewDecoderWithPath[I, T any](f func(in I, at Path) (T, error)) Decoder[I, T] {
+	return Decoder[I, T]{func(in I, at Path) outcome[T] {
+		v, err := f(in, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -165,7 +192,22 @@ func (d Decoder[I, T]) AndThen[U any](f func(T) (U, error)) Decoder[I, U] {
 			return failAs[U](o)
 		}
 		v, err := f(o.value)
-		return fromError(v, err, at)
+		return fromRelativeError(v, err, at)
+	}}
+}
+
+// AndThenWithPath is AndThen for a function that is given the path this
+// decoder is at, so it can report an issue at that path or beside it. Unlike
+// AndThen, it does not move the issues f returns: their paths are kept as f
+// gives them, so build them from the path it was given, as at.Key("end").
+func (d Decoder[I, T]) AndThenWithPath[U any](f func(T, Path) (U, error)) Decoder[I, U] {
+	return Decoder[I, U]{func(in I, at Path) outcome[U] {
+		o := d.run(in, at)
+		if o.failed() {
+			return failAs[U](o)
+		}
+		v, err := f(o.value, at)
+		return fromAbsoluteError(v, err)
 	}}
 }
 
@@ -193,9 +235,50 @@ func (d Decoder[I, T]) Refine(ok func(T) bool, code, message string) Decoder[I, 
 	}}
 }
 
+// RefineWithMeta is Refine for a failure that carries metadata computed from
+// the decoded value. meta is called only when ok does not hold, and the
+// entries it returns are copied into the issue.
+func (d Decoder[I, T]) RefineWithMeta(ok func(T) bool, code, message string, meta func(T) map[string]any) Decoder[I, T] {
+	return Decoder[I, T]{func(in I, at Path) outcome[T] {
+		o := d.run(in, at)
+		if o.failed() || ok(o.value) {
+			return o
+		}
+		i := NewIssue(code).WithMessage(message).At(at)
+		for k, v := range meta(o.value) {
+			i = i.WithMeta(k, v)
+		}
+		return invalid[T](i)
+	}}
+}
+
+// RefineWithPath returns a decoder that also runs check on the decoded value
+// with the path the decoder is at. When check returns an error made of issues
+// (see [Invalid]), they are reported with their paths as check gives them, so
+// build them from the path it was given, as at.Key("end"). Any other error
+// stops the decode.
+func (d Decoder[I, T]) RefineWithPath(check func(T, Path) error) Decoder[I, T] {
+	return Decoder[I, T]{func(in I, at Path) outcome[T] {
+		o := d.run(in, at)
+		if o.failed() {
+			return o
+		}
+		if err := check(o.value, at); err != nil {
+			return failedError[T](err)
+		}
+		return o
+	}}
+}
+
 // Default returns a decoder that gives v when every issue d reports is
 // required, as for a missing or null value, and reports any other problem.
 func (d Decoder[I, T]) Default(v T) Decoder[I, T] {
+	return d.DefaultFunc(func() T { return v })
+}
+
+// DefaultFunc is Default with the default computed by f, which is called once
+// each time the default is needed and not otherwise.
+func (d Decoder[I, T]) DefaultFunc(f func() T) Decoder[I, T] {
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.err != nil || o.issues.Len() == 0 {
@@ -206,17 +289,24 @@ func (d Decoder[I, T]) Default(v T) Decoder[I, T] {
 				return o
 			}
 		}
-		return succeed(v)
+		return succeed(f())
 	}}
 }
 
 // Fallback returns a decoder that gives v whatever issues d reports. A failure
 // of the program is still returned.
 func (d Decoder[I, T]) Fallback(v T) Decoder[I, T] {
+	return d.FallbackFunc(func(Issues) T { return v })
+}
+
+// FallbackFunc is Fallback with the value computed by f from the issues d
+// reported, at their paths in the whole input. A failure of the program is
+// still returned.
+func (d Decoder[I, T]) FallbackFunc(f func(Issues) T) Decoder[I, T] {
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.err == nil && o.issues.Len() > 0 {
-			return succeed(v)
+			return succeed(f(o.issues))
 		}
 		return o
 	}}

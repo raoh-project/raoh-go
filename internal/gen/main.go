@@ -100,5 +100,25 @@ func writeArity(b *bytes.Buffer, n int) {
 	}
 	p("\t\tif o.strict {\n\t\t\tc.unknown(m, at, o.f.names)\n\t\t}\n")
 	p("\t\tif c.failed() {\n\t\t\treturn collected[R](&c)\n\t\t}\n")
-	p("\t\tv, err := fn(%s)\n\t\treturn fromError(v, err, at)\n\t}}\n}\n", vals)
+	p("\t\tv, err := fn(%s)\n\t\treturn fromRelativeError(v, err, at)\n\t}}\n}\n", vals)
+
+	ptypes := types
+	if n > 0 {
+		ptypes += ", "
+	}
+	p("\n// AndThenWithPath is AndThen for a function that is given the path of the\n// object, so it can report an issue at that path or beside it. Unlike\n// AndThen, it does not move the issues fn returns: their paths are kept as fn\n// gives them, so build them from the path it was given, as at.Key(\"end\").\n")
+	p("func (o %s%s) AndThenWithPath[R any](fn func(%sPath) (R, error)) Decoder[any, R] {\n", object, use, ptypes)
+	p("\treturn Decoder[any, R]{func(in any, at Path) outcome[R] {\n")
+	p("\t\tm, issue := openObject(in, at)\n\t\tif issue != nil {\n\t\t\treturn invalid[R](*issue)\n\t\t}\n")
+	p("\t\tvar c collector\n")
+	for i := range n {
+		p("\t\tv%d := read(&c, o.f.p%d, m, at)\n", i, i)
+	}
+	p("\t\tif o.strict {\n\t\t\tc.unknown(m, at, o.f.names)\n\t\t}\n")
+	p("\t\tif c.failed() {\n\t\t\treturn collected[R](&c)\n\t\t}\n")
+	valsAt := vals
+	if n > 0 {
+		valsAt += ", "
+	}
+	p("\t\tv, err := fn(%sat)\n\t\treturn fromAbsoluteError(v, err)\n\t}}\n}\n", valsAt)
 }

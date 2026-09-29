@@ -5233,4 +5233,157 @@
     },
     "path" : "/a"
   } ]
+}, {
+  "decoder" : "period_nested",
+  "input" : {
+    "id" : 1,
+    "period" : {
+      "start" : 1,
+      "end" : 2
+    }
+  },
+  "ok" : [ 1, [ 1, 2 ] ]
+}, {
+  "decoder" : "period_nested",
+  "input" : {
+    "id" : 1,
+    "period" : {
+      "start" : 3,
+      "end" : 2
+    }
+  },
+  "issues" : [ {
+    "code" : "invalid_value",
+    "message" : "end is before start",
+    "message_key" : "invalid_value",
+    "meta" : { },
+    "path" : "/period/end"
+  } ]
+}, {
+  "decoder" : "period_nested",
+  "input" : {
+    "id" : 1,
+    "period" : {
+      "start" : "a",
+      "end" : 2
+    }
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/period/start"
+  } ]
+}, {
+  "decoder" : "even_meta",
+  "input" : 4,
+  "ok" : 4
+}, {
+  "decoder" : "even_meta",
+  "input" : 3,
+  "issues" : [ {
+    "code" : "must_be_even",
+    "message" : "must be even",
+    "message_key" : "must_be_even",
+    "meta" : {
+      "actual" : 3
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "even_meta",
+  "input" : "x",
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "even_meta",
+  "input" : null,
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "recover_issues",
+  "input" : {
+    "id" : 1,
+    "page" : 2
+  },
+  "ok" : [ 1, 2 ]
+}, {
+  "decoder" : "recover_issues",
+  "input" : {
+    "id" : 1,
+    "page" : "x"
+  },
+  "ok" : [ 1, 11 ]
+}, {
+  "decoder" : "recover_issues",
+  "input" : {
+    "id" : 1
+  },
+  "ok" : [ 1, 11 ]
+}, {
+  "decoder" : "recover_issues",
+  "input" : {
+    "id" : "x",
+    "page" : "y"
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/id"
+  } ]
+}, {
+  "decoder" : "default_supplier",
+  "input" : { },
+  "ok" : [ 7, 8 ]
+}, {
+  "decoder" : "default_supplier",
+  "input" : {
+    "id" : null,
+    "page" : null
+  },
+  "ok" : [ 7, 8 ]
+}, {
+  "decoder" : "default_supplier",
+  "input" : {
+    "id" : 3,
+    "page" : 4
+  },
+  "ok" : [ 3, 4 ]
+}, {
+  "decoder" : "default_supplier",
+  "input" : {
+    "id" : "x"
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/id"
+  } ]
 } ]

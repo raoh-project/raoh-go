@@ -295,6 +295,31 @@ func compatDecoder(name string) func([]byte) (any, error) {
 	case "recover":
 		return out(raoh.Object(raoh.Fields().Field("id", i().Default(0)).Field("page", i().Fallback(1))).
 			Map(func(id, page int32) any { return list(id, page) }), same)
+	case "period_nested":
+		period := raoh.Object(raoh.Fields().Field("start", i()).Field("end", i())).
+			Map(func(start, end int32) any { return list(start, end) }).
+			AndThenWithPath(func(v any, at raoh.Path) (any, error) {
+				p := v.([]any)
+				if p[0].(int32) <= p[1].(int32) {
+					return v, nil
+				}
+				return nil, raoh.Invalid(raoh.NewIssue(raoh.CodeInvalidValue).
+					WithMessage("end is before start").At(at.Key("end")))
+			})
+		return out(raoh.Object(raoh.Fields().Field("id", i()).Field("period", period)).
+			Map(func(id int32, p any) any { return list(id, p) }), same)
+	case "even_meta":
+		return out(i().RefineWithMeta(func(n int32) bool { return n%2 == 0 }, "must_be_even", "must be even",
+			func(n int32) map[string]any { return map[string]any{"actual": n} }), same)
+	case "recover_issues":
+		return out(raoh.Object(raoh.Fields().Field("id", i()).
+			Field("page", i().FallbackFunc(func(is raoh.Issues) int32 { return int32(is.Len()) + 10 }))).
+			Map(func(id, page int32) any { return list(id, page) }), same)
+	case "default_supplier":
+		return out(raoh.Object(raoh.Fields().
+			Field("id", i().DefaultFunc(func() int32 { return 7 })).
+			Field("page", i().DefaultFunc(func() int32 { return 8 }))).
+			Map(func(id, page int32) any { return list(id, page) }), same)
 	case "instant":
 		return out(s().Instant(), encode.Instant())
 	case "instant_after":
