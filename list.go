@@ -177,9 +177,7 @@ func (l ListDecoder[T]) Unique() ListDecoder[T] {
 // built, if K holds an interface anywhere, as Unique does.
 func (l ListDecoder[T]) UniqueBy[K comparable](key func(T) K) ListDecoder[T] {
 	requireHashable(reflect.TypeFor[K](), "UniqueBy")
-	if key == nil {
-		panic("raoh: UniqueBy needs a key function")
-	}
+	requireArgument(key != nil, "UniqueBy", "key")
 	return l.unique(func(v T) any { return key(v) })
 }
 
