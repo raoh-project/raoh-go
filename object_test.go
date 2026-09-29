@@ -172,3 +172,107 @@ func TestErrorMessage(t *testing.T) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
+
+type extra struct {
+	p16 int32
+	p17 string
+}
+
+type row struct {
+	p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15 int32
+	extra                                                            extra
+}
+
+var extraDecoder = raoh.Object(
+	raoh.Fields().
+		Field("p16", raoh.Int32()).
+		Field("p17", raoh.String()),
+).Map(func(p16 int32, p17 string) extra { return extra{p16, p17} })
+
+var rowDecoder = raoh.Object(
+	raoh.Fields().
+		Field("p1", raoh.Int32()).Field("p2", raoh.Int32()).Field("p3", raoh.Int32()).
+		Field("p4", raoh.Int32()).Field("p5", raoh.Int32()).Field("p6", raoh.Int32()).
+		Field("p7", raoh.Int32()).Field("p8", raoh.Int32()).Field("p9", raoh.Int32()).
+		Field("p10", raoh.Int32()).Field("p11", raoh.Int32()).Field("p12", raoh.Int32()).
+		Field("p13", raoh.Int32()).Field("p14", raoh.Int32()).Field("p15", raoh.Int32()).
+		Flat(extraDecoder),
+).Map(func(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15 int32, e extra) row {
+	return row{p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, e}
+})
+
+func TestFlatReadsTheFieldsOfTheSameObject(t *testing.T) {
+	in := map[string]any{"p17": "x", "p16": 16}
+	for i := 1; i <= 15; i++ {
+		in[fmt.Sprintf("p%d", i)] = i
+	}
+	r, err := rowDecoder.Decode(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.p1 != 1 || r.p15 != 15 || r.extra != (extra{16, "x"}) {
+		t.Fatalf("got %+v", r)
+	}
+}
+
+func TestFlatIssuesAreAtTheObjectsOwnPathAndAccumulateWithTheFields(t *testing.T) {
+	in := map[string]any{"p1": "a", "p16": "b"}
+	for i := 2; i <= 15; i++ {
+		in[fmt.Sprintf("p%d", i)] = i
+	}
+	_, err := rowDecoder.Decode(in)
+	got := issuesOf(t, err)
+	want := []summary{
+		{"/p1", "type_mismatch", "type_mismatch"},
+		{"/p16", "type_mismatch", "type_mismatch"},
+		{"/p17", "required", "required"},
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("got %v\nwant %v", got, want)
+	}
+}
+
+func TestFlatIsGivenTheInputTheObjectWasGiven(t *testing.T) {
+	type named map[string]any
+	var seen any
+	probe := raoh.NewDecoder(func(in any) (string, error) {
+		seen = in
+		return "", nil
+	})
+	d := raoh.Object(raoh.Fields().Flat(probe)).Map(func(string) int { return 0 })
+	in := named{"a": 1}
+	if _, err := d.Decode(in); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := seen.(named); !ok || got["a"] != 1 {
+		t.Fatalf("flat was given %#v, want the input %#v", seen, in)
+	}
+}
+
+func TestFlatNestsToAnyDepth(t *testing.T) {
+	inner := raoh.Object(raoh.Fields().Field("c", raoh.Int())).Map(func(c int) int { return c })
+	middle := raoh.Object(raoh.Fields().Field("b", raoh.Int()).Flat(inner)).Map(func(b, c int) int { return b*10 + c })
+	outer := raoh.Object(raoh.Fields().Flat(middle).Field("a", raoh.Int())).Map(func(bc, a int) int { return a*100 + bc })
+	got, err := outer.Decode(map[string]any{"a": 1, "b": 2, "c": 3})
+	if err != nil || got != 123 {
+		t.Fatalf("got %v, %v", got, err)
+	}
+}
+
+func TestFlatStopsTheDecodeOnAnErrorThatIsNotIssues(t *testing.T) {
+	boom := errors.New("boom")
+	failing := raoh.NewDecoder(func(any) (int, error) { return 0, boom })
+	d := raoh.Object(raoh.Fields().Field("a", raoh.Int()).Flat(failing)).Map(func(a, b int) int { return a })
+	if _, err := d.Decode(map[string]any{"a": 1}); !errors.Is(err, boom) {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestFlatObjectAndThenWithPathIsGivenThePathOfTheObject(t *testing.T) {
+	inner := raoh.Object(raoh.Fields().Field("b", raoh.Int())).Map(func(b int) int { return b })
+	d := raoh.Object(raoh.Fields().Field("a", raoh.Int()).Flat(inner)).
+		AndThenWithPath(func(a, b int, at raoh.Path) (int, error) { return a + b, nil })
+	if got, err := d.Decode(map[string]any{"a": 1, "b": 2}); err != nil || got != 3 {
+		t.Fatalf("got %v, %v", got, err)
+	}
+}

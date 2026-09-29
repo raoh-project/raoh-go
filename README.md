@@ -187,7 +187,21 @@ var period = raoh.Object(
 
 The compiler checks that the function takes the fields' types in that order, and that each field
 is read by a decoder of the input values; a `Decoder[string, T]` is not accepted as a field. A set
-holds up to 16 fields; a larger object groups some of its fields into a nested one.
+holds up to 16 components, each a field or a `Flat`, which is the arity of the function given to
+`Map`. Moving some fields into a decoder of their own and adding it with `Flat` reads an object of
+any number of fields, and the compiler checks the function of every level:
+
+```go
+contact := raoh.Object(raoh.Fields().Field("email", emailDecoder).Field("phone", phoneDecoder)).
+	Map(NewContact)
+
+account := raoh.Object(raoh.Fields().Field("id", idDecoder).Flat(contact)).Map(NewAccount)
+```
+
+`Flat` reads the same object as the fields, at the same path, so `{"id": 1, "email": "…", "phone": "…"}`
+is one object. It is `flat` of Raoh for Java; `CombinerList`, which takes an untyped `Object[]`, has
+no counterpart. The members a `Flat` decoder reads are not known, so an object with a `Flat` has no
+`Strict` method.
 
 `Object` requires its input to be an object. Anything else is one issue at the object's own path:
 `required` for missing or `null`, `type_mismatch` otherwise. Every field is read and the issues of
@@ -437,7 +451,7 @@ go test ./...
 `compat_test.go` also covers the temporal decoders, with cases raoh-rust does not have.
 
 `go generate ./...` writes `fields_gen.go`, the field sets and object builders for up to 16
-fields, and `casing_table.go`, the code points where Java's case mapping differs from Go's.
+components, and `casing_table.go`, the code points where Java's case mapping differs from Go's.
 
 `scripts/compat/generate.sh` regenerates `testdata/compat/expected.json` and copies the message
 catalogues from the Raoh for Java version `scripts/compat/pom.xml` names.

@@ -23,6 +23,7 @@ import net.unit8.raoh.Presence;
 import net.unit8.raoh.Result;
 import net.unit8.raoh.decode.Decoder;
 import net.unit8.raoh.decode.Decoders;
+import net.unit8.raoh.decode.combinator.CombinePart;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -126,6 +127,23 @@ public class Generate {
                     .map((n, a) -> List.of(n, a));
             case "person_strict" -> combine(field("name", string()), field("age", int_()))
                     .strict((n, a) -> List.of(n, a));
+            case "flat" -> combine(field("id", int_()), flat(contactDecoder()))
+                    .map((id, contact) -> List.of(id, contact));
+            case "flat_first" -> combine(flat(contactDecoder()), field("id", int_()))
+                    .map((contact, id) -> List.of(contact, id));
+            case "flat_nested" -> combine(field("a", int_()),
+                    flat(combine(field("b", int_()),
+                            flat(combine(field("c", int_()), field("d", int_()))
+                                    .map((c, d) -> c * 10 + d)))
+                            .map((b, cd) -> b * 100 + cd)))
+                    .map((a, bcd) -> a * 1000 + bcd);
+            case "object_17" -> combine(List.<CombinePart<JsonNode, ?>>of(
+                    field("f1", int_()), field("f2", int_()), field("f3", int_()), field("f4", int_()),
+                    field("f5", int_()), field("f6", int_()), field("f7", int_()), field("f8", int_()),
+                    field("f9", int_()), field("f10", int_()), field("f11", int_()), field("f12", int_()),
+                    field("f13", int_()), field("f14", int_()), field("f15", int_()), field("f16", int_()),
+                    field("f17", string())))
+                    .map(List::of);
             case "escaped_keys" -> combine(field("a/b", int_()), field("~c", int_()))
                     .map((a, b) -> List.of(a, b));
             case "optional" -> combine(field("id", int_()), optionalField("nick", string()))
@@ -210,6 +228,11 @@ public class Generate {
                     .after(java.time.OffsetDateTime.parse("2024-01-01T00:00+09:00")).map(Object::toString);
             default -> throw new IllegalArgumentException("no decoder " + name);
         };
+    }
+
+    static Decoder<JsonNode, List<Object>> contactDecoder() {
+        return combine(field("email", string()), field("phone", string()))
+                .map((e, p) -> List.of(e, p));
     }
 
     static List<Object> listOf(Object... values) {
