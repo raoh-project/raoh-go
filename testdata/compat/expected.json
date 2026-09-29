@@ -5206,15 +5206,14 @@
   "input" : {
     "a" : 1,
     "b" : 2,
-    "c" : 3,
-    "d" : 4
+    "c" : 3
   },
   "issues" : [ {
     "code" : "invalid_size",
     "message" : "must have exactly 2 elements",
     "message_key" : "invalid_size",
     "meta" : {
-      "actual" : 4,
+      "actual" : 3,
       "expected" : 2
     },
     "path" : ""
