@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -89,6 +90,31 @@ func (o *JSONObject) All() iter.Seq2[string, any] {
 			}
 		}
 	}
+}
+
+// MarshalJSON writes o as a JSON object with its members in order, so that
+// encoding/json writes a *JSONObject, alone or inside a []any or a
+// map[string]any, back as JSON. Names and values are written as encoding/json
+// writes them; a json.Number is written as it was written.
+func (o *JSONObject) MarshalJSON() ([]byte, error) {
+	return jsonv2.Marshal(o, json.DefaultOptionsV1())
+}
+
+// MarshalJSONTo writes o as [JSONObject.MarshalJSON] does, for encoding/json/v2.
+// The members' values are written with enc, so its options reach them.
+func (o *JSONObject) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
+		return err
+	}
+	for _, name := range o.names {
+		if err := jsonv2.MarshalEncode(enc, name); err != nil {
+			return err
+		}
+		if err := jsonv2.MarshalEncode(enc, o.values[name]); err != nil {
+			return err
+		}
+	}
+	return enc.WriteToken(jsontext.EndObject)
 }
 
 // member returns the member name, or the missing member when there is none.
