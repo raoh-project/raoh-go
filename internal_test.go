@@ -131,19 +131,6 @@ func TestURLsFollowTheRFC3986Rule(t *testing.T) {
 	}
 }
 
-func TestCaseMappingFollowsJava(t *testing.T) {
-	for in, want := range map[string]string{"ΟΔΟΣ": "οδος", "İ": "i̇", "ΣΑ": "σα", "Σ": "σ", "ΑΣ ΒΣ": "ας βς"} {
-		if got := toLowerJava(in); got != want {
-			t.Errorf("lower %q: %q, want %q", in, got, want)
-		}
-	}
-	for in, want := range map[string]string{"ß": "SS", "ﬁ": "FI", "straße": "STRASSE"} {
-		if got := toUpperJava(in); got != want {
-			t.Errorf("upper %q: %q, want %q", in, got, want)
-		}
-	}
-}
-
 func TestDecimalsAreWrittenAsBigDecimalWritesThem(t *testing.T) {
 	for in, want := range map[string]string{"1.20": "1.20", "0.0005": "0.0005", "1E+3": "1E+3",
 		"1e3": "1E+3", "-12.5": "-12.5", "0.0000001": "1E-7", "12e-1": "1.2", "0": "0"} {

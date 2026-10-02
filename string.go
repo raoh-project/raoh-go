@@ -2,11 +2,11 @@ package raoh
 
 import (
 	"encoding/hex"
-	"regexp"
+	"fmt"
 	"slices"
 	"strings"
-	"unicode"
-	"unicode/utf8"
+
+	notation199x "github.com/raoh-project/199x-notation/go"
 )
 
 const maxEmailLength = 254
@@ -16,18 +16,25 @@ const maxEmailLength = 254
 // Null or a missing member is required; any other type is type_mismatch.
 // Constraints and transformations run in the order they are written, and the
 // first constraint to fail is the one reported. An empty string is accepted
-// unless NonBlank says otherwise. What counts as white space, a character and
-// the order of strings are as in Raoh for Java; see each method.
+// unless NonBlank says otherwise. What counts as white space, a character, the
+// order of strings, case, normalization and a pattern are the rules of
+// 199x-notation, which Raoh for Java follows too, so none of them changes with
+// the Go release.
 type StringDecoder struct {
 	Decoder[any, string]
 	s scalar[string]
 }
 
 // String returns a decoder of a string.
+//
+// A string is a sequence of Unicode scalar values. A Go string holding bytes
+// that are not UTF-8 is none, and is type_mismatch as any other value that is
+// not a string. Text read by DecodeJSON is never such a string: encoding/json
+// puts U+FFFD in place of those bytes.
 func String() StringDecoder {
 	return newString(scalar[string]{read: func(in any) (string, *Issue) {
 		s, ok := plain(in).(string)
-		if !ok {
+		if !ok || notation199x.InvalidUTF8At(s) >= 0 {
 			i := unexpected("string", in)
 			return "", &i
 		}
@@ -52,24 +59,26 @@ func (d StringDecoder) Message(message string) StringDecoder {
 	return newString(d.s.message(message))
 }
 
-// Trim removes white space from both ends: the characters with Unicode's
-// White_Space property, which include U+3000 and U+00A0 and not control
-// characters such as NUL. It is the set NonBlank uses, and the one Raoh for
-// Java uses from 0.8 on.
+// Trim removes white space from both ends: the characters with the Unicode
+// 18.0.0 White_Space property, which include U+3000 and U+00A0 and not control
+// characters such as NUL. It is the set NonBlank uses.
 func (d StringDecoder) Trim() StringDecoder {
-	return newString(d.s.transform(func(v string) string { return strings.TrimFunc(v, unicode.IsSpace) }))
+	return newString(d.s.transform(func(v string) string {
+		return strings.TrimFunc(v, notation199x.IsWhiteSpace)
+	}))
 }
 
-// ToLower converts to lower case with Unicode's full case mapping, as Raoh for
-// Java does with Locale.ROOT: İ becomes i̇, and a final Σ becomes ς.
+// ToLower converts to lower case with the Unicode 18.0.0 default case
+// conversion, untailored: İ becomes i̇, and a capital sigma becomes ς only at the
+// end of a cased run, so ΟΣ becomes ος and Α1Σ becomes α1σ.
 func (d StringDecoder) ToLower() StringDecoder {
-	return newString(d.s.transform(toLowerJava))
+	return newString(d.s.transform(notation199x.Lowercase))
 }
 
-// ToUpper converts to upper case with Unicode's full case mapping, as Raoh for
-// Java does with Locale.ROOT: ß becomes SS.
+// ToUpper converts to upper case with the Unicode 18.0.0 default case
+// conversion, untailored: ß becomes SS.
 func (d StringDecoder) ToUpper() StringDecoder {
-	return newString(d.s.transform(toUpperJava))
+	return newString(d.s.transform(notation199x.Uppercase))
 }
 
 // NonBlank requires a character that is not white space, in the sense Trim
@@ -77,38 +86,38 @@ func (d StringDecoder) ToUpper() StringDecoder {
 func (d StringDecoder) NonBlank() StringDecoder {
 	return d.require(
 		func(v string) bool {
-			return strings.IndexFunc(v, func(r rune) bool { return !unicode.IsSpace(r) }) >= 0
+			return strings.IndexFunc(v, func(r rune) bool { return !notation199x.IsWhiteSpace(r) }) >= 0
 		},
 		func(string) Issue { return NewIssue(CodeBlank) })
 }
 
-// MinLength requires at least n characters, counted as code points:
+// MinLength requires at least n characters, counted as scalar values:
 // too_short with min and actual.
 func (d StringDecoder) MinLength(n int) StringDecoder {
 	return d.require(
-		func(v string) bool { return utf8.RuneCountInString(v) >= n },
+		func(v string) bool { return notation199x.ScalarCount(v) >= n },
 		func(v string) Issue {
-			return NewIssue(CodeTooShort).WithMeta("min", n).WithMeta("actual", utf8.RuneCountInString(v))
+			return NewIssue(CodeTooShort).WithMeta("min", n).WithMeta("actual", notation199x.ScalarCount(v))
 		})
 }
 
-// MaxLength allows at most n characters, counted as code points: too_long
+// MaxLength allows at most n characters, counted as scalar values: too_long
 // with max and actual.
 func (d StringDecoder) MaxLength(n int) StringDecoder {
 	return d.require(
-		func(v string) bool { return utf8.RuneCountInString(v) <= n },
+		func(v string) bool { return notation199x.ScalarCount(v) <= n },
 		func(v string) Issue {
-			return NewIssue(CodeTooLong).WithMeta("max", n).WithMeta("actual", utf8.RuneCountInString(v))
+			return NewIssue(CodeTooLong).WithMeta("max", n).WithMeta("actual", notation199x.ScalarCount(v))
 		})
 }
 
-// Length requires exactly n characters, counted as code points:
+// Length requires exactly n characters, counted as scalar values:
 // invalid_length with expected and actual.
 func (d StringDecoder) Length(n int) StringDecoder {
 	return d.require(
-		func(v string) bool { return utf8.RuneCountInString(v) == n },
+		func(v string) bool { return notation199x.ScalarCount(v) == n },
 		func(v string) Issue {
-			return NewIssue(CodeInvalidLength).WithMeta("expected", n).WithMeta("actual", utf8.RuneCountInString(v))
+			return NewIssue(CodeInvalidLength).WithMeta("expected", n).WithMeta("actual", notation199x.ScalarCount(v))
 		})
 }
 
@@ -212,15 +221,65 @@ func (d StringDecoder) CUID() StringDecoder {
 	}, KeyInvalidFormatCUID)
 }
 
-// Pattern requires the whole string to match the regular expression pattern:
-// invalid_format with pattern. The pattern is in the syntax of package regexp,
-// in which \d, \w and \s match ASCII only, as in Java. It panics when pattern is
-// not a valid regular expression.
+// Pattern requires the whole string to be one of the strings pattern accepts:
+// invalid_format with pattern. pattern is in the pattern language of the Raoh
+// Specification, the one Raoh for Java and Souther read, and not in the syntax
+// of package regexp: a back reference, a lookaround, a property class such as
+// \p{L} and a flag such as (?i) are not in it. \d, \w and \s are ASCII sets.
+//
+// A pattern is admitted within three limits, counted from its text: a
+// repetition count of at most 134,217,727, groups nested at most 200 deep, and
+// at most 250,000 states once its repetitions are written out. So a{249998} is
+// admitted and a{249999} is not.
+//
+// It panics when pattern is not a pattern of the language, or is past a limit,
+// with a message that tells the two apart. A value is matched in one pass over
+// it, so the time a match takes is linear in the length of the value whatever
+// the pattern.
 func (d StringDecoder) Pattern(pattern string) StringDecoder {
-	anchored := regexp.MustCompile(`^(?:` + pattern + `)$`)
-	return d.require(anchored.MatchString, func(string) Issue {
+	read := compilePattern(pattern)
+	return d.require(read.Matches, func(string) Issue {
 		return NewIssue(CodeInvalidFormat).WithMeta("pattern", pattern)
 	})
+}
+
+// compilePattern is what pattern means, or a panic that says why it is not a
+// pattern or which limit it is past.
+func compilePattern(pattern string) *notation199x.Pattern {
+	switch read := notation199x.ReadPattern(pattern).(type) {
+	case *notation199x.Pattern:
+		return read
+	case notation199x.PatternRefused:
+		where := ""
+		if read.Construct != "" {
+			where = fmt.Sprintf(": %q", read.Construct)
+		}
+		panic(fmt.Sprintf("raoh: not a pattern of the Raoh pattern language: %q (%v at byte %d%s)",
+			pattern, read.Why, read.From, where))
+	case notation199x.PatternBeyond:
+		where := ""
+		if read.From != 0 || read.Construct != pattern {
+			where = fmt.Sprintf(" at byte %d: %q", read.From, read.Construct)
+		}
+		panic(fmt.Sprintf("raoh: pattern %q is past the limit of %d %s%s",
+			pattern, read.Limit.Most(), limitName(read.Limit), where))
+	default:
+		panic(fmt.Sprintf("raoh: ReadPattern answered %T", read))
+	}
+}
+
+// limitName is what a limit counts, as a message says it.
+func limitName(limit notation199x.PatternLimit) string {
+	switch limit {
+	case notation199x.RepetitionCount:
+		return "on a repetition count"
+	case notation199x.NestingDepth:
+		return "on groups nested one inside another"
+	case notation199x.MachineStates:
+		return "states once its repetitions are written out"
+	default:
+		return limit.String()
+	}
 }
 
 // UUID returns a decoder that reads the string as a UUID in the RFC 9562 form:
