@@ -1,0 +1,12 @@
+{
+  "implementation": "raoh-go",
+  "specification": "0.9.0-dev",
+  "profiles": [
+    "core",
+    "encode",
+    "messages-en",
+    "messages-ja"
+  ],
+  "unsupported_features": {},
+  "divergences": {}
+}
