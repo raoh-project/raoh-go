@@ -17,6 +17,9 @@ type part[T any] func(in any, m *JSONObject, at Path) outcome[T]
 // PresenceOf an absent Presence.
 type FieldSource[T any] interface {
 	decodeAt(in any, at Path) outcome[T]
+	// notAnObject is what the field gives where the input it is a member of,
+	// in, is not an object, at the path of the member.
+	notAnObject(in any, at Path) outcome[T]
 	// valid reports whether the source has a decoder to read with, which the
 	// zero value of a source has not.
 	valid() bool
@@ -28,11 +31,23 @@ func (d Decoder[I, T]) decodeAt(in I, at Path) outcome[T] { return d.run(in, at)
 
 func (d Decoder[I, T]) valid() bool { return d.run != nil }
 
+// notAnObject is type_mismatch with expected object, for a required field.
+func (d Decoder[I, T]) notAnObject(in any, at Path) outcome[T] {
+	return invalid[T](NewIssue(CodeTypeMismatch).WithMeta("expected", "object").WithMeta("actual", kind(in)).At(at))
+}
+
+// notAnObject is nil: an optional field reads an input that is not an object
+// as not having the member.
+func (s OptionalSource[T]) notAnObject(any, Path) outcome[*T] { return succeed[*T](nil) }
+
 func (s OptionalSource[T]) valid() bool { return s.d.run != nil }
 
 func toPart[T any](name string, src FieldSource[T]) part[T] {
 	requireArgument(src != nil && src.valid(), "Field", "src")
-	return func(_ any, m *JSONObject, at Path) outcome[T] {
+	return func(in any, m *JSONObject, at Path) outcome[T] {
+		if m == nil {
+			return src.notAnObject(in, at.Key(name))
+		}
 		return src.decodeAt(m.member(name), at.Key(name))
 	}
 }
@@ -96,22 +111,14 @@ func Fields() fields0 { return fields0{} }
 // of the components, in the order they were added; Strict also reports the
 // members the fields do not name.
 //
-// The input must be an object: null or a missing member is required, and any
-// other type is type_mismatch with expected object, reported once at the
-// object's own path. Once it is one, every field is read and the issues of all
-// of them are reported.
+// Each field checks for itself that the input is an object, and every field is
+// read and the issues of all of them reported, in the order they were added.
+// Where the input is not an object, null and a missing member included, a
+// field read with a decoder is type_mismatch with expected object at the
+// member's path, a field read with [Optional] gives nil and one read with
+// [PresenceOf] an absent Presence, and a component added with Flat is given the
+// input as it is. Strict reports nothing of an input that has no members.
 func Object[F interface{ object() O }, O any](f F) O { return f.object() }
-
-// openObject returns the input's members, or the issue why it is not an
-// object.
-func openObject(in any, at Path) (*JSONObject, *Issue) {
-	o, ok := AsObject(in)
-	if !ok {
-		i := unexpected("object", in).At(at)
-		return nil, &i
-	}
-	return o, nil
-}
 
 // collector gathers the outcomes of the fields of one object.
 type collector struct {

@@ -152,7 +152,7 @@ func Discriminate[T any](tagField string, variants ...variant[T]) Decoder[any, T
 		}
 		byTag[v.tag] = v.d
 	}
-	return discriminate(tagField, String().Decoder, byTag)
+	return discriminate(tagField, memberTag(tagField, String().Decoder), byTag)
 }
 
 // DiscriminateWith is [Discriminate] with the variants given as a map from tag,
@@ -168,16 +168,36 @@ func DiscriminateWith[T any](tagField string, tagDecoder DecoderOf[string], vari
 	for tag, d := range variants {
 		byTag[tag] = decoderOf(d, "DiscriminateWith", "each variant")
 	}
-	return discriminate(tagField, decoderOf(tagDecoder, "DiscriminateWith", "tagDecoder"), byTag)
+	return discriminate(tagField, memberTag(tagField, decoderOf(tagDecoder, "DiscriminateWith", "tagDecoder")), byTag)
 }
 
-func discriminate[T any](tagField string, tagDecoder Decoder[any, string], byTag map[string]Decoder[any, T]) Decoder[any, T] {
+// DiscriminateBy is [DiscriminateWith] with the tag read from the whole input:
+// tagDecoder is given the input, not the member tagField, and what it reports
+// is reported as it is, such as an object decoder that reads the tag out of a
+// member of its own. A tag no variant has is not_allowed at the member
+// tagField, as for Discriminate. The map is copied, so changing it afterwards
+// does not change the decoder.
+func DiscriminateBy[T any](tagField string, tagDecoder DecoderOf[string], variants map[string]DecoderOf[T]) Decoder[any, T] {
+	byTag := make(map[string]Decoder[any, T], len(variants))
+	for tag, d := range variants {
+		byTag[tag] = decoderOf(d, "DiscriminateBy", "each variant")
+	}
+	return discriminate(tagField, decoderOf(tagDecoder, "DiscriminateBy", "tagDecoder"), byTag)
+}
+
+// memberTag reads the tag as the member tagField, with tagDecoder.
+func memberTag(tagField string, tagDecoder Decoder[any, string]) Decoder[any, string] {
+	return Object(Fields().Field(tagField, tagDecoder)).Map(func(t string) string { return t })
+}
+
+// discriminate reads the tag with tag, which is given the whole input, and
+// decodes the input with the variant it names.
+func discriminate[T any](tagField string, tag Decoder[any, string], byTag map[string]Decoder[any, T]) Decoder[any, T] {
 	allowed := make([]string, 0, len(byTag))
 	for tag := range byTag {
 		allowed = append(allowed, tag)
 	}
 	slices.Sort(allowed)
-	tag := Object(Fields().Field(tagField, tagDecoder)).Map(func(t string) string { return t })
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		t := tag.run(in, at)
 		if t.failed() {

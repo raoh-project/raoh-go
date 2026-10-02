@@ -113,7 +113,7 @@ func writeArity(b *bytes.Buffer, n int, flat bool) {
 	args := join(n, func(i int) string { return fmt.Sprintf("v%d %s", i, letters[i]) })
 	vals := join(n, func(i int) string { return fmt.Sprintf("v%d", i) })
 	types := join(n, func(i int) string { return letters[i] })
-	strict := "\t\tif o.strict {\n\t\t\tc.unknown(m, at, o.f.names)\n\t\t}\n"
+	strict := "\t\tif o.strict && m != nil {\n\t\t\tc.unknown(m, at, o.f.names)\n\t\t}\n"
 	if flat {
 		strict = ""
 	}
@@ -127,7 +127,7 @@ func writeArity(b *bytes.Buffer, n int, flat bool) {
 	p("func (o %s%s) AndThen[R any](fn func(%s) (R, error)) Decoder[any, R] {\n", object, use, types)
 	p("\trequireArgument(fn != nil, \"%s.AndThen\", \"fn\")\n", "Object")
 	p("\treturn Decoder[any, R]{func(in any, at Path) outcome[R] {\n")
-	p("\t\tm, issue := openObject(in, at)\n\t\tif issue != nil {\n\t\t\treturn invalid[R](*issue)\n\t\t}\n")
+	p("\t\tm, _ := AsObject(in)\n")
 	p("\t\tvar c collector\n")
 	for i := range n {
 		p("\t\tv%d := read(&c, o.f.p%d, in, m, at)\n", i, i)
@@ -144,7 +144,7 @@ func writeArity(b *bytes.Buffer, n int, flat bool) {
 	p("func (o %s%s) AndThenWithPath[R any](fn func(%sPath) (R, error)) Decoder[any, R] {\n", object, use, ptypes)
 	p("\trequireArgument(fn != nil, \"%s.AndThenWithPath\", \"fn\")\n", "Object")
 	p("\treturn Decoder[any, R]{func(in any, at Path) outcome[R] {\n")
-	p("\t\tm, issue := openObject(in, at)\n\t\tif issue != nil {\n\t\t\treturn invalid[R](*issue)\n\t\t}\n")
+	p("\t\tm, _ := AsObject(in)\n")
 	p("\t\tvar c collector\n")
 	for i := range n {
 		p("\t\tv%d := read(&c, o.f.p%d, in, m, at)\n", i, i)

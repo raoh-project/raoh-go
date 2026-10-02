@@ -46,7 +46,9 @@ func TestMissingAndNullAreRequiredAndOtherTypesMismatch(t *testing.T) {
 	expect(t, name, `{}`, "/name required")
 	expect(t, name, `{"name": null}`, "/name required")
 	expect(t, name, `{"name": 1}`, "/name type_mismatch")
-	expect(t, name, `[]`, " type_mismatch")
+	// Each field checks for itself that the input is an object.
+	expect(t, name, `[]`, "/name type_mismatch")
+	expect(t, name, `null`, "/name type_mismatch")
 }
 
 func TestTheFirstFailingConstraintIsReported(t *testing.T) {
@@ -292,7 +294,8 @@ func TestTheTagPicksTheVariant(t *testing.T) {
 		t.Error(issues)
 	}
 	expect(t, shapeDecoder(), `{}`, "/kind required")
-	expect(t, shapeDecoder(), `"rect"`, " type_mismatch")
+	// The tag field reports an input that is not an object, at its path.
+	expect(t, shapeDecoder(), `"rect"`, "/kind type_mismatch")
 }
 
 func panics(f func()) (ok bool) {
@@ -556,10 +559,13 @@ func TestStringConversionMessageIsForTheConversionOnly(t *testing.T) {
 }
 
 func TestURIAcceptsAnySchemeAndKeepsSchemeRequired(t *testing.T) {
-	for _, ok := range []string{"HTTP://EXAMPLE.COM", "http://host#", "mailto:ken@example.com", "urn:isbn:0451450523"} {
+	// The whole RFC 3986 URI production: an empty path with no authority, an
+	// empty authority and an IPvFuture host are URIs.
+	for _, ok := range []string{"HTTP://EXAMPLE.COM", "http://host#", "mailto:ken@example.com", "urn:isbn:0451450523",
+		"a:", "a:#f", "a://", "http://[v1.abc]/", "http://[::1]:2147483648/"} {
 		expect(t, raoh.String().URI(), `"`+ok+`"`)
 	}
-	for _, bad := range []string{"foo/bar", "#top", "a:", "http://[v1.abc]/"} {
+	for _, bad := range []string{"foo/bar", "#top", ":a", "http://[v1]/"} {
 		expect(t, raoh.String().URI(), `"`+bad+`"`, " invalid_format")
 	}
 }

@@ -309,7 +309,7 @@ func (d StringDecoder) UUID() Conversion[UUID] {
 // host: invalid_format when it is not one.
 //
 // The text is an RFC 3986 URI, with the http or https scheme in any case, an
-// authority and a non-empty host, as Raoh for Java accepts it. The host is the
+// authority and a non-empty host, as the Raoh Specification says. The host is the
 // RFC 3986 host, not a DNS name, so a reg-name such as my_host is accepted, and
 // raw non-ASCII characters are not. The value is a [URI], which keeps the text
 // as written.
@@ -325,11 +325,12 @@ func (d StringDecoder) URL() Conversion[URI] {
 //
 // It is the rule URL applies without the check for the http or https scheme
 // and a host. A scheme is still required, so a relative reference such as
-// foo/bar or #top is refused, and so are raw non-ASCII characters. A URI that
-// java.net.URI cannot hold is refused as Raoh for Java refuses it: a: and
-// a:#f, a:// with nothing after it, an IPvFuture host, and an IPv6 host with a
-// port above 2147483647. An IPv6 host is checked as IPv6 checks it, without a
-// zone ID.
+// foo/bar or #top is refused, and so are raw non-ASCII characters. It is the
+// whole RFC 3986 URI production, as the Raoh Specification says: a: and a:#f,
+// a:// with nothing after it, an IPvFuture host such as [v1.abc], and a port of
+// any length are URIs. Raoh for Java refuses these, since java.net.URI, which
+// it gives, cannot hold them. An IPv6 host is checked as IPv6 checks it,
+// without a zone ID.
 //
 // Whether the text is a URI does not depend on package net/url. The value is a
 // [URI] that keeps the text as written; [URI.URL] gives a *url.URL when net/url
