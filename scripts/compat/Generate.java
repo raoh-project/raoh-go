@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import net.unit8.raoh.Err;
 import net.unit8.raoh.Issue;
 import net.unit8.raoh.MessageResolver;
@@ -57,7 +56,7 @@ public class Generate {
             case "string_ip" -> string().ip();
             case "string_ulid" -> string().ulid();
             case "string_cuid" -> string().cuid();
-            case "string_pattern" -> string().pattern(Pattern.compile("[a-z]+\\d"));
+            case "string_pattern" -> string().pattern("[a-z]+\\d");
             case "string_trim" -> string().trim();
             case "string_lower" -> string().toLowerCase();
             case "string_upper" -> string().toUpperCase();
@@ -180,7 +179,7 @@ public class Generate {
                             field("name", string().nonBlank()),
                             field("qty", int_().positive()))
                             .map((n, q) -> List.of(n, q)))),
-                    field("count", Decoders.withDefault(int_(), 0)))
+                    field("count", withDefault(int_(), 0)))
                     .map((items, count) -> List.of(items, count));
             case "dict" -> map(int_());
             case "dict_non_empty" -> map(int_()).nonempty();
@@ -222,10 +221,10 @@ public class Generate {
                             .map((w, h) -> w * h)));
             case "one_of" -> Decoders.<JsonNode, String>oneOf(
                     int_().map(String::valueOf), string().minLength(3));
-            case "with_default" -> combine(field("id", Decoders.withDefault(int_(), 0)),
-                    field("page", Decoders.withDefault(int_(), 1)))
+            case "with_default" -> combine(field("id", withDefault(int_(), 0)),
+                    field("page", withDefault(int_(), 1)))
                     .map((id, page) -> List.of(id, page));
-            case "recover" -> combine(field("id", Decoders.withDefault(int_(), 0)),
+            case "recover" -> combine(field("id", withDefault(int_(), 0)),
                     field("page", Decoders.recover(int_(), 1)))
                     .map((id, page) -> List.of(id, page));
             case "period" -> combine(field("start", int_()), field("end", int_()))
@@ -248,8 +247,8 @@ public class Generate {
                     field("page", Decoders.recover(int_(),
                             (java.util.function.Function<net.unit8.raoh.Issues, Integer>) is -> is.asList().size() + 10)))
                     .map((id, page) -> List.of(id, page));
-            case "default_supplier" -> combine(field("id", Decoders.withDefault(int_(), (java.util.function.Supplier<Integer>) () -> 7)),
-                    field("page", Decoders.withDefault(int_(), (java.util.function.Supplier<Integer>) () -> 8)))
+            case "default_supplier" -> combine(field("id", withDefault(int_(), (java.util.function.Supplier<Integer>) () -> 7)),
+                    field("page", withDefault(int_(), (java.util.function.Supplier<Integer>) () -> 8)))
                     .map((id, page) -> List.of(id, page));
 
             case "instant" -> string().iso8601().map(Object::toString);
@@ -307,17 +306,16 @@ public class Generate {
     }
 
     public static void main(String[] args) throws Exception {
-        // toLowerCase and toUpperCase follow the default locale; fix it so the output does not
-        // depend on the machine that runs this.
-        java.util.Locale.setDefault(java.util.Locale.ROOT);
-        var cases = MAPPER.readTree(Files.readString(Path.of(args[0])));
+        // Read with each number as written, as DecodeJSON reads it: a mapper's tree would have
+        // made a double of every number with a fraction or an exponent.
+        var cases = readTree(Files.readString(Path.of(args[0])));
         var results = new ArrayList<Map<String, Object>>();
         for (var c : cases) {
             var name = c.get("decoder").asString();
             // A number whose text matters, such as -0, is given as the JSON text to read.
             var text = c.get("input_json");
             var bytes = c.get("input_bytes");
-            var input = text != null ? MAPPER.readTree(text.asString()) : c.get("input");
+            var input = text != null ? readTree(text.asString()) : c.get("input");
             var result = new LinkedHashMap<String, Object>();
             result.put("decoder", name);
             if (bytes != null) {

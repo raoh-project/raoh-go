@@ -162,8 +162,13 @@ func (d StringDecoder) OneOf(allowed ...string) StringDecoder {
 		})
 }
 
-// Email requires the form of an email address, as Raoh for Java checks it:
-// invalid_format.
+// Email requires a mailbox of an ASCII profile of RFC 5321's Mailbox,
+// Dot-string "@" Domain: invalid_format. The local part is RFC 5322 atext atoms
+// joined by single dots, at most 64 octets; the domain is labels joined by
+// single dots, each starting and ending with a letter or digit and holding
+// letters, digits and hyphens, at most 63 octets; at most 254 octets in all. A
+// single-label or all-digit domain (a@localhost, a@123) is accepted. A quoted
+// local part, an address literal and non-ASCII characters are not.
 func (d StringDecoder) Email() StringDecoder {
 	return d.format(isEmail, KeyInvalidFormatEmail)
 }
@@ -188,21 +193,32 @@ func (d StringDecoder) IP() StringDecoder {
 	return d.format(func(v string) bool { return isIPv4(v) || isIPv6(v) }, KeyInvalidFormatIP)
 }
 
-// ULID requires a ULID, 26 characters of Crockford's base 32 in upper case:
-// invalid_format.
+// ULID requires a ULID, 26 characters of Crockford's base 32 in either case
+// whose value fits in 128 bits, so that the first is 0 to 7 and
+// 7ZZZZZZZZZZZZZZZZZZZZZZZZZ is the largest: invalid_format. The string is
+// given unchanged.
 func (d StringDecoder) ULID() StringDecoder {
 	return d.format(func(v string) bool {
-		if len(v) != 26 {
+		if len(v) != 26 || v[0] < '0' || v[0] > '7' {
 			return false
 		}
 		for i := range len(v) {
-			b := v[i]
-			if !isDigit(b) && !(b >= 'A' && b <= 'Z' && b != 'I' && b != 'L' && b != 'O' && b != 'U') {
+			if !isCrockford(v[i]) {
 				return false
 			}
 		}
 		return true
 	}, KeyInvalidFormatULID)
+}
+
+// isCrockford is whether b is a digit of Crockford's base 32, in either case:
+// the letters but I, L, O and U.
+func isCrockford(b byte) bool {
+	if isDigit(b) {
+		return true
+	}
+	b |= 0x20 // lower case
+	return b >= 'a' && b <= 'z' && b != 'i' && b != 'l' && b != 'o' && b != 'u'
 }
 
 // CUID requires a CUID, c followed by 24 lower-case letters or digits:
@@ -385,26 +401,71 @@ func parseUUID(v string) (UUID, bool) {
 	return u, true
 }
 
-// isEmail is ^[a-zA-Z0-9._%+\-]{1,64}@[a-zA-Z0-9.\-]{1,255}\.[a-zA-Z]{2,}$ with
-// at most 254 UTF-16 units, as Raoh for Java checks it.
+const (
+	// maxEmailLocalPart is RFC 5321 section 4.5.3.1.1's limit on a local part.
+	maxEmailLocalPart = 64
+	// maxEmailLabel is RFC 1035 section 2.3.4's limit on a label.
+	maxEmailLabel = 63
+)
+
+// isEmail is whether s is a mailbox of the profile Email describes. Every
+// character the profile accepts is ASCII, so once one outside it is refused a
+// count of bytes is a count of octets. It runs in time linear in s and builds
+// nothing.
 func isEmail(s string) bool {
-	if utf16Len(s) > maxEmailLength {
+	if len(s) > maxEmailLength {
 		return false
 	}
-	local, domain, ok := strings.Cut(s, "@")
-	if !ok {
+	at := strings.IndexByte(s, '@')
+	if at < 0 || at > maxEmailLocalPart {
 		return false
 	}
-	dot := strings.LastIndexByte(domain, '.')
-	if dot < 0 {
-		return false
+	return isDotString(s[:at]) && isMailDomain(s[at+1:])
+}
+
+// isDotString is RFC 5321's Dot-string: Atom *("." Atom), an atom being one or
+// more RFC 5322 atext.
+func isDotString(s string) bool {
+	atom := 0
+	for i := range len(s) {
+		switch c := s[i]; {
+		case c == '.':
+			if atom == 0 {
+				return false
+			}
+			atom = 0
+		case isAlpha(c) || isDigit(c) || strings.IndexByte("!#$%&'*+-/=?^_`{|}~", c) >= 0:
+			atom++
+		default:
+			return false
+		}
 	}
-	host, tld := domain[:dot], domain[dot+1:]
-	return len(local) >= 1 && len(local) <= 64 && allBytes(local, func(b byte) bool {
-		return isAlpha(b) || isDigit(b) || strings.IndexByte("._%+-", b) >= 0
-	}) && len(host) >= 1 && len(host) <= 255 && allBytes(host, func(b byte) bool {
-		return isAlpha(b) || isDigit(b) || b == '.' || b == '-'
-	}) && len(tld) >= 2 && allBytes(tld, isAlpha)
+	return atom > 0
+}
+
+// isMailDomain is RFC 5321's Domain: sub-domain *("." sub-domain), a
+// sub-domain being a letter or digit, optionally followed by letters, digits
+// and hyphens that end in a letter or digit.
+func isMailDomain(s string) bool {
+	label, previous := 0, byte('.')
+	for i := range len(s) {
+		switch c := s[i]; {
+		case c == '.':
+			if label == 0 || previous == '-' {
+				return false
+			}
+			label = 0
+		case isAlpha(c) || isDigit(c) || c == '-' && label > 0:
+			label++
+			if label > maxEmailLabel {
+				return false
+			}
+		default:
+			return false
+		}
+		previous = s[i]
+	}
+	return label > 0 && previous != '-'
 }
 
 func allBytes(s string, ok func(byte) bool) bool {

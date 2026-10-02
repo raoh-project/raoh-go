@@ -164,16 +164,23 @@ func EnumOf[T comparable](names map[string]T) Encoder[T, string] {
 	}
 }
 
-// Entry writes the members one part of a value gives to out. A Property writes
-// exactly one; OptionalProperty and PresenceProperty may write none.
-type Entry[T any] func(v T, out map[string]any)
+// Entry is one member of an object: the key it owns, and what it writes there
+// for a value. An entry writes its key at most once, as the encoded value, as
+// null, or not at all, and writes no other key, so an Object knows from its
+// entries which keys each one owns. Only the functions below make one.
+type Entry[T any] struct {
+	key string
+	// emit is what the entry writes for v, and false where it leaves the key
+	// out.
+	emit func(v T) (any, bool)
+}
 
 // Property writes the member key: what get reads from the value, encoded
 // with enc. It is the counterpart of a field read by a decoder.
 func Property[T, V, O any](key string, get func(T) V, enc Encoder[V, O]) Entry[T] {
 	requireArgument(get != nil, "Property", "get")
 	requireArgument(enc != nil, "Property", "enc")
-	return func(v T, out map[string]any) { out[key] = enc(get(v)) }
+	return Entry[T]{key, func(v T) (any, bool) { return enc(get(v)), true }}
 }
 
 // NullableProperty writes the member key as null when get gives nil, and
@@ -182,13 +189,12 @@ func Property[T, V, O any](key string, get func(T) V, enc Encoder[V, O]) Entry[T
 func NullableProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]) Entry[T] {
 	requireArgument(get != nil, "NullableProperty", "get")
 	requireArgument(enc != nil, "NullableProperty", "enc")
-	return func(v T, out map[string]any) {
+	return Entry[T]{key, func(v T) (any, bool) {
 		if p := get(v); p != nil {
-			out[key] = enc(*p)
-		} else {
-			out[key] = nil
+			return enc(*p), true
 		}
-	}
+		return nil, true
+	}}
 }
 
 // OptionalProperty leaves the member key out when get gives nil, and
@@ -197,11 +203,12 @@ func NullableProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]
 func OptionalProperty[T, V, O any](key string, get func(T) *V, enc Encoder[V, O]) Entry[T] {
 	requireArgument(get != nil, "OptionalProperty", "get")
 	requireArgument(enc != nil, "OptionalProperty", "enc")
-	return func(v T, out map[string]any) {
+	return Entry[T]{key, func(v T) (any, bool) {
 		if p := get(v); p != nil {
-			out[key] = enc(*p)
+			return enc(*p), true
 		}
-	}
+		return nil, false
+	}}
 }
 
 // PropertyWithDefault writes the member key as what get reads from the value,
@@ -221,13 +228,12 @@ func PropertyWithDefaultFunc[T, V, O any](key string, get func(T) *V, enc Encode
 	requireArgument(get != nil, "PropertyWithDefaultFunc", "get")
 	requireArgument(enc != nil, "PropertyWithDefaultFunc", "enc")
 	requireArgument(defaultValue != nil, "PropertyWithDefaultFunc", "defaultValue")
-	return func(v T, out map[string]any) {
+	return Entry[T]{key, func(v T) (any, bool) {
 		if p := get(v); p != nil {
-			out[key] = enc(*p)
-		} else {
-			out[key] = enc(defaultValue())
+			return enc(*p), true
 		}
-	}
+		return enc(defaultValue()), true
+	}}
 }
 
 // PresenceProperty leaves the member key out for an absent Presence, writes
@@ -237,26 +243,37 @@ func PropertyWithDefaultFunc[T, V, O any](key string, get func(T) *V, enc Encode
 func PresenceProperty[T, V, O any](key string, get func(T) raoh.Presence[V], enc Encoder[V, O]) Entry[T] {
 	requireArgument(get != nil, "PresenceProperty", "get")
 	requireArgument(enc != nil, "PresenceProperty", "enc")
-	return func(v T, out map[string]any) {
+	return Entry[T]{key, func(v T) (any, bool) {
 		p := get(v)
 		if value, ok := p.Value(); ok {
-			out[key] = enc(value)
-		} else if p.IsNull() {
-			out[key] = nil
+			return enc(value), true
 		}
-	}
+		return nil, p.IsNull()
+	}}
 }
 
-// Object returns the encoder of a value as an object, with the members each
-// entry writes. It is the counterpart of raoh.Object.
+// Object returns the encoder of a value as an object, with the member each
+// entry writes. It is the counterpart of raoh.Object. It panics when an entry
+// is the zero Entry, or two entries own the same key, whatever kind each is
+// and whether or not either would leave the key out for a given value.
 func Object[T any](entries ...Entry[T]) Encoder[T, map[string]any] {
-	for _, e := range entries {
-		requireArgument(e != nil, "Object", "each entry")
+	entries = slices.Clone(entries)
+	owner := make(map[string]int, len(entries))
+	for n, e := range entries {
+		if e.emit == nil {
+			panic("raoh/encode: Object needs each entry to be one a property function made, not the zero Entry")
+		}
+		if first, ok := owner[e.key]; ok {
+			panic(fmt.Sprintf("raoh/encode: object key %q is owned by entries %d and %d", e.key, first, n))
+		}
+		owner[e.key] = n
 	}
 	return func(v T) map[string]any {
-		out := map[string]any{}
+		out := make(map[string]any, len(entries))
 		for _, e := range entries {
-			e(v, out)
+			if value, ok := e.emit(v); ok {
+				out[e.key] = value
+			}
 		}
 		return out
 	}

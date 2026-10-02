@@ -11,18 +11,8 @@ import (
 // What the operations Raoh for Java takes from the JDK mean, written once.
 // Where a built-in decoder does what Raoh for Java does with a JDK method, it
 // calls the function here rather than the Go function that looks like it:
-// len counts UTF-8 bytes where String.length() counts UTF-16 units,
 // strconv writes 1e+07 where Double.toString writes 1.0E7, and no Go package
 // reads a .properties file as Properties.load does.
-
-// utf16Len is String.length(): the number of UTF-16 code units.
-func utf16Len(s string) int {
-	n := 0
-	for _, r := range s {
-		n += utf16.RuneLen(r)
-	}
-	return n
-}
 
 // doubleToString is Double.toString(double): the shortest decimal that reads
 // back as v, written plainly with at least one fraction digit when

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -294,7 +295,7 @@ func TestANilArgumentIsRefusedWhenTheEncoderIsBuilt(t *testing.T) {
 		{func() { encode.PropertyWithDefault("k", getPtr, none, 0) }, "raoh/encode: PropertyWithDefault needs enc that is not nil"},
 		{func() { encode.PropertyWithDefaultFunc("k", getPtr, e, nil) }, "raoh/encode: PropertyWithDefaultFunc needs defaultValue that is not nil"},
 		{func() { encode.PresenceProperty[int, int, int]("k", nil, e) }, "raoh/encode: PresenceProperty needs get that is not nil"},
-		{func() { encode.Object[int](nil) }, "raoh/encode: Object needs each entry that is not nil"},
+		{func() { encode.Object(encode.Entry[int]{}) }, "raoh/encode: Object needs each entry to be one a property function made, not the zero Entry"},
 		{func() { encode.List(none) }, "raoh/encode: List needs element that is not nil"},
 		{func() { encode.Dict(none) }, "raoh/encode: Dict needs value that is not nil"},
 		{func() { encode.Lazy[int, int](nil) }, "raoh/encode: Lazy needs f that is not nil"},
@@ -323,5 +324,35 @@ func TestTheNilEncoderIsRefusedAsAReceiver(t *testing.T) {
 		if got := panicText(tt.build); got != tt.want {
 			t.Errorf("panic = %q, want %q", got, tt.want)
 		}
+	}
+}
+
+// An entry owns one key, and two entries that own the same key are refused when the object is
+// built, whatever kind each is.
+func TestAnObjectsEntriesOwnDistinctKeys(t *testing.T) {
+	type v struct{ A *int }
+	get := func(x v) *int { return x.A }
+	for _, entries := range [][]encode.Entry[v]{
+		{encode.Property("a", func(x v) int { return 1 }, encode.Int()), encode.OptionalProperty("a", get, encode.Int())},
+		{encode.OptionalProperty("b", get, encode.Int()), encode.Property("a", func(x v) int { return 1 }, encode.Int()),
+			encode.PresenceProperty("a", func(x v) raoh.Presence[int] { return raoh.Absent[int]() }, encode.Int())},
+	} {
+		func() {
+			defer func() {
+				if r := recover(); r == nil || !strings.Contains(r.(string), `object key "a" is owned by entries`) {
+					t.Errorf("%v", r)
+				}
+			}()
+			encode.Object(entries...)
+		}()
+	}
+	one := 1
+	out := encode.Object(encode.OptionalProperty("a", get, encode.Int()),
+		encode.NullableProperty("b", get, encode.Int()))(v{})
+	if _, ok := out["a"]; ok || out["b"] != nil || len(out) != 1 {
+		t.Errorf("an absent optional is left out and a nil nullable is null: %v", out)
+	}
+	if out := encode.Object(encode.OptionalProperty("a", get, encode.Int()))(v{&one}); out["a"] != 1 {
+		t.Errorf("%v", out)
 	}
 }

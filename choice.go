@@ -17,19 +17,35 @@ func asciiLower(s string) string {
 	return string(b)
 }
 
+// EnumDecoder decodes a string naming one of a set of values. See [EnumOf].
+type EnumDecoder[T any] struct {
+	Decoder[any, T]
+	with func(message *string) Decoder[any, T]
+}
+
+// Message gives the invalid_format of a string that names none of the values a
+// custom message, which every language shows as written. What the string
+// decoder reports keeps its own message.
+func (d EnumDecoder[T]) Message(message string) EnumDecoder[T] {
+	if d.with == nil {
+		panic("raoh: EnumDecoder.Message needs a receiver that is not the zero EnumDecoder")
+	}
+	return EnumDecoder[T]{d.with(&message), d.with}
+}
+
 // EnumOf returns a decoder of a string naming one of values, compared
 // ignoring ASCII case only. A string that names none is invalid_format under
 // the message key invalid_format.enum, with the names allowed, in lower case
 // and sorted by code point. It panics when two names are equal under ASCII case
 // folding.
-func EnumOf[T any](values map[string]T) Decoder[any, T] {
+func EnumOf[T any](values map[string]T) EnumDecoder[T] {
 	return EnumOfWith(values, String())
 }
 
 // EnumOfWith is [EnumOf] with the string read by stringDecoder, such as one
 // that trims or lower-cases it first. What stringDecoder reports, at the path
 // it reports, is reported as it is.
-func EnumOfWith[T any](values map[string]T, stringDecoder DecoderOf[string]) Decoder[any, T] {
+func EnumOfWith[T any](values map[string]T, stringDecoder DecoderOf[string]) EnumDecoder[T] {
 	folded := make(map[string]T, len(values))
 	for name, v := range values {
 		key := asciiLower(name)
@@ -44,39 +60,69 @@ func EnumOfWith[T any](values map[string]T, stringDecoder DecoderOf[string]) Dec
 	}
 	slices.Sort(allowed)
 	str := decoderOf(stringDecoder, "EnumOfWith", "stringDecoder")
-	return Decoder[any, T]{func(in any, at Path) outcome[T] {
-		o := str.run(in, at)
-		if o.failed() {
-			return failAs[T](o)
-		}
-		if v, ok := folded[asciiLower(o.value)]; ok {
-			return succeed(v)
-		}
-		return invalid[T](NewIssue(CodeInvalidFormat).WithMessageKey(KeyInvalidFormatEnum).
-			WithMeta("allowed", allowed).At(at))
-	}}
+	with := func(message *string) Decoder[any, T] {
+		return Decoder[any, T]{func(in any, at Path) outcome[T] {
+			o := str.run(in, at)
+			if o.failed() {
+				return failAs[T](o)
+			}
+			if v, ok := folded[asciiLower(o.value)]; ok {
+				return succeed(v)
+			}
+			return invalid[T](withGiven(NewIssue(CodeInvalidFormat).WithMessageKey(KeyInvalidFormatEnum).
+				WithMeta("allowed", allowed).At(at), message))
+		}}
+	}
+	return EnumDecoder[T]{with(nil), with}
+}
+
+// withGiven is i with message as its custom message where one was given.
+func withGiven(i Issue, message *string) Issue {
+	if message != nil {
+		return i.WithMessage(*message)
+	}
+	return i
+}
+
+// LiteralDecoder decodes exactly one string. See [Literal].
+type LiteralDecoder struct {
+	Decoder[any, string]
+	with func(message *string) Decoder[any, string]
+}
+
+// Message gives the invalid_format of any other string a custom message,
+// which every language shows as written. What the string decoder reports
+// keeps its own message.
+func (d LiteralDecoder) Message(message string) LiteralDecoder {
+	if d.with == nil {
+		panic("raoh: LiteralDecoder.Message needs a receiver that is not the zero LiteralDecoder")
+	}
+	return LiteralDecoder{d.with(&message), d.with}
 }
 
 // Literal returns a decoder of exactly the string expected: invalid_format
 // under the message key invalid_format.literal, with expected, for any other
 // string.
-func Literal(expected string) Decoder[any, string] {
+func Literal(expected string) LiteralDecoder {
 	return LiteralWith(expected, String())
 }
 
 // LiteralWith is [Literal] with the string read by stringDecoder, and the
 // value it returns compared with expected. What stringDecoder reports is
 // reported as it is.
-func LiteralWith(expected string, stringDecoder DecoderOf[string]) Decoder[any, string] {
+func LiteralWith(expected string, stringDecoder DecoderOf[string]) LiteralDecoder {
 	str := decoderOf(stringDecoder, "LiteralWith", "stringDecoder")
-	return Decoder[any, string]{func(in any, at Path) outcome[string] {
-		o := str.run(in, at)
-		if o.failed() || o.value == expected {
-			return o
-		}
-		return invalid[string](NewIssue(CodeInvalidFormat).WithMessageKey(KeyInvalidFormatLiteral).
-			WithMeta("expected", expected).At(at))
-	}}
+	with := func(message *string) Decoder[any, string] {
+		return Decoder[any, string]{func(in any, at Path) outcome[string] {
+			o := str.run(in, at)
+			if o.failed() || o.value == expected {
+				return o
+			}
+			return invalid[string](withGiven(NewIssue(CodeInvalidFormat).WithMessageKey(KeyInvalidFormatLiteral).
+				WithMeta("expected", expected).At(at), message))
+		}}
+	}
+	return LiteralDecoder{with(nil), with}
 }
 
 // variant is one of the choices of [Discriminate].

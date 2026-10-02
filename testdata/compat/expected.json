@@ -45,13 +45,7 @@
 }, {
   "decoder" : "string_normalized_email",
   "input" : "ken@example",
-  "issues" : [ {
-    "code" : "invalid_format",
-    "message" : "not a valid email",
-    "message_key" : "invalid_format.email",
-    "meta" : { },
-    "path" : ""
-  } ]
+  "ok" : "ken@example"
 }, {
   "decoder" : "string_non_blank",
   "input" : "  ",
@@ -2265,7 +2259,7 @@
   } ]
 }, {
   "decoder" : "long",
-  "input" : 1.0E30,
+  "input" : 1E+30,
   "issues" : [ {
     "code" : "type_mismatch",
     "message" : "expected long",
@@ -2329,17 +2323,17 @@
   } ]
 }, {
   "decoder" : "decimal",
-  "input" : 1.0E-4,
-  "ok" : 0.00010
+  "input" : 0.0001,
+  "ok" : 0.0001
 }, {
   "decoder" : "decimal_min_small",
-  "input" : 1.0E-4,
+  "input" : 0.0001,
   "issues" : [ {
     "code" : "out_of_range",
     "message" : "must be at least 0.0005",
     "message_key" : "out_of_range.minimum",
     "meta" : {
-      "actual" : 0.00010,
+      "actual" : 0.0001,
       "min" : 0.0005
     },
     "path" : ""
@@ -6222,7 +6216,7 @@
 }, {
   "decoder" : "float",
   "input_json" : "-0",
-  "ok" : 0.0
+  "ok" : -0.0
 }, {
   "decoder" : "float",
   "input_json" : "-0.0",
@@ -6234,7 +6228,7 @@
 }, {
   "decoder" : "float",
   "input_json" : "1.00000005960464477539062501",
-  "ok" : 1.0
+  "ok" : 1.0000001
 }, {
   "decoder" : "float",
   "input_json" : "123456789012345678901234567890",
@@ -6282,7 +6276,7 @@
 }, {
   "decoder" : "double",
   "input_json" : "-0",
-  "ok" : 0.0
+  "ok" : -0.0
 }, {
   "decoder" : "double",
   "input_json" : "-0.0",
@@ -6762,14 +6756,6 @@
       "expected" : "integer"
     },
     "path" : "/w"
-  }, {
-    "code" : "unknown_field",
-    "message" : "unknown field",
-    "message_key" : "unknown_field",
-    "meta" : {
-      "field" : "extra"
-    },
-    "path" : "/extra"
   }, {
     "code" : "unknown_field",
     "message" : "unknown field",

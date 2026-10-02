@@ -224,17 +224,12 @@ var (
 		}, time.Time.Compare}}
 	dateTimeKind = temporalKind{&temporalOps{parseDateTime, KeyInvalidFormatDateTime, javatime.DateTime, javatime.ISODateTime, wallUTC,
 		time.Time.Compare}}
-	// OffsetDateTime.compareTo orders by the instant, then by the local
-	// date-time, so the same instant at two offsets is not equal.
+	// Offset date-times are compared by the instant alone, so the same
+	// instant at two offsets is neither before nor after the other. The value
+	// keeps the offset it was written with.
 	offsetDateTimeKind = temporalKind{&temporalOps{parseOffsetDateTime, KeyInvalidFormatOffsetDateTime,
 		javatime.OffsetDateTime, javatime.ISOOffsetDateTime,
-		func(t time.Time) time.Time { return t },
-		func(a, b time.Time) int {
-			if c := a.Compare(b); c != 0 {
-				return c
-			}
-			return wallUTC(a).Compare(wallUTC(b))
-		}}}
+		func(t time.Time) time.Time { return t }, time.Time.Compare}}
 )
 
 // TemporalDecoder decodes a string into a time.Time as one of Java's

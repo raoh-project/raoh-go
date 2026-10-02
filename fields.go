@@ -138,7 +138,7 @@ func read[T any](c *collector, p part[T], in any, m *JSONObject, at Path) T {
 func (c *collector) unknown(m *JSONObject, at Path, names []string) {
 	for _, k := range m.names {
 		if !slices.Contains(names, k) {
-			c.issues.appendInPlace(NewIssue(CodeUnknownField).WithMeta("field", k).At(at.Key(k)))
+			c.issues.appendInPlace(unknownMember(k, at.Key(k)))
 		}
 	}
 }

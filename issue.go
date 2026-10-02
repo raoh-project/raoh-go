@@ -3,9 +3,11 @@ package raoh
 import (
 	"errors"
 	"maps"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"unicode"
 )
 
@@ -23,6 +25,23 @@ type Issue struct {
 	meta          map[string]any
 	customMessage string
 	hasCustom     bool
+	// byStrict is whether a Strict, or the Strict of an Object, made this
+	// unknown_field, so that a Strict around it does not report the member
+	// again. Only the decoders set it, and a list a caller builds, with
+	// Invalid or from All, never has it.
+	byStrict bool
+	// candidates is what each alternative of a OneOf reported, for
+	// one_of_failed: kept as issues, so that they are written in the language
+	// the issue is and move with it, and put in meta.candidates only when the
+	// issue is written.
+	candidates []candidate
+}
+
+// candidate is the issues one alternative of a OneOf reported, and its place
+// among them.
+type candidate struct {
+	index  int
+	issues Issues
 }
 
 // NewIssue returns an issue with code at the root, with the code as its
@@ -38,13 +57,14 @@ func (i Issue) WithMessageKey(key string) Issue {
 	return i
 }
 
-// WithMeta returns i with one more entry of metadata.
+// WithMeta returns i with one more entry of metadata. A slice or map in value
+// is copied, so changing it afterwards does not change the issue.
 func (i Issue) WithMeta(key string, value any) Issue {
 	m := maps.Clone(i.meta)
 	if m == nil {
 		m = map[string]any{}
 	}
-	m[key] = value
+	m[key] = ownCopy(value)
 	i.meta = m
 	return i
 }
@@ -53,7 +73,7 @@ func (i Issue) WithMeta(key string, value any) Issue {
 // it had. It copies once, where a WithMeta per entry would copy the whole map
 // each time.
 func (i Issue) withMetaMap(meta map[string]any) Issue {
-	i.meta = maps.Clone(meta)
+	i.meta = ownCopy(meta).(map[string]any)
 	return i
 }
 
@@ -71,9 +91,17 @@ func (i Issue) At(p Path) Issue {
 	return i
 }
 
-// Rebase returns i with its path read as relative to prefix.
+// Rebase returns i with its path read as relative to prefix. The issues of a
+// one_of_failed's candidates are of the same input, and move with it.
 func (i Issue) Rebase(prefix Path) Issue {
 	i.path = prefix.Append(i.path)
+	if i.candidates != nil {
+		moved := make([]candidate, len(i.candidates))
+		for n, c := range i.candidates {
+			moved[n] = candidate{c.index, c.issues.Rebase(prefix)}
+		}
+		i.candidates = moved
+	}
 	return i
 }
 
@@ -89,12 +117,72 @@ func (i Issue) Code() string { return i.code }
 func (i Issue) MessageKey() string { return i.messageKey }
 
 // Meta returns a copy of what else the code says about the problem, such as
-// the bound a value fell outside of.
-func (i Issue) Meta() map[string]any {
-	if i.meta == nil {
-		return map[string]any{}
+// the bound a value fell outside of. The slices and maps in it are copies too,
+// so changing them changes neither the issue nor the decoder that made it.
+// The candidates of a one_of_failed are written with English messages; Render
+// writes them in the language it is given.
+func (i Issue) Meta() map[string]any { return i.metaIn(English) }
+
+// metaIn is Meta with the candidates of a one_of_failed written by r.
+func (i Issue) metaIn(r Resolver) map[string]any {
+	m := map[string]any{}
+	if i.meta != nil {
+		m = ownCopy(i.meta).(map[string]any)
 	}
-	return maps.Clone(i.meta)
+	if i.candidates != nil {
+		written := make([]any, len(i.candidates))
+		for n, c := range i.candidates {
+			issues := make([]any, c.issues.Len())
+			for k, ri := range c.issues.Render(r) {
+				issues[k] = map[string]any{"path": ri.Path, "code": ri.Code, "message": ri.Message, "meta": ri.Meta}
+			}
+			written[n] = map[string]any{"candidate": c.index, "issues": issues}
+		}
+		m["candidates"] = written
+	}
+	return m
+}
+
+// ownCopy is v with every slice and map in it copied, at every depth, so that
+// what an issue holds is its own and what it hands out is the caller's. Other
+// values are given as they are.
+func ownCopy(v any) any {
+	if v == nil {
+		return nil
+	}
+	return deepCopy(reflect.ValueOf(v)).Interface()
+}
+
+func deepCopy(v reflect.Value) reflect.Value {
+	switch v.Kind() {
+	case reflect.Slice:
+		if v.IsNil() {
+			return v
+		}
+		out := reflect.MakeSlice(v.Type(), v.Len(), v.Len())
+		for i := range v.Len() {
+			out.Index(i).Set(deepCopy(v.Index(i)))
+		}
+		return out
+	case reflect.Map:
+		if v.IsNil() {
+			return v
+		}
+		out := reflect.MakeMapWithSize(v.Type(), v.Len())
+		for it := v.MapRange(); it.Next(); {
+			out.SetMapIndex(it.Key(), deepCopy(it.Value()))
+		}
+		return out
+	case reflect.Interface:
+		if v.IsNil() {
+			return v
+		}
+		out := reflect.New(v.Type()).Elem()
+		out.Set(deepCopy(v.Elem()))
+		return out
+	default:
+		return v
+	}
 }
 
 // CustomMessage returns the message given with [Issue.WithMessage], if there
@@ -146,6 +234,10 @@ func escapeForLog(s string) string {
 // value is empty.
 type Issues struct {
 	items []Issue
+	// claimed is how much of the array under items has been taken, shared by
+	// every Issues whose items lie in that array, or nil where none of it is
+	// known to be free. See extended.
+	claimed *atomic.Int64
 }
 
 // Invalid returns issues as an error. Returned from a function given to
@@ -153,14 +245,30 @@ type Issues struct {
 // those of the other fields; they are read as relative to the path the decoder
 // is at. Any other error a function returns stops the decode.
 func Invalid(issues ...Issue) error {
-	return &Issues{items: slices.Clone(issues)}
+	return &Issues{items: withoutMarks(issues)}
+}
+
+// withoutMarks is a copy of issues with no issue marked as one a Strict made.
+func withoutMarks(issues []Issue) []Issue {
+	out := slices.Clone(issues)
+	for n := range out {
+		out[n].byStrict = false
+	}
+	return out
+}
+
+// unknownMember is the unknown_field a Strict reports for the member k at p.
+func unknownMember(k string, p Path) Issue {
+	i := NewIssue(CodeUnknownField).WithMeta("field", k).At(p)
+	i.byStrict = true
+	return i
 }
 
 // Len returns the number of issues.
 func (is Issues) Len() int { return len(is.items) }
 
 // All returns a copy of the issues in the order they were found.
-func (is Issues) All() []Issue { return slices.Clone(is.items) }
+func (is Issues) All() []Issue { return withoutMarks(is.items) }
 
 // Error writes each issue as its path and English message, one per line.
 func (is *Issues) Error() string {
@@ -193,7 +301,7 @@ type RenderedIssue struct {
 func (is Issues) Render(r Resolver) []RenderedIssue {
 	out := make([]RenderedIssue, len(is.items))
 	for n, i := range is.items {
-		out[n] = RenderedIssue{i.path.String(), i.code, i.Message(r), i.Meta()}
+		out[n] = RenderedIssue{i.path.String(), i.code, i.Message(r), i.metaIn(r)}
 	}
 	return out
 }
@@ -249,15 +357,42 @@ func (is Issues) GroupByPath() map[string]Issues {
 	return out
 }
 
-// Add returns the issues followed by more, leaving is as it was.
-func (is Issues) Add(more ...Issue) Issues {
-	return Issues{items: slices.Concat(is.items, more)}
-}
+// Add returns the issues followed by more, leaving is as it was. Adding to
+// the most recent result of an Add or Merge takes time in the issues added, so
+// a loop that adds one issue at a time takes time linear in the issues.
+func (is Issues) Add(more ...Issue) Issues { return is.extended(more) }
 
 // Merge returns the issues followed by those of other, leaving both as they
-// were.
-func (is Issues) Merge(other Issues) Issues {
-	return Issues{items: slices.Concat(is.items, other.items)}
+// were. It takes time in the issues of other where is is the most recent
+// result of an Add or Merge, as Add does.
+func (is Issues) Merge(other Issues) Issues { return is.extended(other.items) }
+
+// extended is the issues followed by more, and the one way a list of issues
+// grows.
+//
+// A list is never changed: what extended gives is another list. To keep a loop
+// of additions linear it writes more into the room after is in the same array
+// where that room is free, and the room is free only to the first list to claim
+// it: claimed counts what of the array has been taken, and a list that is not
+// the longest taken from it copies instead. So two lists made from one hold
+// what each was given, and is is never changed under whoever holds it.
+func (is Issues) extended(more []Issue) Issues {
+	if len(more) == 0 {
+		return is
+	}
+	n := len(is.items)
+	if is.claimed != nil && cap(is.items)-n >= len(more) &&
+		is.claimed.CompareAndSwap(int64(n), int64(n+len(more))) {
+		items := is.items[:n+len(more)]
+		copy(items[n:], more)
+		return Issues{items, is.claimed}
+	}
+	items := make([]Issue, n+len(more), max(2*(n+len(more)), 4))
+	copy(items, is.items)
+	copy(items[n:], more)
+	claimed := new(atomic.Int64)
+	claimed.Store(int64(len(items)))
+	return Issues{items, claimed}
 }
 
 // Rebase returns the issues with each path read as relative to prefix.
@@ -269,7 +404,7 @@ func (is Issues) Rebase(prefix Path) Issues {
 	return Issues{items: out}
 }
 
-func (is *Issues) appendInPlace(i ...Issue) { is.items = append(is.items, i...) }
+func (is *Issues) appendInPlace(i ...Issue) { *is = is.extended(i) }
 
 // asIssues reports whether err is made of Raoh issues only. A single wrapper
 // such as fmt.Errorf("...: %w", issues) is looked through, and a join counts
