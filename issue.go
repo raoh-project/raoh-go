@@ -156,7 +156,9 @@ func (i Issue) metaIn(r Resolver) map[string]any {
 
 // ownCopy is v with every slice, array and map of its tree copied, at every
 // depth, so that what an issue holds is its own and what it hands out is the
-// caller's. A struct or a pointer is given as it is (see Issue.WithMeta).
+// caller's. A struct or a pointer is given as it is (see Issue.WithMeta). The
+// copy is equal to v, a nil slice or map staying nil, whichever way it is
+// made: a test holds the paths without reflect to what deepCopy gives.
 func ownCopy(v any) any {
 	switch x := v.(type) {
 	case nil, string, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64,
@@ -164,12 +166,20 @@ func ownCopy(v any) any {
 		// Nothing in these can be changed through the issue.
 		return v
 	case map[string]any:
+		// The two kinds of container metadata most often holds, copied without
+		// reflect. Each answers as deepCopy does, nil kept nil.
+		if x == nil {
+			return x
+		}
 		out := make(map[string]any, len(x))
 		for k, e := range x {
 			out[k] = ownCopy(e)
 		}
 		return out
 	case []any:
+		if x == nil {
+			return x
+		}
 		out := make([]any, len(x))
 		for n, e := range x {
 			out[n] = ownCopy(e)
