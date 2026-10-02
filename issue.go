@@ -33,8 +33,9 @@ type Issue struct {
 	// candidates is what each alternative of a OneOf reported, for
 	// one_of_failed: kept as issues, so that they are written in the language
 	// the issue is and move with it, and put in meta.candidates only when the
-	// issue is written.
-	candidates []candidate
+	// issue is written. A pointer, nil for every other issue, so that an issue
+	// is no larger for what only one_of_failed holds.
+	candidates *[]candidate
 }
 
 // candidate is the issues one alternative of a OneOf reported, and its place
@@ -96,11 +97,11 @@ func (i Issue) At(p Path) Issue {
 func (i Issue) Rebase(prefix Path) Issue {
 	i.path = prefix.Append(i.path)
 	if i.candidates != nil {
-		moved := make([]candidate, len(i.candidates))
-		for n, c := range i.candidates {
+		moved := make([]candidate, len(*i.candidates))
+		for n, c := range *i.candidates {
 			moved[n] = candidate{c.index, c.issues.Rebase(prefix)}
 		}
-		i.candidates = moved
+		i.candidates = &moved
 	}
 	return i
 }
@@ -130,8 +131,8 @@ func (i Issue) metaIn(r Resolver) map[string]any {
 		m = ownCopy(i.meta).(map[string]any)
 	}
 	if i.candidates != nil {
-		written := make([]any, len(i.candidates))
-		for n, c := range i.candidates {
+		written := make([]any, len(*i.candidates))
+		for n, c := range *i.candidates {
 			issues := make([]any, c.issues.Len())
 			for k, ri := range c.issues.Render(r) {
 				issues[k] = map[string]any{"path": ri.Path, "code": ri.Code, "message": ri.Message, "meta": ri.Meta}
@@ -147,8 +148,23 @@ func (i Issue) metaIn(r Resolver) map[string]any {
 // what an issue holds is its own and what it hands out is the caller's. Other
 // values are given as they are.
 func ownCopy(v any) any {
-	if v == nil {
-		return nil
+	switch x := v.(type) {
+	case nil, string, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64,
+		float32, float64, Decimal, temporalValue:
+		// Nothing in these can be changed through the issue.
+		return v
+	case map[string]any:
+		out := make(map[string]any, len(x))
+		for k, e := range x {
+			out[k] = ownCopy(e)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for n, e := range x {
+			out[n] = ownCopy(e)
+		}
+		return out
 	}
 	return deepCopy(reflect.ValueOf(v)).Interface()
 }
@@ -387,9 +403,8 @@ func (is Issues) extended(more []Issue) Issues {
 		copy(items[n:], more)
 		return Issues{items, is.claimed}
 	}
-	items := make([]Issue, n+len(more), max(2*(n+len(more)), 4))
-	copy(items, is.items)
-	copy(items[n:], more)
+	// A copy, grown as append grows a slice, into an array no other list has.
+	items := append(slices.Clip(is.items), more...)
 	claimed := new(atomic.Int64)
 	claimed.Store(int64(len(items)))
 	return Issues{items, claimed}

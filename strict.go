@@ -1,5 +1,7 @@
 package raoh
 
+import "slices"
+
 // Strict returns d that also reports unknown_field, at the member, for each
 // member of the input that is not one of fields, in the order the input has its
 // members, after the issues of d.
@@ -34,13 +36,16 @@ func Strict[T any](d DecoderOf[T], fields ...string) Decoder[any, T] {
 		if o.err != nil {
 			return o
 		}
-		var reported map[string]struct{}
+		// The paths a Strict inside reported unknown, by the member they end
+		// in, so that a member is compared only with the paths that could be
+		// its own.
+		var reported map[string][]Path
 		for _, i := range o.issues.items {
-			if i.byStrict && i.code == CodeUnknownField {
+			if i.byStrict && i.code == CodeUnknownField && i.path.node != nil && !i.path.node.isIndex {
 				if reported == nil {
-					reported = map[string]struct{}{}
+					reported = map[string][]Path{}
 				}
-				reported[i.path.String()] = struct{}{}
+				reported[i.path.node.key] = append(reported[i.path.node.key], i.path)
 			}
 		}
 		var unknown Issues
@@ -49,7 +54,7 @@ func Strict[T any](d DecoderOf[T], fields ...string) Decoder[any, T] {
 				continue
 			}
 			p := at.Key(k)
-			if _, ok := reported[p.String()]; !ok {
+			if !slices.ContainsFunc(reported[k], p.Equal) {
 				unknown.appendInPlace(unknownMember(k, p))
 			}
 		}

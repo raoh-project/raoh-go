@@ -421,7 +421,7 @@ func OneOf[T any](alternatives ...DecoderOf[T]) Decoder[any, T] {
 			candidates = append(candidates, candidate{n, o.issues})
 		}
 		failed := NewIssue(CodeOneOfFailed).At(at)
-		failed.candidates = candidates
+		failed.candidates = &candidates
 		return invalid[T](failed)
 	}}
 }
