@@ -54,7 +54,8 @@ func fromAbsoluteError[T any](v T, err error) outcome[T] {
 
 func failedError[T any](err error) outcome[T] {
 	if is, ok := asIssues(err); ok {
-		return invalid[T](is.items...)
+		// What a caller returns is the caller's, whatever decode it came from.
+		return invalid[T](is.published().items...)
 	}
 	if _, mixed := errors.AsType[*Issues](err); mixed {
 		err = &executionError{err}
@@ -202,7 +203,8 @@ func (d Decoder[I, T]) Decode(in I) (T, error) {
 	case o.err != nil:
 		return zero, o.err
 	case o.issues.Len() > 0:
-		return zero, &o.issues
+		is := o.issues.published()
+		return zero, &is
 	}
 	return o.value, nil
 }
@@ -321,8 +323,11 @@ func (d Decoder[I, T]) RefineWithPath(check func(T, Path) error) Decoder[I, T] {
 	}}
 }
 
-// Default returns a decoder that gives v when every issue d reports is
-// required, as for a missing or null value, and reports any other problem.
+// Default returns a decoder that gives v for a null or missing value, which is
+// looked at before d runs, and gives d's result unchanged for any other value,
+// failure included. So an object with a missing member still reports the
+// member's required, and Nullable(d).Default(v) gives v for null. To give a
+// value whatever d reports, use Fallback.
 func (d Decoder[I, T]) Default(v T) Decoder[I, T] {
 	d.requireRun("Decoder.Default")
 	return d.DefaultFunc(func() T { return v })
@@ -334,16 +339,10 @@ func (d Decoder[I, T]) DefaultFunc(f func() T) Decoder[I, T] {
 	d.requireRun("Decoder.DefaultFunc")
 	requireArgument(f != nil, "Decoder.DefaultFunc", "f")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
-		o := d.run(in, at)
-		if o.err != nil || o.issues.Len() == 0 {
-			return o
+		if isNull(any(in)) {
+			return succeed(f())
 		}
-		for _, i := range o.issues.items {
-			if i.code != CodeRequired {
-				return o
-			}
-		}
-		return succeed(f())
+		return d.run(in, at)
 	}}
 }
 
@@ -363,7 +362,7 @@ func (d Decoder[I, T]) FallbackFunc(f func(Issues) T) Decoder[I, T] {
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.err == nil && o.issues.Len() > 0 {
-			return succeed(f(o.issues))
+			return succeed(f(o.issues.published()))
 		}
 		return o
 	}}
@@ -405,33 +404,26 @@ func Lazy[T any](f func() Decoder[any, T]) Decoder[any, T] {
 // OneOf returns a decoder that tries each alternative in turn and gives what
 // the first to decode gives. When none does, it reports one_of_failed with the
 // issues of each alternative in meta.candidates, as
-// [{"candidate": index, "issues": [...]}] with English messages.
+// [{"candidate": index, "issues": [...]}]. The candidates' issues are kept as
+// issues: Render writes their messages in the language it writes the
+// one_of_failed in, a custom message among them included, and Rebase moves
+// them with it.
 func OneOf[T any](alternatives ...DecoderOf[T]) Decoder[any, T] {
 	ds := make([]Decoder[any, T], len(alternatives))
 	for i, a := range alternatives {
 		ds[i] = decoderOf(a, "OneOf", "each alternative")
 	}
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
-		candidates := make([]any, 0, len(ds))
+		candidates := make([]candidate, 0, len(ds))
 		for n, d := range ds {
 			o := d.run(in, at)
 			if !o.failed() || o.err != nil {
 				return o
 			}
-			candidates = append(candidates, map[string]any{
-				"candidate": n,
-				"issues":    renderedJSON(o.issues),
-			})
+			candidates = append(candidates, candidate{n, o.issues})
 		}
-		return invalid[T](NewIssue(CodeOneOfFailed).WithMeta("candidates", candidates).At(at))
+		failed := NewIssue(CodeOneOfFailed).At(at)
+		failed.candidates = &candidates
+		return invalid[T](failed)
 	}}
-}
-
-// renderedJSON is the issues as the JSON values Raoh for Java puts in meta.
-func renderedJSON(is Issues) []any {
-	out := make([]any, is.Len())
-	for n, r := range is.Render(English) {
-		out[n] = map[string]any{"path": r.Path, "code": r.Code, "message": r.Message, "meta": r.Meta}
-	}
-	return out
 }

@@ -26,7 +26,6 @@ func TestNormalize(t *testing.T) {
 		{"NFC leaves a compatibility character", raoh.String().Normalize(), ligature, ligature},
 		{"NFKC", raoh.String().NormalizeAs(raoh.NFKC), ligature + decomposed, "fi" + composed},
 		{"NFKD", raoh.String().NormalizeAs(raoh.NFKD), ligature + composed, "fi" + decomposed},
-		{"an invalid byte is kept", raoh.String().Normalize(), decomposed + "\xff" + decomposed, composed + "\xff" + composed},
 	} {
 		got, err := tc.d.Decode(tc.in)
 		if err != nil || got != tc.want {

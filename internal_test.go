@@ -115,31 +115,19 @@ func TestAZoneIsTakenOnlyBelowGlobalScope(t *testing.T) {
 func TestURLsFollowTheRFC3986Rule(t *testing.T) {
 	url := func(s string) bool {
 		p, ok := parseURI(s)
-		return ok && p.representableAsJavaURI() && (p.schemeIs("http") || p.schemeIs("https")) && p.hasHost()
+		return ok && (p.schemeIs("http") || p.schemeIs("https")) && p.hasHost()
 	}
 	for _, ok := range []string{"https://example.com", "HTTP://example.com/a?b=c#d", "http://my_host.com",
-		"http://user:pw@[::1]:8080/", "http://example.com:99999/", "http://a/%41"} {
+		"http://user:pw@[::1]:8080/", "http://example.com:99999/", "http://a/%41",
+		"http://[v1.x]/", "http://[::1]:99999999999/"} {
 		if !url(ok) {
 			t.Errorf("%q", ok)
 		}
 	}
 	for _, bad := range []string{"https://", "ftp://example.com", "https://日本.jp/", "http://[fe80::1%25eth0]/",
-		"http://[v1.x]/", "http://a/%4", "http://a b/", "example.com", "http://[::1]:99999999999/"} {
+		"http://a/%4", "http://a b/", "example.com"} {
 		if url(bad) {
 			t.Errorf("%q", bad)
-		}
-	}
-}
-
-func TestCaseMappingFollowsJava(t *testing.T) {
-	for in, want := range map[string]string{"ΟΔΟΣ": "οδος", "İ": "i̇", "ΣΑ": "σα", "Σ": "σ", "ΑΣ ΒΣ": "ας βς"} {
-		if got := toLowerJava(in); got != want {
-			t.Errorf("lower %q: %q, want %q", in, got, want)
-		}
-	}
-	for in, want := range map[string]string{"ß": "SS", "ﬁ": "FI", "straße": "STRASSE"} {
-		if got := toUpperJava(in); got != want {
-			t.Errorf("upper %q: %q, want %q", in, got, want)
 		}
 	}
 }

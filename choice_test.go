@@ -52,7 +52,7 @@ func TestDiscriminateWithReadsTheTagWithTheDecoderGiven(t *testing.T) {
 	}
 	expect(t, d, `{}`, "/kind required")
 	expect(t, d, `{"kind": 1}`, "/kind type_mismatch")
-	expect(t, d, `"rect"`, " type_mismatch")
+	expect(t, d, `"rect"`, "/kind type_mismatch")
 
 	long := raoh.DiscriminateWith("kind", raoh.String().MinLength(9), shapeVariants())
 	expect(t, long, `{"kind": "rect"}`, "/kind too_short")
@@ -92,7 +92,7 @@ func TestStrictAddsNothingToAnInputThatIsNotAnObject(t *testing.T) {
 	}
 	expect(t, d, `"a"`, " type_mismatch")
 	expect(t, raoh.Strict(raoh.Object(raoh.Fields().Field("a", raoh.Int())).Map(func(a int) int { return a })),
-		`[1]`, " type_mismatch")
+		`[1]`, "/a type_mismatch")
 }
 
 func TestStrictOfANativeMapKeepsTheOrderOfGoStrings(t *testing.T) {
@@ -133,4 +133,20 @@ func TestStrictChecksTheMembersBeforeTheDecoderRuns(t *testing.T) {
 	if got := codes(issues); len(got) != 1 || got[0] != "/extra unknown_field" {
 		t.Error(got)
 	}
+}
+
+// DiscriminateBy reads the tag from the whole input with the decoder given, whose issues are
+// reported as they are, and refuses a tag no variant has at the tag's member.
+func TestDiscriminateByReadsTheTagFromTheWholeInput(t *testing.T) {
+	tag := raoh.Object(raoh.Fields().Field("kind", raoh.String().Trim().ToLower())).Map(func(k string) string { return k })
+	d := raoh.DiscriminateBy("kind", tag, shapeVariants())
+	if v, issues := decodeJSON(t, d, `{"kind": " RECT ", "w": 2, "h": 3}`); v.area != 6 || len(issues) != 0 {
+		t.Error(v, codes(issues))
+	}
+	expect(t, d, `{"kind": "circle"}`, "/kind not_allowed")
+	expect(t, d, `{"kind": 1}`, "/kind type_mismatch")
+	expect(t, d, `{}`, "/kind required")
+	expect(t, d, `"rect"`, "/kind type_mismatch")
+	whole := raoh.DiscriminateBy("kind", raoh.String(), shapeVariants())
+	expect(t, whole, `"circle"`, "/kind not_allowed")
 }

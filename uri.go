@@ -42,10 +42,10 @@ func ParseURI(s string) (URI, error) {
 
 var errNotURI = errors.New("raoh: not a URI")
 
-// newURI is the URI s writes, if s is one that Raoh for Java accepts.
+// newURI is the URI s writes, if s is an RFC 3986 URI.
 func newURI(s string) (URI, bool) {
 	p, ok := parseURI(s)
-	if !ok || !p.representableAsJavaURI() {
+	if !ok {
 		return URI{}, false
 	}
 	return URI{p}, true
@@ -148,41 +148,6 @@ func (p parsedURI) schemeIs(expected string) bool {
 
 func (p parsedURI) hasHost() bool {
 	return p.authorityStart >= 0 && p.hostStart < p.hostEnd
-}
-
-// representableAsJavaURI reports whether java.net.URI can be built from the
-// text. It follows RFC 2396 and RFC 2732 and cannot hold four kinds of RFC 3986
-// URI: an empty scheme-specific part, an empty authority with nothing after
-// it, an IPvFuture host, and a port that does not fit an int after an IP
-// literal. Raoh for Java refuses them, and so does this package.
-func (p parsedURI) representableAsJavaURI() bool {
-	pathEmpty := p.authorityEnd == p.hierEnd
-	if p.authorityStart < 0 {
-		return p.schemeEnd+1 < p.hierEnd || p.hasQuery
-	}
-	if p.authorityStart == p.authorityEnd && pathEmpty && !p.hasQuery && !p.hasFragment {
-		return false
-	}
-	// A bracket starts an IP-literal, and an IPvFuture inside it starts with "v".
-	if p.hostStart >= p.hostEnd || p.value[p.hostStart] != '[' {
-		return true
-	}
-	if p.value[p.hostStart+1]|0x20 == 'v' {
-		return false
-	}
-	// hostEnd is the "]"'s successor; a port, when there is one, follows a ":".
-	return p.hostEnd == p.authorityEnd || p.fitsInt(p.hostEnd+1, p.authorityEnd)
-}
-
-// fitsInt reports whether the decimal digits in value[from:to] denote a value
-// no greater than 2147483647.
-func (p parsedURI) fitsInt(from, to int) bool {
-	start := from
-	for start < to-1 && p.value[start] == '0' {
-		start++
-	}
-	length := to - start
-	return length < 10 || length == 10 && p.value[start:to] <= "2147483647"
 }
 
 func parseURI(value string) (parsedURI, bool) {

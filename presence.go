@@ -50,6 +50,10 @@ type PresenceSource[T any] struct {
 
 func (s PresenceSource[T]) valid() bool { return s.d.run != nil }
 
+// notAnObject is absent: the field reads an input that is not an object as not
+// having the member.
+func (s PresenceSource[T]) notAnObject(any, Path) outcome[Presence[T]] { return succeed(Absent[T]()) }
+
 func (s PresenceSource[T]) decodeAt(in any, at Path) outcome[Presence[T]] {
 	switch {
 	case in == missing:

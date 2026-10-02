@@ -11,18 +11,8 @@ import (
 // What the operations Raoh for Java takes from the JDK mean, written once.
 // Where a built-in decoder does what Raoh for Java does with a JDK method, it
 // calls the function here rather than the Go function that looks like it:
-// len counts UTF-8 bytes where String.length() counts UTF-16 units,
 // strconv writes 1e+07 where Double.toString writes 1.0E7, and no Go package
 // reads a .properties file as Properties.load does.
-
-// utf16Len is String.length(): the number of UTF-16 code units.
-func utf16Len(s string) int {
-	n := 0
-	for _, r := range s {
-		n += utf16.RuneLen(r)
-	}
-	return n
-}
 
 // doubleToString is Double.toString(double): the shortest decimal that reads
 // back as v, written plainly with at least one fraction digit when
@@ -32,6 +22,30 @@ func doubleToString(v float64) string { return javaFloatString(v, 64) }
 // floatToString is Float.toString(float): the same, with the shortest decimal
 // that reads back as the float32 v, so 0.1f is 0.1 and not 0.10000000149011612.
 func floatToString(v float32) string { return javaFloatString(float64(v), 32) }
+
+// javaDigits is the digits Java writes v with, as d.ddd, and the exponent: the
+// shortest that read back as v, except that where one digit would do, two are
+// allowed and the closer to v is taken, so the least double is 4.9E-324 and
+// not 5.0E-324 (JDK 19 on, and the Raoh Specification's canonical decimal).
+func javaDigits(v float64, bitSize int) (string, int) {
+	scientific := strconv.FormatFloat(v, 'e', -1, bitSize)
+	if mantissa, _, _ := strings.Cut(scientific, "e"); len(strings.Replace(mantissa, ".", "", 1)) == 1 {
+		two := strconv.FormatFloat(v, 'e', 1, bitSize)
+		if back, err := strconv.ParseFloat(two, bitSize); err == nil && back == v {
+			scientific = two
+		}
+	}
+	mantissa, exp, _ := strings.Cut(scientific, "e")
+	exponent, _ := strconv.Atoi(exp)
+	if whole, fraction, ok := strings.Cut(mantissa, "."); ok {
+		if fraction = strings.TrimRight(fraction, "0"); fraction == "" {
+			mantissa = whole
+		} else {
+			mantissa = whole + "." + fraction
+		}
+	}
+	return mantissa, exponent
+}
 
 func javaFloatString(v float64, bitSize int) string {
 	switch {
@@ -49,10 +63,7 @@ func javaFloatString(v float64, bitSize int) string {
 	if v == 0 {
 		return sign + "0.0"
 	}
-	// strconv writes the same shortest digits Java chooses, as d.ddde±nn.
-	scientific := strconv.FormatFloat(math.Abs(v), 'e', -1, bitSize)
-	mantissa, exp, _ := strings.Cut(scientific, "e")
-	exponent, _ := strconv.Atoi(exp)
+	mantissa, exponent := javaDigits(math.Abs(v), bitSize)
 	digits := strings.Replace(mantissa, ".", "", 1)
 	magnitude := math.Abs(v)
 	var body string

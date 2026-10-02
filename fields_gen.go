@@ -49,12 +49,9 @@ func (o object0) Map[R any](fn func() R) Decoder[any, R] {
 func (o object0) AndThen[R any](fn func() (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -72,12 +69,9 @@ func (o object0) AndThen[R any](fn func() (R, error)) Decoder[any, R] {
 func (o object0) AndThenWithPath[R any](fn func(Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -134,13 +128,10 @@ func (o object1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
 func (o object1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -158,13 +149,10 @@ func (o object1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 func (o object1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -213,10 +201,7 @@ func (o flatobject1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
 func (o flatobject1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		if c.failed() {
@@ -234,10 +219,7 @@ func (o flatobject1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 func (o flatobject1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		if c.failed() {
@@ -295,14 +277,11 @@ func (o object2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
 func (o object2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -320,14 +299,11 @@ func (o object2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] 
 func (o object2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -377,10 +353,7 @@ func (o flatobject2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
 func (o flatobject2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -399,10 +372,7 @@ func (o flatobject2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any,
 func (o flatobject2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -462,15 +432,12 @@ func (o object3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
 func (o object3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -488,15 +455,12 @@ func (o object3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[an
 func (o object3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -547,10 +511,7 @@ func (o flatobject3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
 func (o flatobject3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -570,10 +531,7 @@ func (o flatobject3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decode
 func (o flatobject3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -635,16 +593,13 @@ func (o object4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, R] {
 func (o object4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -662,16 +617,13 @@ func (o object4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Deco
 func (o object4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -725,10 +677,7 @@ func (o flatobject4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, 
 func (o flatobject4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -749,10 +698,7 @@ func (o flatobject4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) 
 func (o flatobject4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -816,17 +762,14 @@ func (o object5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder[any
 func (o object5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -844,17 +787,14 @@ func (o object5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)
 func (o object5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -909,10 +849,7 @@ func (o flatobject5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder
 func (o flatobject5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -934,10 +871,7 @@ func (o flatobject5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, er
 func (o flatobject5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1005,10 +939,7 @@ func (o object6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) Decod
 func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1016,7 +947,7 @@ func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, 
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1034,10 +965,7 @@ func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, 
 func (o object6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1045,7 +973,7 @@ func (o object6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E,
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1101,10 +1029,7 @@ func (o flatobject6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) D
 func (o flatobject6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1127,10 +1052,7 @@ func (o flatobject6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) 
 func (o flatobject6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1200,10 +1122,7 @@ func (o object7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G) R)
 func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1212,7 +1131,7 @@ func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1230,10 +1149,7 @@ func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G
 func (o object7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1242,7 +1158,7 @@ func (o object7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D,
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1299,10 +1215,7 @@ func (o flatobject7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G
 func (o flatobject7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1326,10 +1239,7 @@ func (o flatobject7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, 
 func (o flatobject7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1403,10 +1313,7 @@ func (o object8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F, G,
 func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F, G, H) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1416,7 +1323,7 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1434,10 +1341,7 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F
 func (o object8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1447,7 +1351,7 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C,
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1507,10 +1411,7 @@ func (o flatobject8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F
 func (o flatobject8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F, G, H) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1535,10 +1436,7 @@ func (o flatobject8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, 
 func (o flatobject8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1614,10 +1512,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E, F,
 func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1628,7 +1523,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1646,10 +1541,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E
 func (o object9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1660,7 +1552,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B,
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1721,10 +1613,7 @@ func (o flatobject9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E
 func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1750,10 +1639,7 @@ func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, 
 func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1831,10 +1717,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, D, E
 func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1846,7 +1729,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, 
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1864,10 +1747,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, 
 func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1879,7 +1759,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1941,10 +1821,7 @@ func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, 
 func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1971,10 +1848,7 @@ func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B,
 func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2054,10 +1928,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, C, D
 func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2070,7 +1941,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, 
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2088,10 +1959,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, 
 func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2104,7 +1972,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn fun
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2167,10 +2035,7 @@ func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, 
 func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2198,10 +2063,7 @@ func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A,
 func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2283,10 +2145,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, B, C
 func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2300,7 +2159,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, 
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2318,10 +2177,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, 
 func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2335,7 +2191,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn 
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2399,10 +2255,7 @@ func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, 
 func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2431,10 +2284,7 @@ func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func
 func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2518,10 +2368,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(A, B
 func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2536,7 +2383,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2554,10 +2401,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(
 func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2572,7 +2416,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2637,10 +2481,7 @@ func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(
 func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2670,10 +2511,7 @@ func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn f
 func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2759,10 +2597,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn func(A
 func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2778,7 +2613,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn fu
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2796,10 +2631,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn fu
 func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2815,7 +2647,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R an
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2881,10 +2713,7 @@ func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn fu
 func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2915,10 +2744,7 @@ func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](f
 func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3006,10 +2832,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn fun
 func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3026,7 +2849,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -3044,10 +2867,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn
 func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3064,7 +2884,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -3131,10 +2951,7 @@ func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn
 func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3166,10 +2983,7 @@ func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any
 func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3246,10 +3060,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any](fn 
 func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3267,7 +3078,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any]
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
 		v15 := read(&c, o.f.p15, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -3285,10 +3096,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any]
 func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3306,7 +3114,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPat
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
 		v15 := read(&c, o.f.p15, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -3361,10 +3169,7 @@ func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any]
 func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3397,10 +3202,7 @@ func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R 
 func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Path) (R, error)) Decoder[any, R] {
 	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)

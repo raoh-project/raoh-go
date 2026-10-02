@@ -499,11 +499,6 @@ func outcome(v any, err error) (any, error) {
 	return map[string]any{"issues": list}, nil
 }
 
-func failure(path, code, key, message, meta string) string {
-	return fmt.Sprintf(`{"issues": [{"path": %q, "code": %q, "message_key": %q, "message": %q, "meta": %s}]}`,
-		path, code, key, message, meta)
-}
-
 // divergence is a case where this package gives something else than Raoh for
 // Java on purpose: the decoder, the input as JSON text, what this package
 // gives, and why.
@@ -512,31 +507,15 @@ type divergence struct {
 }
 
 func divergences() []divergence {
-	notAnObject := func(actual string) string {
-		return failure("", "type_mismatch", "type_mismatch", "expected object",
-			fmt.Sprintf(`{"expected": "object", "actual": %q}`, actual))
+	const uri = "uri is the whole RFC 3986 URI production, as the Raoh Specification says; Raoh for " +
+		"Java refuses the URIs java.net.URI cannot hold, which it declares a divergence of its own"
+	accepted := func(text string) string { return fmt.Sprintf(`{"ok": %q}`, text) }
+	var out []divergence
+	for _, text := range []string{"a:", "a:#f", "a://", "http://[::1]:2147483648/", "http://[v1.abc]/",
+		"http:", "http://", "https://"} {
+		out = append(out, divergence{"string_uri", fmt.Sprintf("%q", text), accepted(text), uri})
 	}
-	required := failure("", "required", "required", "is required", "{}")
-	const objectScope = "Object checks the input is an object once, at its own path; Java checks it " +
-		"in each field and reads a non-object as holding no optional field"
-	return []divergence{
-		{"person", `[1]`, notAnObject("array"), objectScope},
-		{"person", `null`, required, objectScope},
-		{"person", `"str"`, notAnObject("string"), objectScope},
-		{"person_strict", `[1]`, notAnObject("array"), objectScope},
-		{"optional_only", `"x"`, notAnObject("string"), objectScope},
-		{"optional_only", `null`, required, objectScope},
-		{"optional_only", `[1]`, notAnObject("array"), objectScope},
-		{"shape", `"rect"`, notAnObject("string"), objectScope},
-		{"strict_discriminate", `"rect"`, notAnObject("string"), objectScope},
-		{"discriminate_custom_tag", `"rect"`, notAnObject("string"), objectScope},
-		{"discriminate_map", `"rect"`, notAnObject("string"), objectScope},
-		{"flat", `[1]`, notAnObject("array"), objectScope},
-		{"flat", `null`, required, objectScope},
-		{"flat_first", `[1]`, notAnObject("array"), objectScope},
-		{"flat_first", `null`, required, objectScope},
-		{"object_17", `[1]`, notAnObject("array"), objectScope},
-	}
+	return out
 }
 
 type compatCase struct {

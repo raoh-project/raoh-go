@@ -388,17 +388,14 @@ func floatOf[T binaryFloat](in any) (T, bool) {
 	return T(f), true
 }
 
-// floatText reads the text of a number as Raoh for Java's JSON does. An
-// integer is rounded to the type once. Anything else is a double first and
-// then rounded to the type, which for a float differs from rounding once in the
-// rare value that lies just past the middle of two floats. A -0 written as an
-// integer is 0.
+// floatText reads the text of a number as the Raoh Specification says: the
+// exact value the text writes, rounded to the type once, so a float is never
+// a double rounded again. A zero written with a minus sign, -0, -0.0 or
+// -0e10, is -0.
 func floatText[T binaryFloat](text string) (T, bool) {
 	var zero T
-	_, is32 := any(zero).(float32)
-	integer := !strings.ContainsAny(text, ".eE")
 	bits := 64
-	if integer && is32 {
+	if _, is32 := any(zero).(float32); is32 {
 		bits = 32
 	}
 	f, err := strconv.ParseFloat(text, bits)
@@ -406,9 +403,6 @@ func floatText[T binaryFloat](text string) (T, bool) {
 	// caller turns into the issue.
 	if err != nil && !errors.Is(err, strconv.ErrRange) {
 		return 0, false
-	}
-	if integer && f == 0 {
-		f = 0
 	}
 	return T(f), true
 }

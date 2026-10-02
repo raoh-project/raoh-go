@@ -50,12 +50,21 @@ var (
 	japaneseProperties string
 )
 
-// English is the English catalogue Raoh for Java ships, word for word, plus a
-// template for invalid_format.json. [Issues.Error] writes its messages with it.
-var English = mustProperties(englishProperties)
+// English is the English catalogue of the Raoh Specification, which Raoh for
+// Java ships, word for word, under a layer of this package's own: the template
+// for invalid_format.json, for text that is not JSON, which the specification
+// leaves outside its input model. The layer is over the catalogue so that its
+// key is found before the catalogue's invalid_format. [Issues.Error] writes
+// its messages with it.
+var English = mustProperties(englishProperties).WithOverrides(map[string]string{
+	KeyInvalidFormatJSON: "not valid JSON",
+})
 
-// Japanese is the Japanese catalogue Raoh for Java ships, over [English].
-var Japanese = mustProperties(japaneseProperties).FallingBackTo(English)
+// Japanese is the Japanese catalogue of the Raoh Specification, under this
+// package's own Japanese templates and over [English].
+var Japanese = mustProperties(japaneseProperties).WithOverrides(map[string]string{
+	KeyInvalidFormatJSON: "JSONとして読めません",
+}).FallingBackTo(English)
 
 func mustProperties(text string) *Messages {
 	m, err := ParseProperties(text)
