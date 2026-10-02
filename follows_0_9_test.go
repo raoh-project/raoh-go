@@ -173,6 +173,27 @@ func TestAStrictInsideAStrictReportsAMemberOnce(t *testing.T) {
 		[]at{{"/b", raoh.CodeUnknownField}, {"/b", raoh.CodeUnknownField}}) {
 		t.Errorf("an unknown_field the caller made: %v", summary(issues))
 	}
+	// Nor does one a Strict made in another decode, which the caller kept and returned: what a
+	// Strict marks lives as long as the decode it was made in.
+	_, kept := raoh.DecodeJSON([]byte(`{"b":1}`), raoh.Strict(raoh.Object(raoh.Fields()).Map(func() int { return 0 }), "a"))
+	reused := raoh.Strict(raoh.Object(raoh.Fields()).Map(func() int { return 0 }).AndThen(func(int) (int, error) {
+		return 0, kept
+	}), "a")
+	if _, issues := decodeJSON(t, reused, `{"b":1}`); !slices.Equal(summary(issues),
+		[]at{{"/b", raoh.CodeUnknownField}, {"/b", raoh.CodeUnknownField}}) {
+		t.Errorf("an unknown_field another decode's Strict made: %v", summary(issues))
+	}
+	// Nor one handed to FallbackFunc and returned from a function the caller gave.
+	var handed raoh.Issues
+	recovered := raoh.Strict(a.Strict().Map(id).FallbackFunc(func(is raoh.Issues) int { handed = is; return 0 }), "a")
+	decodeJSON(t, recovered, `{"a":1,"b":2}`)
+	again := raoh.Strict(raoh.Object(raoh.Fields()).Map(func() int { return 0 }).AndThen(func(int) (int, error) {
+		return 0, &handed
+	}), "a")
+	if _, issues := decodeJSON(t, again, `{"b":1}`); !slices.Equal(summary(issues),
+		[]at{{"/b", raoh.CodeUnknownField}, {"/b", raoh.CodeUnknownField}}) {
+		t.Errorf("an unknown_field FallbackFunc was handed: %v", summary(issues))
+	}
 }
 
 // The candidates of a one_of_failed are kept as issues: written in the language the issue is
@@ -277,5 +298,26 @@ func TestEnumAndLiteralTakeAMessage(t *testing.T) {
 	}
 	if got, issues := decodeJSON(t, raoh.Literal("v1"), `"v1"`); issues != nil || got != "v1" {
 		t.Errorf("%v %v", got, issues)
+	}
+}
+
+// The issue owns the tree of its metadata: slices, arrays and maps at any depth, in and out. A
+// struct or a pointer is the caller's value, held as given.
+func TestAnIssueOwnsTheTreeOfItsMetadata(t *testing.T) {
+	nested := map[string]any{"list": []any{[]string{"a"}, [2][]int{{1}, {2}}}}
+	i := raoh.NewIssue("c").WithMeta("tree", nested)
+	nested["list"].([]any)[0].([]string)[0] = "changed"
+	nested["list"].([]any)[1].([2][]int)[1][0] = 9
+	got := i.Meta()["tree"].(map[string]any)["list"].([]any)
+	if got[0].([]string)[0] != "a" || got[1].([2][]int)[1][0] != 2 {
+		t.Errorf("the tree given changed the issue: %v", got)
+	}
+	got[0].([]string)[0] = "out"
+	if i.Meta()["tree"].(map[string]any)["list"].([]any)[0].([]string)[0] != "a" {
+		t.Error("the tree handed out changed the issue")
+	}
+	when := time.Date(2026, 10, 2, 0, 0, 0, 0, time.UTC)
+	if i := raoh.NewIssue("c").WithMeta("at", when); !i.Meta()["at"].(time.Time).Equal(when) {
+		t.Error("a struct is held as given")
 	}
 }

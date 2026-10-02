@@ -26,9 +26,11 @@ type Issue struct {
 	customMessage string
 	hasCustom     bool
 	// byStrict is whether a Strict, or the Strict of an Object, made this
-	// unknown_field, so that a Strict around it does not report the member
-	// again. Only the decoders set it, and a list a caller builds, with
-	// Invalid or from All, never has it.
+	// unknown_field in the decode that is running, so that a Strict around it
+	// does not report the member again. It lives as long as that decode: an
+	// issue crosses into the caller's hands, and back, only through
+	// Issues.published, which drops it, so an issue a caller holds or returns
+	// never has it.
 	byStrict bool
 	// candidates is what each alternative of a OneOf reported, for
 	// one_of_failed: kept as issues, so that they are written in the language
@@ -58,8 +60,15 @@ func (i Issue) WithMessageKey(key string) Issue {
 	return i
 }
 
-// WithMeta returns i with one more entry of metadata. A slice or map in value
-// is copied, so changing it afterwards does not change the issue.
+// WithMeta returns i with one more entry of metadata.
+//
+// Metadata is a tree of values like JSON's: scalars, and slices, arrays, maps
+// and interfaces holding more of them. The issue owns that tree: WithMeta copies
+// every slice, array and map in value, at any depth, so changing them
+// afterwards does not change the issue, and Meta hands out copies of its own.
+// A struct or a pointer in the tree, such as a time.Time, is a value of the
+// caller's, held as it was given: the issue copies a struct as Go assigns it
+// and does not copy what a pointer or a struct's fields refer to.
 func (i Issue) WithMeta(key string, value any) Issue {
 	m := maps.Clone(i.meta)
 	if m == nil {
@@ -118,8 +127,9 @@ func (i Issue) Code() string { return i.code }
 func (i Issue) MessageKey() string { return i.messageKey }
 
 // Meta returns a copy of what else the code says about the problem, such as
-// the bound a value fell outside of. The slices and maps in it are copies too,
-// so changing them changes neither the issue nor the decoder that made it.
+// the bound a value fell outside of. Its slices, arrays and maps are copies
+// too, at any depth, so changing them changes neither the issue nor the
+// decoder that made it; a struct or a pointer is as [Issue.WithMeta] says.
 // The candidates of a one_of_failed are written with English messages; Render
 // writes them in the language it is given.
 func (i Issue) Meta() map[string]any { return i.metaIn(English) }
@@ -144,9 +154,9 @@ func (i Issue) metaIn(r Resolver) map[string]any {
 	return m
 }
 
-// ownCopy is v with every slice and map in it copied, at every depth, so that
-// what an issue holds is its own and what it hands out is the caller's. Other
-// values are given as they are.
+// ownCopy is v with every slice, array and map of its tree copied, at every
+// depth, so that what an issue holds is its own and what it hands out is the
+// caller's. A struct or a pointer is given as it is (see Issue.WithMeta).
 func ownCopy(v any) any {
 	switch x := v.(type) {
 	case nil, string, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64,
@@ -176,6 +186,12 @@ func deepCopy(v reflect.Value) reflect.Value {
 			return v
 		}
 		out := reflect.MakeSlice(v.Type(), v.Len(), v.Len())
+		for i := range v.Len() {
+			out.Index(i).Set(deepCopy(v.Index(i)))
+		}
+		return out
+	case reflect.Array:
+		out := reflect.New(v.Type()).Elem()
 		for i := range v.Len() {
 			out.Index(i).Set(deepCopy(v.Index(i)))
 		}
@@ -261,16 +277,25 @@ type Issues struct {
 // those of the other fields; they are read as relative to the path the decoder
 // is at. Any other error a function returns stops the decode.
 func Invalid(issues ...Issue) error {
-	return &Issues{items: withoutMarks(issues)}
+	is := Issues{items: slices.Clone(issues)}.published()
+	return &is
 }
 
-// withoutMarks is a copy of issues with no issue marked as one a Strict made.
-func withoutMarks(issues []Issue) []Issue {
-	out := slices.Clone(issues)
-	for n := range out {
-		out[n].byStrict = false
+// published is is as a caller sees it, without the marks a decode keeps for
+// itself while it runs. Every issue that leaves a decode for the caller, from
+// Decode or to the function given to FallbackFunc, and every issue that comes
+// back from a caller's function or Invalid, goes through it. It copies only a
+// list that holds a mark.
+func (is Issues) published() Issues {
+	n := slices.IndexFunc(is.items, func(i Issue) bool { return i.byStrict })
+	if n < 0 {
+		return is
 	}
-	return out
+	out := slices.Clone(is.items)
+	for k := n; k < len(out); k++ {
+		out[k].byStrict = false
+	}
+	return Issues{items: out}
 }
 
 // unknownMember is the unknown_field a Strict reports for the member k at p.
@@ -284,7 +309,7 @@ func unknownMember(k string, p Path) Issue {
 func (is Issues) Len() int { return len(is.items) }
 
 // All returns a copy of the issues in the order they were found.
-func (is Issues) All() []Issue { return withoutMarks(is.items) }
+func (is Issues) All() []Issue { return slices.Clone(is.items) }
 
 // Error writes each issue as its path and English message, one per line.
 func (is *Issues) Error() string {

@@ -54,7 +54,8 @@ func fromAbsoluteError[T any](v T, err error) outcome[T] {
 
 func failedError[T any](err error) outcome[T] {
 	if is, ok := asIssues(err); ok {
-		return invalid[T](is.items...)
+		// What a caller returns is the caller's, whatever decode it came from.
+		return invalid[T](is.published().items...)
 	}
 	if _, mixed := errors.AsType[*Issues](err); mixed {
 		err = &executionError{err}
@@ -202,7 +203,8 @@ func (d Decoder[I, T]) Decode(in I) (T, error) {
 	case o.err != nil:
 		return zero, o.err
 	case o.issues.Len() > 0:
-		return zero, &o.issues
+		is := o.issues.published()
+		return zero, &is
 	}
 	return o.value, nil
 }
@@ -360,7 +362,7 @@ func (d Decoder[I, T]) FallbackFunc(f func(Issues) T) Decoder[I, T] {
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.err == nil && o.issues.Len() > 0 {
-			return succeed(f(o.issues))
+			return succeed(f(o.issues.published()))
 		}
 		return o
 	}}
