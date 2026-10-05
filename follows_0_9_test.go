@@ -10,7 +10,7 @@ import (
 	"github.com/raoh-project/raoh-go"
 )
 
-// Email accepts an ASCII profile of RFC 5321's Mailbox, as the Raoh Specification 0.9.0 says.
+// Email accepts an ASCII profile of RFC 5321's Mailbox, as the Raoh Specification 0.9 says.
 func TestEmailIsAnASCIIProfileOfRFC5321(t *testing.T) {
 	long := func(n int) string { return string(slices.Repeat([]byte{'a'}, n)) }
 	for in, ok := range map[string]bool{

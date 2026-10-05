@@ -164,7 +164,7 @@ carries is one its creator gave with `WithMessage(...)`, which every language th
 written.
 
 The codes, message keys and meta keys are those of the
-[Raoh Specification](https://github.com/raoh-project/raoh-specification) 0.9.0, as in Raoh for Java
+[Raoh Specification](https://github.com/raoh-project/raoh-specification) 0.9, as in Raoh for Java
 0.9 and its Rust and PHP ports, so the same client-side handling works for all of them, and a
 catalogue written for Raoh for Java resolves these issues too. The specification's cases are run on
 this package (see [Development](#development)), and `compat_test.go` holds the decoders to what
@@ -294,7 +294,9 @@ Java has no custom message for `containsAll`; here `.Message` works on it as on 
 
 `raoh.ToSet(d)` turns a decoder of `[]T`, such as `raoh.List(...).MaxSize(3)`, into a decoder of
 `map[T]struct{}`. The constraints of `d` run first, then the elements are gathered, each once. The
-order of the list is not kept, unlike Java's `toSet`.
+order of the list is not kept, unlike Java's `toSet`. The map compares its keys with `==`, so a set
+of floats holds `-0.0` and `0.0` as one element, where the specification and Java's `toSet` hold
+them as two.
 
 `raoh.Dict(d)`: a `map[string]T` from an object used as a map, with `NonEmpty`, `MinSize`,
 `MaxSize` and `Size`, which report `too_small`, `too_big` and `invalid_size` as a list does. They
@@ -470,6 +472,9 @@ In what it reports:
 - A Go float given as input, as `encoding/json` gives every number, is an integer when it holds
   one. In JSON text read by `DecodeJSON`, `1.0` is not an integer, as in Raoh for Java.
 - `DecodeJSON` refuses an object that names a member twice, as `invalid_format.json`.
+- `ToSet` over floats holds `-0.0` and `0.0` as one element, since a Go map compares its keys with
+  `==`. This is the one case of the specification `conformance/conformance.json` declares as a
+  divergence.
 
 In the API:
 

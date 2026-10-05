@@ -293,12 +293,18 @@ func (b *binder) object(fields []any, strict bool) (node, error) {
 			o = o.Strict()
 		}
 		g = o.Map(func(a, b any) any { return product(a, b) })
-	case shape == "fo" && !strict:
-		g = raoh.Object(raoh.Fields().Field(name(0), p(0)).Field(name(1), raoh.Optional(p(1)))).
-			Map(func(a any, b *any) any { return product(a, b) })
-	case shape == "fp" && !strict:
-		g = raoh.Object(raoh.Fields().Field(name(0), p(0)).Field(name(1), raoh.PresenceOf(p(1)))).
-			Map(func(a any, b raoh.Presence[any]) any { return product(a, b) })
+	case shape == "fo":
+		o := raoh.Object(raoh.Fields().Field(name(0), p(0)).Field(name(1), raoh.Optional(p(1))))
+		if strict {
+			o = o.Strict()
+		}
+		g = o.Map(func(a any, b *any) any { return product(a, b) })
+	case shape == "fp":
+		o := raoh.Object(raoh.Fields().Field(name(0), p(0)).Field(name(1), raoh.PresenceOf(p(1))))
+		if strict {
+			o = o.Strict()
+		}
+		g = o.Map(func(a any, b raoh.Presence[any]) any { return product(a, b) })
 	case shape == "oo" && !strict:
 		g = raoh.Object(raoh.Fields().Field(name(0), raoh.Optional(p(0))).Field(name(1), raoh.Optional(p(1)))).
 			Map(func(a, b *any) any { return product(a, b) })

@@ -32,7 +32,7 @@ const (
 // catalogue that has a template only for the code still resolves it. An issue
 // whose check has no key of its own uses its code as its message key.
 //
-// These are the keys of the Raoh Specification 0.9.0, which Raoh for Java uses
+// These are the keys of the Raoh Specification 0.9, which Raoh for Java uses
 // too. invalid_format.json is this package's own, for text that is not JSON,
 // which the specification leaves outside its input model.
 const (
