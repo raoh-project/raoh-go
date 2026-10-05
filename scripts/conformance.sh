@@ -53,7 +53,7 @@ fi
 if [[ -n "${RAOH_GO_VERSION:-}" ]]; then
     IMPLEMENTATION_VERSION="$RAOH_GO_VERSION"
 elif [[ "$IMPLEMENTATION_REVISION" != *-dirty ]] &&
-    TAG="$(git -C "$ROOT" tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)" &&
+    TAG="$(git -C "$ROOT" tag --points-at HEAD | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -n 1)" &&
     [[ -n "$TAG" ]]; then
     IMPLEMENTATION_VERSION="${TAG#v}"
 else
