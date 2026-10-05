@@ -18,7 +18,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -40,7 +40,7 @@ jobs:
   # pins, run on this package and checked by that commit's raoh-verify against
   # conformance/conformance.json.
   conformance:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -58,7 +58,7 @@ jobs:
         env:
           RAOH_GO_VERSION: ${{ inputs.version }}
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: conformance
           path: |
