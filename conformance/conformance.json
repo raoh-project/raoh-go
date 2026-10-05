@@ -1,0 +1,22 @@
+{
+  "implementation": "raoh-go",
+  "specification": "0.9",
+  "profiles": [
+    "core",
+    "encode",
+    "messages-en",
+    "messages-ja"
+  ],
+  "unsupported_features": {},
+  "divergences": {
+    "R001012": {
+      "category": "design",
+      "reason": "ToSet gives a Go map[T]struct{}, whose keys Go compares with ==, so -0 and +0 are one key and a NaN is never the same key as another. raoh-go keeps the map as the result type, so that a caller reads a set as Go's own, and a set of floats holds +0 and -0 as one element.",
+      "observed": {
+        "ok": [
+          0
+        ]
+      }
+    }
+  }
+}

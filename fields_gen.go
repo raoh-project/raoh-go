@@ -39,6 +39,7 @@ func (o object0) Strict() object0 {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object0) Map[R any](fn func() R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func() (R, error) { return fn(), nil })
 }
 
@@ -46,13 +47,11 @@ func (o object0) Map[R any](fn func() R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object0) AndThen[R any](fn func() (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -68,13 +67,11 @@ func (o object0) AndThen[R any](fn func() (R, error)) Decoder[any, R] {
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object0) AndThenWithPath[R any](fn func(Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -121,6 +118,7 @@ func (o object1[A]) Strict() object1[A] {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A) (R, error) { return fn(v0), nil })
 }
 
@@ -128,14 +126,12 @@ func (o object1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -151,14 +147,12 @@ func (o object1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -197,6 +191,7 @@ type flatobject1[A any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A) (R, error) { return fn(v0), nil })
 }
 
@@ -204,11 +199,9 @@ func (o flatobject1[A]) Map[R any](fn func(A) R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		if c.failed() {
@@ -224,11 +217,9 @@ func (o flatobject1[A]) AndThen[R any](fn func(A) (R, error)) Decoder[any, R] {
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject1[A]) AndThenWithPath[R any](fn func(A, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		if c.failed() {
@@ -276,6 +267,7 @@ func (o object2[A, B]) Strict() object2[A, B] {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B) (R, error) { return fn(v0, v1), nil })
 }
 
@@ -283,15 +275,13 @@ func (o object2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -307,15 +297,13 @@ func (o object2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -355,6 +343,7 @@ type flatobject2[A, B any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B) (R, error) { return fn(v0, v1), nil })
 }
 
@@ -362,11 +351,9 @@ func (o flatobject2[A, B]) Map[R any](fn func(A, B) R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -383,11 +370,9 @@ func (o flatobject2[A, B]) AndThen[R any](fn func(A, B) (R, error)) Decoder[any,
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject2[A, B]) AndThenWithPath[R any](fn func(A, B, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -437,6 +422,7 @@ func (o object3[A, B, C]) Strict() object3[A, B, C] {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C) (R, error) { return fn(v0, v1, v2), nil })
 }
 
@@ -444,16 +430,14 @@ func (o object3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -469,16 +453,14 @@ func (o object3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[an
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -519,6 +501,7 @@ type flatobject3[A, B, C any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C) (R, error) { return fn(v0, v1, v2), nil })
 }
 
@@ -526,11 +509,9 @@ func (o flatobject3[A, B, C]) Map[R any](fn func(A, B, C) R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -548,11 +529,9 @@ func (o flatobject3[A, B, C]) AndThen[R any](fn func(A, B, C) (R, error)) Decode
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject3[A, B, C]) AndThenWithPath[R any](fn func(A, B, C, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -604,6 +583,7 @@ func (o object4[A, B, C, D]) Strict() object4[A, B, C, D] {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D) (R, error) { return fn(v0, v1, v2, v3), nil })
 }
 
@@ -611,17 +591,15 @@ func (o object4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, R] {
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -637,17 +615,15 @@ func (o object4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Deco
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -691,6 +667,7 @@ type flatobject4[A, B, C, D any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D) (R, error) { return fn(v0, v1, v2, v3), nil })
 }
 
@@ -698,11 +675,9 @@ func (o flatobject4[A, B, C, D]) Map[R any](fn func(A, B, C, D) R) Decoder[any, 
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -721,11 +696,9 @@ func (o flatobject4[A, B, C, D]) AndThen[R any](fn func(A, B, C, D) (R, error)) 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject4[A, B, C, D]) AndThenWithPath[R any](fn func(A, B, C, D, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -779,6 +752,7 @@ func (o object5[A, B, C, D, E]) Strict() object5[A, B, C, D, E] {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E) (R, error) { return fn(v0, v1, v2, v3, v4), nil })
 }
 
@@ -786,18 +760,16 @@ func (o object5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder[any
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -813,18 +785,16 @@ func (o object5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
 		v2 := read(&c, o.f.p2, in, m, at)
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -869,6 +839,7 @@ type flatobject5[A, B, C, D, E any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E) (R, error) { return fn(v0, v1, v2, v3, v4), nil })
 }
 
@@ -876,11 +847,9 @@ func (o flatobject5[A, B, C, D, E]) Map[R any](fn func(A, B, C, D, E) R) Decoder
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -900,11 +869,9 @@ func (o flatobject5[A, B, C, D, E]) AndThen[R any](fn func(A, B, C, D, E) (R, er
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject5[A, B, C, D, E]) AndThenWithPath[R any](fn func(A, B, C, D, E, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -962,6 +929,7 @@ func (o object6[A, B, C, D, E, F]) Strict() object6[A, B, C, D, E, F] {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F) (R, error) { return fn(v0, v1, v2, v3, v4, v5), nil })
 }
 
@@ -969,11 +937,9 @@ func (o object6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) Decod
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -981,7 +947,7 @@ func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, 
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -997,11 +963,9 @@ func (o object6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1009,7 +973,7 @@ func (o object6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E,
 		v3 := read(&c, o.f.p3, in, m, at)
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1055,6 +1019,7 @@ type flatobject6[A, B, C, D, E, F any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F) (R, error) { return fn(v0, v1, v2, v3, v4, v5), nil })
 }
 
@@ -1062,11 +1027,9 @@ func (o flatobject6[A, B, C, D, E, F]) Map[R any](fn func(A, B, C, D, E, F) R) D
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1087,11 +1050,9 @@ func (o flatobject6[A, B, C, D, E, F]) AndThen[R any](fn func(A, B, C, D, E, F) 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject6[A, B, C, D, E, F]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1151,6 +1112,7 @@ func (o object7[A, B, C, D, E, F, G]) Strict() object7[A, B, C, D, E, F, G] {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G) (R, error) { return fn(v0, v1, v2, v3, v4, v5, v6), nil })
 }
 
@@ -1158,11 +1120,9 @@ func (o object7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G) R)
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1171,7 +1131,7 @@ func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1187,11 +1147,9 @@ func (o object7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1200,7 +1158,7 @@ func (o object7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D,
 		v4 := read(&c, o.f.p4, in, m, at)
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1247,6 +1205,7 @@ type flatobject7[A, B, C, D, E, F, G any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G) (R, error) { return fn(v0, v1, v2, v3, v4, v5, v6), nil })
 }
 
@@ -1254,11 +1213,9 @@ func (o flatobject7[A, B, C, D, E, F, G]) Map[R any](fn func(A, B, C, D, E, F, G
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, F, G) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1280,11 +1237,9 @@ func (o flatobject7[A, B, C, D, E, F, G]) AndThen[R any](fn func(A, B, C, D, E, 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject7[A, B, C, D, E, F, G]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1346,6 +1301,7 @@ func (o object8[A, B, C, D, E, F, G, H]) Strict() object8[A, B, C, D, E, F, G, H
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F, G, H) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7), nil
 	})
@@ -1355,11 +1311,9 @@ func (o object8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F, G,
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F, G, H) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1369,7 +1323,7 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1385,11 +1339,9 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1399,7 +1351,7 @@ func (o object8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C,
 		v5 := read(&c, o.f.p5, in, m, at)
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1447,6 +1399,7 @@ type flatobject8[A, B, C, D, E, F, G, H any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F, G, H) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7), nil
 	})
@@ -1456,11 +1409,9 @@ func (o flatobject8[A, B, C, D, E, F, G, H]) Map[R any](fn func(A, B, C, D, E, F
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, E, F, G, H) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1483,11 +1434,9 @@ func (o flatobject8[A, B, C, D, E, F, G, H]) AndThen[R any](fn func(A, B, C, D, 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject8[A, B, C, D, E, F, G, H]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1551,6 +1500,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) Strict() object9[A, B, C, D, E, F, G
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E, F, G, H, I) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8), nil
 	})
@@ -1560,11 +1510,9 @@ func (o object9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E, F,
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1575,7 +1523,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1591,11 +1539,9 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1606,7 +1552,7 @@ func (o object9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B,
 		v6 := read(&c, o.f.p6, in, m, at)
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1655,6 +1601,7 @@ type flatobject9[A, B, C, D, E, F, G, H, I any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E, F, G, H, I) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8), nil
 	})
@@ -1664,11 +1611,9 @@ func (o flatobject9[A, B, C, D, E, F, G, H, I]) Map[R any](fn func(A, B, C, D, E
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1692,11 +1637,9 @@ func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThen[R any](fn func(A, B, C, 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject9[A, B, C, D, E, F, G, H, I]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1762,6 +1705,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) Strict() object10[A, B, C, D, E,
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9), nil
 	})
@@ -1771,11 +1715,9 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, D, E
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1787,7 +1729,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, 
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1803,11 +1745,9 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1819,7 +1759,7 @@ func (o object10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A
 		v7 := read(&c, o.f.p7, in, m, at)
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -1869,6 +1809,7 @@ type flatobject10[A, B, C, D, E, F, G, H, I, J any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9), nil
 	})
@@ -1878,11 +1819,9 @@ func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) Map[R any](fn func(A, B, C, 
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1907,11 +1846,9 @@ func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThen[R any](fn func(A, B,
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject10[A, B, C, D, E, F, G, H, I, J]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -1979,6 +1916,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) Strict() object11[A, B, C, D,
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10), nil
 	})
@@ -1988,11 +1926,9 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, C, D
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2005,7 +1941,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, 
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2021,11 +1957,9 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2038,7 +1972,7 @@ func (o object11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn fun
 		v8 := read(&c, o.f.p8, in, m, at)
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2089,6 +2023,7 @@ type flatobject11[A, B, C, D, E, F, G, H, I, J, K any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10), nil
 	})
@@ -2098,11 +2033,9 @@ func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) Map[R any](fn func(A, B, 
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2128,11 +2061,9 @@ func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThen[R any](fn func(A,
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject11[A, B, C, D, E, F, G, H, I, J, K]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2202,6 +2133,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) Strict() object12[A, B, C,
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11), nil
 	})
@@ -2211,11 +2143,9 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, B, C
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2229,7 +2159,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, 
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2245,11 +2175,9 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2263,7 +2191,7 @@ func (o object12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn 
 		v9 := read(&c, o.f.p9, in, m, at)
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2315,6 +2243,7 @@ type flatobject12[A, B, C, D, E, F, G, H, I, J, K, L any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11), nil
 	})
@@ -2324,11 +2253,9 @@ func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) Map[R any](fn func(A, 
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2355,11 +2282,9 @@ func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThen[R any](fn func
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject12[A, B, C, D, E, F, G, H, I, J, K, L]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2431,6 +2356,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Strict() object13[A, B,
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12), nil
 	})
@@ -2440,11 +2366,9 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(A, B
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2459,7 +2383,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2475,11 +2399,9 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2494,7 +2416,7 @@ func (o object13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](
 		v10 := read(&c, o.f.p10, in, m, at)
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2547,6 +2469,7 @@ type flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12), nil
 	})
@@ -2556,11 +2479,9 @@ func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) Map[R any](fn func(
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2588,11 +2509,9 @@ func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThen[R any](fn f
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject13[A, B, C, D, E, F, G, H, I, J, K, L, M]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2666,6 +2585,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Strict() object14[A,
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13), nil
 	})
@@ -2675,11 +2595,9 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn func(A
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2695,7 +2613,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn fu
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2711,11 +2629,9 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn fu
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2731,7 +2647,7 @@ func (o object14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R an
 		v11 := read(&c, o.f.p11, in, m, at)
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2785,6 +2701,7 @@ type flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13), nil
 	})
@@ -2794,11 +2711,9 @@ func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) Map[R any](fn fu
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2827,11 +2742,9 @@ func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThen[R any](f
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2907,6 +2820,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Strict() object15
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14), nil
 	})
@@ -2916,11 +2830,9 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn fun
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2937,7 +2849,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -2953,11 +2865,9 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -2974,7 +2884,7 @@ func (o object15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R
 		v12 := read(&c, o.f.p12, in, m, at)
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -3029,6 +2939,7 @@ type flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14), nil
 	})
@@ -3038,11 +2949,9 @@ func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) Map[R any](fn
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3072,11 +2981,9 @@ func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThen[R any
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3141,6 +3048,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Strict() objec
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O, v15 P) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15), nil
 	})
@@ -3150,11 +3058,9 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any](fn 
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3172,7 +3078,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any]
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
 		v15 := read(&c, o.f.p15, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -3188,11 +3094,9 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any]
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3210,7 +3114,7 @@ func (o object16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPat
 		v13 := read(&c, o.f.p13, in, m, at)
 		v14 := read(&c, o.f.p14, in, m, at)
 		v15 := read(&c, o.f.p15, in, m, at)
-		if o.strict {
+		if o.strict && m != nil {
 			c.unknown(m, at, o.f.names)
 		}
 		if c.failed() {
@@ -3253,6 +3157,7 @@ type flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P any] struct {
 // Map returns the decoder that builds the value with fn once every component
 // has decoded.
 func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) R) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.Map", "fn")
 	return o.AndThen(func(v0 A, v1 B, v2 C, v3 D, v4 E, v5 F, v6 G, v7 H, v8 I, v9 J, v10 K, v11 L, v12 M, v13 N, v14 O, v15 P) (R, error) {
 		return fn(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15), nil
 	})
@@ -3262,11 +3167,9 @@ func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) Map[R any]
 // component has decoded. Issues fn returns (see Invalid) are reported at the
 // object; any other error stops the decode.
 func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThen", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)
@@ -3297,11 +3200,9 @@ func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThen[R 
 // AndThen, it does not move the issues fn returns: their paths are kept as fn
 // gives them, so build them from the path it was given, as at.Key("end").
 func (o flatobject16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]) AndThenWithPath[R any](fn func(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Path) (R, error)) Decoder[any, R] {
+	requireArgument(fn != nil, "Object.AndThenWithPath", "fn")
 	return Decoder[any, R]{func(in any, at Path) outcome[R] {
-		m, issue := openObject(in, at)
-		if issue != nil {
-			return invalid[R](*issue)
-		}
+		m, _ := AsObject(in)
 		var c collector
 		v0 := read(&c, o.f.p0, in, m, at)
 		v1 := read(&c, o.f.p1, in, m, at)

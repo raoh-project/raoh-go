@@ -45,13 +45,7 @@
 }, {
   "decoder" : "string_normalized_email",
   "input" : "ken@example",
-  "issues" : [ {
-    "code" : "invalid_format",
-    "message" : "not a valid email",
-    "message_key" : "invalid_format.email",
-    "meta" : { },
-    "path" : ""
-  } ]
+  "ok" : "ken@example"
 }, {
   "decoder" : "string_non_blank",
   "input" : "  ",
@@ -2265,7 +2259,7 @@
   } ]
 }, {
   "decoder" : "long",
-  "input" : 1.0E30,
+  "input" : 1E+30,
   "issues" : [ {
     "code" : "type_mismatch",
     "message" : "expected long",
@@ -2329,17 +2323,17 @@
   } ]
 }, {
   "decoder" : "decimal",
-  "input" : 1.0E-4,
-  "ok" : 0.00010
+  "input" : 0.0001,
+  "ok" : 0.0001
 }, {
   "decoder" : "decimal_min_small",
-  "input" : 1.0E-4,
+  "input" : 0.0001,
   "issues" : [ {
     "code" : "out_of_range",
     "message" : "must be at least 0.0005",
     "message_key" : "out_of_range.minimum",
     "meta" : {
-      "actual" : 0.00010,
+      "actual" : 0.0001,
       "min" : 0.0005
     },
     "path" : ""
@@ -6222,7 +6216,7 @@
 }, {
   "decoder" : "float",
   "input_json" : "-0",
-  "ok" : 0.0
+  "ok" : -0.0
 }, {
   "decoder" : "float",
   "input_json" : "-0.0",
@@ -6234,7 +6228,7 @@
 }, {
   "decoder" : "float",
   "input_json" : "1.00000005960464477539062501",
-  "ok" : 1.0
+  "ok" : 1.0000001
 }, {
   "decoder" : "float",
   "input_json" : "123456789012345678901234567890",
@@ -6282,7 +6276,7 @@
 }, {
   "decoder" : "double",
   "input_json" : "-0",
-  "ok" : 0.0
+  "ok" : -0.0
 }, {
   "decoder" : "double",
   "input_json" : "-0.0",
@@ -6704,5 +6698,358 @@
     "message_key" : "required",
     "meta" : { },
     "path" : ""
+  } ]
+}, {
+  "decoder" : "strict_discriminate",
+  "input" : {
+    "kind" : "square",
+    "side" : 3
+  },
+  "ok" : 9
+}, {
+  "decoder" : "strict_discriminate",
+  "input" : {
+    "kind" : "square",
+    "side" : 3,
+    "w" : 1
+  },
+  "issues" : [ {
+    "code" : "unknown_field",
+    "message" : "unknown field",
+    "message_key" : "unknown_field",
+    "meta" : {
+      "field" : "w"
+    },
+    "path" : "/w"
+  } ]
+}, {
+  "decoder" : "strict_discriminate",
+  "input" : {
+    "kind" : "rect",
+    "w" : 2,
+    "h" : 3,
+    "side" : 1
+  },
+  "issues" : [ {
+    "code" : "unknown_field",
+    "message" : "unknown field",
+    "message_key" : "unknown_field",
+    "meta" : {
+      "field" : "side"
+    },
+    "path" : "/side"
+  } ]
+}, {
+  "decoder" : "strict_discriminate",
+  "input" : {
+    "kind" : "rect",
+    "w" : "2",
+    "extra" : 1,
+    "h" : 3
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/w"
+  }, {
+    "code" : "unknown_field",
+    "message" : "unknown field",
+    "message_key" : "unknown_field",
+    "meta" : {
+      "field" : "extra"
+    },
+    "path" : "/extra"
+  } ]
+}, {
+  "decoder" : "strict_discriminate",
+  "input" : {
+    "kind" : "circle",
+    "extra" : 1
+  },
+  "issues" : [ {
+    "code" : "not_allowed",
+    "message" : "must be one of [rect, square]",
+    "message_key" : "not_allowed",
+    "meta" : {
+      "allowed" : [ "rect", "square" ]
+    },
+    "path" : "/kind"
+  }, {
+    "code" : "unknown_field",
+    "message" : "unknown field",
+    "message_key" : "unknown_field",
+    "meta" : {
+      "field" : "extra"
+    },
+    "path" : "/extra"
+  } ]
+}, {
+  "decoder" : "strict_discriminate",
+  "input" : { },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "strict_discriminate",
+  "input" : "rect",
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "object"
+    },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "enum_custom_string",
+  "input" : " RED ",
+  "ok" : "red"
+}, {
+  "decoder" : "enum_custom_string",
+  "input" : "Green",
+  "ok" : "green"
+}, {
+  "decoder" : "enum_custom_string",
+  "input" : "blue",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "invalid value",
+    "message_key" : "invalid_format.enum",
+    "meta" : {
+      "allowed" : [ "green", "red" ]
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "enum_custom_string",
+  "input" : 1,
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected string",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "string"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "enum_custom_string",
+  "input" : null,
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "literal_custom_string",
+  "input" : " V1 ",
+  "ok" : "v1"
+}, {
+  "decoder" : "literal_custom_string",
+  "input" : "v1",
+  "ok" : "v1"
+}, {
+  "decoder" : "literal_custom_string",
+  "input" : "v2",
+  "issues" : [ {
+    "code" : "invalid_format",
+    "message" : "invalid value",
+    "message_key" : "invalid_format.literal",
+    "meta" : {
+      "expected" : "v1"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "literal_custom_string",
+  "input" : null,
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "literal_custom_string",
+  "input" : 1,
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected string",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "string"
+    },
+    "path" : ""
+  } ]
+}, {
+  "decoder" : "discriminate_custom_tag",
+  "input" : {
+    "kind" : " RECT ",
+    "w" : 2,
+    "h" : 3
+  },
+  "ok" : 6
+}, {
+  "decoder" : "discriminate_custom_tag",
+  "input" : {
+    "kind" : "Square",
+    "side" : 3
+  },
+  "ok" : 9
+}, {
+  "decoder" : "discriminate_custom_tag",
+  "input" : {
+    "kind" : "circle"
+  },
+  "issues" : [ {
+    "code" : "not_allowed",
+    "message" : "must be one of [rect, square]",
+    "message_key" : "not_allowed",
+    "meta" : {
+      "allowed" : [ "rect", "square" ]
+    },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "discriminate_custom_tag",
+  "input" : {
+    "kind" : 1
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected string",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "number",
+      "expected" : "string"
+    },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "discriminate_custom_tag",
+  "input" : {
+    "kind" : ""
+  },
+  "issues" : [ {
+    "code" : "not_allowed",
+    "message" : "must be one of [rect, square]",
+    "message_key" : "not_allowed",
+    "meta" : {
+      "allowed" : [ "rect", "square" ]
+    },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "discriminate_custom_tag",
+  "input" : { },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "discriminate_custom_tag",
+  "input" : "rect",
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "object"
+    },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "discriminate_map",
+  "input" : {
+    "kind" : "square",
+    "side" : 3
+  },
+  "ok" : 9
+}, {
+  "decoder" : "discriminate_map",
+  "input" : {
+    "kind" : "rect",
+    "w" : 2,
+    "h" : 3
+  },
+  "ok" : 6
+}, {
+  "decoder" : "discriminate_map",
+  "input" : {
+    "kind" : "circle"
+  },
+  "issues" : [ {
+    "code" : "not_allowed",
+    "message" : "must be one of [rect, square]",
+    "message_key" : "not_allowed",
+    "meta" : {
+      "allowed" : [ "rect", "square" ]
+    },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "discriminate_map",
+  "input" : {
+    "kind" : "rect",
+    "w" : "2"
+  },
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected integer",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "integer"
+    },
+    "path" : "/w"
+  }, {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/h"
+  } ]
+}, {
+  "decoder" : "discriminate_map",
+  "input" : { },
+  "issues" : [ {
+    "code" : "required",
+    "message" : "is required",
+    "message_key" : "required",
+    "meta" : { },
+    "path" : "/kind"
+  } ]
+}, {
+  "decoder" : "discriminate_map",
+  "input" : "rect",
+  "issues" : [ {
+    "code" : "type_mismatch",
+    "message" : "expected object",
+    "message_key" : "type_mismatch",
+    "meta" : {
+      "actual" : "string",
+      "expected" : "object"
+    },
+    "path" : "/kind"
   } ]
 } ]

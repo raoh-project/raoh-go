@@ -96,12 +96,19 @@ func (p Path) Segments() []string {
 	return segs
 }
 
+// pointerEscape writes a segment of a JSON Pointer: ~ as ~0 and / as ~1.
+var pointerEscape = strings.NewReplacer("~", "~0", "/", "~1")
+
 // String returns p as a JSON Pointer (RFC 6901). The root is "".
 func (p Path) String() string {
 	var b strings.Builder
 	for _, s := range p.Segments() {
 		b.WriteByte('/')
-		b.WriteString(strings.NewReplacer("~", "~0", "/", "~1").Replace(s))
+		if strings.ContainsAny(s, "~/") {
+			pointerEscape.WriteString(&b, s)
+		} else {
+			b.WriteString(s)
+		}
 	}
 	return b.String()
 }

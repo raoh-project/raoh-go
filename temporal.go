@@ -3,188 +3,167 @@ package raoh
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"strconv"
 	"time"
 
+	notation199x "github.com/raoh-project/notation-199x/go"
 	"github.com/raoh-project/raoh-go/internal/javatime"
 )
 
-// The ISO 8601 text forms the temporal decoders accept, as Raoh for Java's
-// TemporalText defines them. A year is written as LocalDate.toString writes it:
-// four digits and no sign for 0000 to 9999; otherwise a sign, and no leading
-// zero beyond the four-digit minimum. -0000 is not year 0.
-const (
-	yearPattern     = `(?P<year>[0-9]{4}|\+[1-9][0-9]{4,9}|-[0-9]{4}|-[1-9][0-9]{4,9})`
-	datePattern     = yearPattern + `-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})`
-	hourMinute      = `(?P<hour>[0-9]{2}):(?P<minute>[0-9]{2})`
-	secondPattern   = `:(?P<second>[0-9]{2})(?:\.(?P<fraction>[0-9]{1,9}))?`
-	timePattern     = hourMinute + `(?:` + secondPattern + `)?`
-	offsetPattern   = `(?:(?P<utc>Z)|(?P<offsetSign>[+-])(?P<offsetHour>[0-9]{2}):(?P<offsetMinute>[0-9]{2})(?::(?P<offsetSecond>[0-9]{2}))?)`
-	maxYear         = 999_999_999
-	maxInstantYear  = 1_000_000_000
-	maxOffsetSecond = 18 * 3600
-)
+// Which text is a date, a time, a date-time, a date-time with an offset or an
+// instant is the grammar of notation-199x, which Raoh for Java follows too.
+// Once a text is admitted, its value is read off it here: the grammar has
+// already put each field where it is, so nothing here decides what is a
+// temporal, and a text the grammar admits always has a value.
 
-var (
-	dateRE           = regexp.MustCompile(`^` + datePattern + `$`)
-	timeRE           = regexp.MustCompile(`^` + timePattern + `$`)
-	dateTimeRE       = regexp.MustCompile(`^` + datePattern + `T` + timePattern + `$`)
-	offsetDateTimeRE = regexp.MustCompile(`^` + datePattern + `T` + timePattern + offsetPattern + `$`)
-	// An instant requires the seconds.
-	instantRE = regexp.MustCompile(`^` + datePattern + `T` + hourMinute + secondPattern + offsetPattern + `$`)
-
-	instantMin = time.Date(-maxInstantYear, 1, 1, 0, 0, 0, 0, time.UTC)
-	instantMax = time.Date(maxInstantYear, 12, 31, 23, 59, 59, 999_999_999, time.UTC)
-)
-
-// groups returns the named groups of re that s matches whole, or nil.
-func groups(re *regexp.Regexp, s string) map[string]string {
-	m := re.FindStringSubmatch(s)
-	if m == nil {
-		return nil
-	}
-	g := map[string]string{}
-	for i, name := range re.SubexpNames() {
-		if name != "" {
-			g[name] = m[i]
-		}
-	}
-	return g
+// admittedFields is what an admitted text writes, as numbers, read from left to
+// right.
+type admittedFields struct {
+	text string
+	at   int
 }
 
-func atoi(s string) int {
-	n, _ := strconv.Atoi(s)
+// number reads the digits from where the reading is.
+func (f *admittedFields) number() int {
+	n := 0
+	for f.at < len(f.text) && f.text[f.at] >= '0' && f.text[f.at] <= '9' {
+		n = n*10 + int(f.text[f.at]-'0')
+		f.at++
+	}
 	return n
 }
 
-// dateFields returns the date the groups name, if it exists and its year is
-// within limit.
-func dateFields(g map[string]string, limit int) (y int, m time.Month, d int, ok bool) {
-	if g["year"] == "-0000" {
-		return 0, 0, 0, false
+// skip moves past c where it is there, and answers whether it was.
+func (f *admittedFields) skip(c byte) bool {
+	if f.at < len(f.text) && f.text[f.at] == c {
+		f.at++
+		return true
 	}
-	year, err := strconv.ParseInt(g["year"], 10, 64)
-	if err != nil || year < -int64(limit) || year > int64(limit) {
-		return 0, 0, 0, false
-	}
-	month, day := atoi(g["month"]), atoi(g["day"])
-	if month < 1 || month > 12 || day < 1 || day > time.Date(int(year), time.Month(month)+1, 0, 0, 0, 0, 0, time.UTC).Day() {
-		return 0, 0, 0, false
-	}
-	return int(year), time.Month(month), day, true
+	return false
 }
 
-// clockFields returns the clock time the groups name. hour may be 24 only
-// when allow24 holds; the caller decides what it means.
-func clockFields(g map[string]string, allow24 bool) (h, mi, s, nano int, ok bool) {
-	h, mi, s = atoi(g["hour"]), atoi(g["minute"]), atoi(g["second"])
-	if f := g["fraction"]; f != "" {
-		nano = atoi(f)
-		for i := len(f); i < 9; i++ {
-			nano *= 10
+// date reads a year, a month and a day. A year has a sign or none, and runs up
+// to the hyphen before the month.
+func (f *admittedFields) date() (int, time.Month, int) {
+	sign := 1
+	if f.skip('-') {
+		sign = -1
+	} else {
+		f.skip('+')
+	}
+	year := sign * f.number()
+	f.skip('-')
+	month := time.Month(f.number())
+	f.skip('-')
+	return year, month, f.number()
+}
+
+// clock reads an hour, a minute, and the second and the fraction of one where
+// they are written. An hour of 24 is left to time.Date, which makes it the
+// start of the next day.
+func (f *admittedFields) clock() (hour, minute, second, nano int) {
+	hour = f.number()
+	f.skip(':')
+	minute = f.number()
+	if f.skip(':') {
+		second = f.number()
+		if f.skip('.') {
+			from := f.at
+			nano = f.number()
+			for range 9 - (f.at - from) {
+				nano *= 10
+			}
 		}
 	}
-	if mi > 59 || s > 59 {
-		return 0, 0, 0, 0, false
-	}
-	if h == 24 && allow24 && mi == 0 && s == 0 && nano == 0 {
-		return h, mi, s, nano, true
-	}
-	return h, mi, s, nano, h <= 23
+	return hour, minute, second, nano
 }
 
-// offsetFields returns the offset the groups name, as ZoneOffset allows it:
-// at most 18 hours, and minutes and seconds below 60.
-func offsetFields(g map[string]string) (*time.Location, bool) {
-	if g["utc"] == "Z" {
-		return time.UTC, true
+// offset reads Z, or a sign and hh:mm[:ss], as a fixed zone.
+func (f *admittedFields) offset() *time.Location {
+	if f.skip('Z') {
+		return time.UTC
 	}
-	h, m, s := atoi(g["offsetHour"]), atoi(g["offsetMinute"]), atoi(g["offsetSecond"])
-	seconds := h*3600 + m*60 + s
-	if h > 18 || m > 59 || s > 59 || seconds > maxOffsetSecond {
-		return nil, false
+	sign := 1
+	if f.skip('-') {
+		sign = -1
+	} else {
+		f.skip('+')
 	}
-	if g["offsetSign"] == "-" {
-		seconds = -seconds
+	seconds := f.number() * 3600
+	f.skip(':')
+	seconds += f.number() * 60
+	if f.skip(':') {
+		seconds += f.number()
 	}
-	return time.FixedZone("", seconds), true
+	return time.FixedZone("", sign*seconds)
+}
+
+// admitted reads the value of text where the grammar admits it as kind, with
+// read, and is false where the grammar refuses it.
+func admitted(kind notation199x.TemporalKind, text string, read func(f *admittedFields) time.Time) (time.Time, bool) {
+	if notation199x.CheckTemporal(kind, text) != notation199x.Admitted {
+		return time.Time{}, false
+	}
+	f := &admittedFields{text: text}
+	t := read(f)
+	if f.at != len(text) {
+		panic(fmt.Sprintf("raoh: %q was admitted as %v and read only to byte %d", text, kind, f.at))
+	}
+	return t, true
 }
 
 func parseDate(s string) (time.Time, bool) {
-	g := groups(dateRE, s)
-	if g == nil {
-		return time.Time{}, false
-	}
-	y, m, d, ok := dateFields(g, maxYear)
-	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC), ok
+	return admitted(notation199x.Date, s, func(f *admittedFields) time.Time {
+		y, m, d := f.date()
+		return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	})
 }
 
 func parseClock(s string) (time.Time, bool) {
-	g := groups(timeRE, s)
-	if g == nil {
-		return time.Time{}, false
-	}
-	h, mi, sec, nano, ok := clockFields(g, false)
-	return time.Date(0, 1, 1, h, mi, sec, nano, time.UTC), ok
-}
-
-func dateTimeIn(g map[string]string, loc *time.Location) (time.Time, bool) {
-	y, m, d, ok := dateFields(g, maxYear)
-	if !ok {
-		return time.Time{}, false
-	}
-	h, mi, sec, nano, ok := clockFields(g, false)
-	return time.Date(y, m, d, h, mi, sec, nano, loc), ok
+	return admitted(notation199x.Time, s, func(f *admittedFields) time.Time {
+		h, mi, sec, nano := f.clock()
+		return time.Date(0, 1, 1, h, mi, sec, nano, time.UTC)
+	})
 }
 
 func parseDateTime(s string) (time.Time, bool) {
-	g := groups(dateTimeRE, s)
-	if g == nil {
-		return time.Time{}, false
-	}
-	return dateTimeIn(g, time.UTC)
+	return admitted(notation199x.DateTime, s, func(f *admittedFields) time.Time {
+		y, m, d := f.date()
+		f.skip('T')
+		h, mi, sec, nano := f.clock()
+		return time.Date(y, m, d, h, mi, sec, nano, time.UTC)
+	})
 }
 
 func parseOffsetDateTime(s string) (time.Time, bool) {
-	g := groups(offsetDateTimeRE, s)
-	if g == nil {
-		return time.Time{}, false
-	}
-	loc, ok := offsetFields(g)
-	if !ok {
-		return time.Time{}, false
-	}
-	return dateTimeIn(g, loc)
+	return admitted(notation199x.OffsetDateTime, s, func(f *admittedFields) time.Time {
+		y, m, d := f.date()
+		f.skip('T')
+		h, mi, sec, nano := f.clock()
+		return time.Date(y, m, d, h, mi, sec, nano, f.offset())
+	})
 }
 
-// parseInstant reads an instant as Java's ISO_INSTANT does once the grammar
-// has matched: the offset is applied, 24:00:00 is the start of the next day,
-// a second of 60 is refused because Java would read it as 59, and the moment
-// must be within the range of Instant.
+// parseInstant reads an instant: the offset is applied, so the value is the
+// moment the text names, in UTC, and 24:00:00 is the start of the next day.
 func parseInstant(s string) (time.Time, bool) {
-	g := groups(instantRE, s)
-	if g == nil {
-		return time.Time{}, false
-	}
-	y, m, d, ok := dateFields(g, maxInstantYear)
-	if !ok {
-		return time.Time{}, false
-	}
-	h, mi, sec, nano, ok := clockFields(g, true)
-	if !ok {
-		return time.Time{}, false
-	}
-	loc, ok := offsetFields(g)
-	if !ok {
-		return time.Time{}, false
-	}
-	t := time.Date(y, m, d, h, mi, sec, nano, loc).UTC()
-	return t, !t.Before(instantMin) && !t.After(instantMax)
+	return admitted(notation199x.Instant, s, func(f *admittedFields) time.Time {
+		y, m, d := f.date()
+		f.skip('T')
+		h, mi, sec, nano := f.clock()
+		return time.Date(y, m, d, h, mi, sec, nano, f.offset()).UTC()
+	})
 }
 
-// temporalKind is one of the java.time types a temporal decoder reads.
+// temporalKind is one of the java.time types a temporal decoder reads. Its
+// zero value is none of them, and every operation on it refuses that, so a
+// bound method of a zero TemporalDecoder cannot reach a nil function.
 type temporalKind struct {
+	ops *temporalOps
+}
+
+// temporalOps is what a kind does with a value. Every kind defined below
+// provides every operation.
+type temporalOps struct {
 	parse func(string) (time.Time, bool)
 	key   string
 	// format writes a value as the Java type's toString does, and jsonFormat
@@ -209,8 +188,24 @@ func (v temporalValue) String() string { return v.text }
 
 func (v temporalValue) MarshalJSON() ([]byte, error) { return json.Marshal(v.json) }
 
+// require gives the operations of the kind, and refuses the zero kind. It is
+// the only place that checks, and the operations below go through it.
+func (k temporalKind) require() *temporalOps {
+	if k.ops == nil {
+		refuseZeroValue()
+	}
+	return k.ops
+}
+
+func (k temporalKind) normalize(t time.Time) time.Time { return k.require().normalize(t) }
+
+func (k temporalKind) compare(a, b time.Time) int { return k.require().compare(a, b) }
+
+func (k temporalKind) format(t time.Time) string { return k.require().format(t) }
+
 func (k temporalKind) value(t time.Time) temporalValue {
-	return temporalValue{k.format(t), k.jsonFormat(t)}
+	ops := k.require()
+	return temporalValue{ops.format(t), ops.jsonFormat(t)}
 }
 
 func wallUTC(t time.Time) time.Time {
@@ -218,28 +213,23 @@ func wallUTC(t time.Time) time.Time {
 }
 
 var (
-	instantKind = temporalKind{parseInstant, KeyInvalidFormatInstant, javatime.Instant, javatime.Instant,
-		func(t time.Time) time.Time { return t.UTC() }, time.Time.Compare}
-	dateKind = temporalKind{parseDate, KeyInvalidFormatDate, javatime.Date, javatime.Date,
+	instantKind = temporalKind{&temporalOps{parseInstant, KeyInvalidFormatInstant, javatime.Instant, javatime.Instant,
+		func(t time.Time) time.Time { return t.UTC() }, time.Time.Compare}}
+	dateKind = temporalKind{&temporalOps{parseDate, KeyInvalidFormatDate, javatime.Date, javatime.Date,
 		func(t time.Time) time.Time { return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC) },
-		time.Time.Compare}
-	clockKind = temporalKind{parseClock, KeyInvalidFormatTime, javatime.Time, javatime.ISOTime,
+		time.Time.Compare}}
+	clockKind = temporalKind{&temporalOps{parseClock, KeyInvalidFormatTime, javatime.Time, javatime.ISOTime,
 		func(t time.Time) time.Time {
 			return time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
-		}, time.Time.Compare}
-	dateTimeKind = temporalKind{parseDateTime, KeyInvalidFormatDateTime, javatime.DateTime, javatime.ISODateTime, wallUTC,
-		time.Time.Compare}
-	// OffsetDateTime.compareTo orders by the instant, then by the local
-	// date-time, so the same instant at two offsets is not equal.
-	offsetDateTimeKind = temporalKind{parseOffsetDateTime, KeyInvalidFormatOffsetDateTime,
+		}, time.Time.Compare}}
+	dateTimeKind = temporalKind{&temporalOps{parseDateTime, KeyInvalidFormatDateTime, javatime.DateTime, javatime.ISODateTime, wallUTC,
+		time.Time.Compare}}
+	// Offset date-times are compared by the instant alone, so the same
+	// instant at two offsets is neither before nor after the other. The value
+	// keeps the offset it was written with.
+	offsetDateTimeKind = temporalKind{&temporalOps{parseOffsetDateTime, KeyInvalidFormatOffsetDateTime,
 		javatime.OffsetDateTime, javatime.ISOOffsetDateTime,
-		func(t time.Time) time.Time { return t },
-		func(a, b time.Time) int {
-			if c := a.Compare(b); c != 0 {
-				return c
-			}
-			return wallUTC(a).Compare(wallUTC(b))
-		}}
+		func(t time.Time) time.Time { return t }, time.Time.Compare}}
 )
 
 // TemporalDecoder decodes a string into a time.Time as one of Java's
@@ -259,6 +249,7 @@ type TemporalDecoder struct {
 }
 
 func newTemporal(str scalar[string], kind temporalKind, s scalar[time.Time]) TemporalDecoder {
+	ops := kind.require()
 	d := TemporalDecoder{str: str, kind: kind, s: s}
 	strDecoder := str.build()
 	d.Decoder = Decoder[any, time.Time]{func(in any, at Path) outcome[time.Time] {
@@ -266,9 +257,9 @@ func newTemporal(str scalar[string], kind temporalKind, s scalar[time.Time]) Tem
 		if o.failed() {
 			return failAs[time.Time](o)
 		}
-		v, ok := kind.parse(o.value)
+		v, ok := ops.parse(o.value)
 		if !ok {
-			return invalid[time.Time](withCustom(NewIssue(CodeInvalidFormat).WithMessageKey(kind.key).At(at), s.baseMessage))
+			return invalid[time.Time](withCustom(NewIssue(CodeInvalidFormat).WithMessageKey(ops.key).At(at), s.baseMessage))
 		}
 		return s.run(v, at)
 	}}

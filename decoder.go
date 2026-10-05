@@ -2,6 +2,7 @@ package raoh
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -53,7 +54,8 @@ func fromAbsoluteError[T any](v T, err error) outcome[T] {
 
 func failedError[T any](err error) outcome[T] {
 	if is, ok := asIssues(err); ok {
-		return invalid[T](is.items...)
+		// What a caller returns is the caller's, whatever decode it came from.
+		return invalid[T](is.published().items...)
 	}
 	if _, mixed := errors.AsType[*Issues](err); mixed {
 		err = &executionError{err}
@@ -119,6 +121,10 @@ func asOutsideIssues(err error, target any) bool {
 
 // Decoder decodes an I into a T. A decoder holds no state and can be reused
 // and shared between goroutines.
+//
+// The zero Decoder has nothing to run. A decoder built from it, or a method
+// called on it, panics: when a decoder is built if it can be, and otherwise at
+// the decode.
 type Decoder[I, T any] struct {
 	run func(in I, at Path) outcome[T]
 }
@@ -130,13 +136,44 @@ type DecoderOf[T any] interface {
 	decoder() Decoder[any, T]
 }
 
-// decoder lets a type that embeds a Decoder be passed as a DecoderOf.
-func (d Decoder[I, T]) decoder() Decoder[I, T] { return d }
+// decoder lets a type that embeds a Decoder be passed as a DecoderOf. It
+// refuses the zero Decoder, which has nothing to run, so a decoder built from
+// one is refused when it is built.
+func (d Decoder[I, T]) decoder() Decoder[I, T] {
+	if d.run == nil {
+		panic("raoh: a decoder was built from the zero Decoder, which has nothing to run")
+	}
+	return d
+}
+
+// requireRun panics if d is the zero Decoder, which has nothing to run: a
+// decoder derived from it, or a decode with it, would panic whatever the input.
+func (d Decoder[I, T]) requireRun(method string) {
+	if d.run == nil {
+		panic(fmt.Sprintf("raoh: %s needs a receiver that is not the zero Decoder", method))
+	}
+}
+
+// decoderOf is d.decoder() for a decoder a constructor is given, refused when
+// it is nil.
+func decoderOf[T any](d DecoderOf[T], constructor, argument string) Decoder[any, T] {
+	requireArgument(d != nil, constructor, argument)
+	return d.decoder()
+}
+
+// requireArgument panics, when a decoder is built, if a function or decoder it
+// is given is nil: the decode would call it and panic, whatever the input.
+func requireArgument(ok bool, constructor, argument string) {
+	if !ok {
+		panic(fmt.Sprintf("raoh: %s needs %s that is not nil", constructor, argument))
+	}
+}
 
 // NewDecoder returns a decoder that runs f. An error made of issues (see
 // [Invalid]) reports the input as invalid, with the issues read as relative to
 // the path the decoder is at; any other error stops the decode.
 func NewDecoder[I, T any](f func(in I) (T, error)) Decoder[I, T] {
+	requireArgument(f != nil, "NewDecoder", "f")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		v, err := f(in)
 		return fromRelativeError(v, err, at)
@@ -147,6 +184,7 @@ func NewDecoder[I, T any](f func(in I) (T, error)) Decoder[I, T] {
 // decoder is at. The paths of the issues f returns are kept as f gives them,
 // so build them from the path it was given, as at.Key("end").
 func NewDecoderWithPath[I, T any](f func(in I, at Path) (T, error)) Decoder[I, T] {
+	requireArgument(f != nil, "NewDecoderWithPath", "f")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		v, err := f(in, at)
 		return fromAbsoluteError(v, err)
@@ -158,19 +196,23 @@ func NewDecoderWithPath[I, T any](f func(in I, at Path) (T, error)) Decoder[I, T
 // from a failure of the program. A failure of the program is returned as the
 // function that produced it returned it, unless issues were mixed into it.
 func (d Decoder[I, T]) Decode(in I) (T, error) {
+	d.requireRun("Decoder.Decode")
 	o := d.run(in, Path{})
 	var zero T
 	switch {
 	case o.err != nil:
 		return zero, o.err
 	case o.issues.Len() > 0:
-		return zero, &o.issues
+		is := o.issues.published()
+		return zero, &is
 	}
 	return o.value, nil
 }
 
 // Map returns a decoder that applies f to the decoded value.
 func (d Decoder[I, T]) Map[U any](f func(T) U) Decoder[I, U] {
+	d.requireRun("Decoder.Map")
+	requireArgument(f != nil, "Decoder.Map", "f")
 	return Decoder[I, U]{func(in I, at Path) outcome[U] {
 		o := d.run(in, at)
 		if o.failed() {
@@ -186,6 +228,8 @@ func (d Decoder[I, T]) Map[U any](f func(T) U) Decoder[I, U] {
 // are reported as relative to the path this decoder is at. Any other error
 // stops the decode and is returned from Decode.
 func (d Decoder[I, T]) AndThen[U any](f func(T) (U, error)) Decoder[I, U] {
+	d.requireRun("Decoder.AndThen")
+	requireArgument(f != nil, "Decoder.AndThen", "f")
 	return Decoder[I, U]{func(in I, at Path) outcome[U] {
 		o := d.run(in, at)
 		if o.failed() {
@@ -201,6 +245,8 @@ func (d Decoder[I, T]) AndThen[U any](f func(T) (U, error)) Decoder[I, U] {
 // AndThen, it does not move the issues f returns: their paths are kept as f
 // gives them, so build them from the path it was given, as at.Key("end").
 func (d Decoder[I, T]) AndThenWithPath[U any](f func(T, Path) (U, error)) Decoder[I, U] {
+	d.requireRun("Decoder.AndThenWithPath")
+	requireArgument(f != nil, "Decoder.AndThenWithPath", "f")
 	return Decoder[I, U]{func(in I, at Path) outcome[U] {
 		o := d.run(in, at)
 		if o.failed() {
@@ -214,6 +260,10 @@ func (d Decoder[I, T]) AndThenWithPath[U any](f func(T, Path) (U, error)) Decode
 // Pipe returns a decoder that hands the decoded value to next as its input,
 // at the same path.
 func (d Decoder[I, T]) Pipe[U any](next Decoder[T, U]) Decoder[I, U] {
+	d.requireRun("Decoder.Pipe")
+	if next.run == nil {
+		panic("raoh: Decoder.Pipe needs a next decoder that is not the zero Decoder")
+	}
 	return Decoder[I, U]{func(in I, at Path) outcome[U] {
 		o := d.run(in, at)
 		if o.failed() {
@@ -226,6 +276,8 @@ func (d Decoder[I, T]) Pipe[U any](next Decoder[T, U]) Decoder[I, U] {
 // Refine returns a decoder that also requires ok to hold for the decoded
 // value, and reports code with message as a custom message when it does not.
 func (d Decoder[I, T]) Refine(ok func(T) bool, code, message string) Decoder[I, T] {
+	d.requireRun("Decoder.Refine")
+	requireArgument(ok != nil, "Decoder.Refine", "ok")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.failed() || ok(o.value) {
@@ -239,6 +291,9 @@ func (d Decoder[I, T]) Refine(ok func(T) bool, code, message string) Decoder[I, 
 // the decoded value. meta is called only when ok does not hold, and the map it
 // returns is copied into the issue.
 func (d Decoder[I, T]) RefineWithMeta(ok func(T) bool, code, message string, meta func(T) map[string]any) Decoder[I, T] {
+	d.requireRun("Decoder.RefineWithMeta")
+	requireArgument(ok != nil, "Decoder.RefineWithMeta", "ok")
+	requireArgument(meta != nil, "Decoder.RefineWithMeta", "meta")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.failed() || ok(o.value) {
@@ -254,6 +309,8 @@ func (d Decoder[I, T]) RefineWithMeta(ok func(T) bool, code, message string, met
 // build them from the path it was given, as at.Key("end"). Any other error
 // stops the decode.
 func (d Decoder[I, T]) RefineWithPath(check func(T, Path) error) Decoder[I, T] {
+	d.requireRun("Decoder.RefineWithPath")
+	requireArgument(check != nil, "Decoder.RefineWithPath", "check")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.failed() {
@@ -266,32 +323,33 @@ func (d Decoder[I, T]) RefineWithPath(check func(T, Path) error) Decoder[I, T] {
 	}}
 }
 
-// Default returns a decoder that gives v when every issue d reports is
-// required, as for a missing or null value, and reports any other problem.
+// Default returns a decoder that gives v for a null or missing value, which is
+// looked at before d runs, and gives d's result unchanged for any other value,
+// failure included. So an object with a missing member still reports the
+// member's required, and Nullable(d).Default(v) gives v for null. To give a
+// value whatever d reports, use Fallback.
 func (d Decoder[I, T]) Default(v T) Decoder[I, T] {
+	d.requireRun("Decoder.Default")
 	return d.DefaultFunc(func() T { return v })
 }
 
 // DefaultFunc is Default with the default computed by f, which is called once
 // each time the default is needed and not otherwise.
 func (d Decoder[I, T]) DefaultFunc(f func() T) Decoder[I, T] {
+	d.requireRun("Decoder.DefaultFunc")
+	requireArgument(f != nil, "Decoder.DefaultFunc", "f")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
-		o := d.run(in, at)
-		if o.err != nil || o.issues.Len() == 0 {
-			return o
+		if isNull(any(in)) {
+			return succeed(f())
 		}
-		for _, i := range o.issues.items {
-			if i.code != CodeRequired {
-				return o
-			}
-		}
-		return succeed(f())
+		return d.run(in, at)
 	}}
 }
 
 // Fallback returns a decoder that gives v whatever issues d reports. A failure
 // of the program is still returned.
 func (d Decoder[I, T]) Fallback(v T) Decoder[I, T] {
+	d.requireRun("Decoder.Fallback")
 	return d.FallbackFunc(func(Issues) T { return v })
 }
 
@@ -299,10 +357,12 @@ func (d Decoder[I, T]) Fallback(v T) Decoder[I, T] {
 // reported, at their paths in the whole input. A failure of the program is
 // still returned.
 func (d Decoder[I, T]) FallbackFunc(f func(Issues) T) Decoder[I, T] {
+	d.requireRun("Decoder.FallbackFunc")
+	requireArgument(f != nil, "Decoder.FallbackFunc", "f")
 	return Decoder[I, T]{func(in I, at Path) outcome[T] {
 		o := d.run(in, at)
 		if o.err == nil && o.issues.Len() > 0 {
-			return succeed(f(o.issues))
+			return succeed(f(o.issues.published()))
 		}
 		return o
 	}}
@@ -312,7 +372,7 @@ func (d Decoder[I, T]) FallbackFunc(f func(Issues) T) Decoder[I, T] {
 // with d. A missing member is not null: it is handed to d, which reports it as
 // required. Use [Optional] for a member that may be left out.
 func Nullable[T any](d DecoderOf[T]) Decoder[any, *T] {
-	dd := d.decoder()
+	dd := decoderOf(d, "Nullable", "d")
 	return Decoder[any, *T]{func(in any, at Path) outcome[*T] {
 		if in == nil {
 			return succeed[*T](nil)
@@ -335,6 +395,7 @@ func Nullable[T any](d DecoderOf[T]) Decoder[any, *T] {
 //		).Map(NewCategory)
 //	}
 func Lazy[T any](f func() Decoder[any, T]) Decoder[any, T] {
+	requireArgument(f != nil, "Lazy", "f")
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		return f().run(in, at)
 	}}
@@ -343,33 +404,26 @@ func Lazy[T any](f func() Decoder[any, T]) Decoder[any, T] {
 // OneOf returns a decoder that tries each alternative in turn and gives what
 // the first to decode gives. When none does, it reports one_of_failed with the
 // issues of each alternative in meta.candidates, as
-// [{"candidate": index, "issues": [...]}] with English messages.
+// [{"candidate": index, "issues": [...]}]. The candidates' issues are kept as
+// issues: Render writes their messages in the language it writes the
+// one_of_failed in, a custom message among them included, and Rebase moves
+// them with it.
 func OneOf[T any](alternatives ...DecoderOf[T]) Decoder[any, T] {
 	ds := make([]Decoder[any, T], len(alternatives))
 	for i, a := range alternatives {
-		ds[i] = a.decoder()
+		ds[i] = decoderOf(a, "OneOf", "each alternative")
 	}
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
-		candidates := make([]any, 0, len(ds))
+		candidates := make([]candidate, 0, len(ds))
 		for n, d := range ds {
 			o := d.run(in, at)
 			if !o.failed() || o.err != nil {
 				return o
 			}
-			candidates = append(candidates, map[string]any{
-				"candidate": n,
-				"issues":    renderedJSON(o.issues),
-			})
+			candidates = append(candidates, candidate{n, o.issues})
 		}
-		return invalid[T](NewIssue(CodeOneOfFailed).WithMeta("candidates", candidates).At(at))
+		failed := NewIssue(CodeOneOfFailed).At(at)
+		failed.candidates = &candidates
+		return invalid[T](failed)
 	}}
-}
-
-// renderedJSON is the issues as the JSON values Raoh for Java puts in meta.
-func renderedJSON(is Issues) []any {
-	out := make([]any, is.Len())
-	for n, r := range is.Render(English) {
-		out[n] = map[string]any{"path": r.Path, "code": r.Code, "message": r.Message, "meta": r.Meta}
-	}
-	return out
 }

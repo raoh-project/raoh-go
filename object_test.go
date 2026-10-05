@@ -82,9 +82,13 @@ func TestMissingFieldIsRequiredAndMissingOptionalIsNil(t *testing.T) {
 	}
 }
 
+// Each field checks for itself that the input is an object: a required field
+// reports type_mismatch at its member, and an optional one reads the input as
+// not having the member.
 func TestNonObjectInput(t *testing.T) {
 	_, err := userDecoder.Decode("x")
-	if got := issuesOf(t, err); !slices.Equal(got, []summary{{"", "type_mismatch", "type_mismatch"}}) {
+	if got := issuesOf(t, err); !slices.Equal(got, []summary{
+		{"/email", "type_mismatch", "type_mismatch"}, {"/age", "type_mismatch", "type_mismatch"}}) {
 		t.Fatalf("got %v", got)
 	}
 }

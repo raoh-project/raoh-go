@@ -286,6 +286,174 @@ func TestContainsRefusesANilElementWhenBuilt(t *testing.T) {
 	}
 }
 
+// A function or decoder a decode would call is refused when the decoder is
+// built, with a message that names the constructor and the argument.
+func TestANilArgumentIsRefusedWhenTheDecoderIsBuilt(t *testing.T) {
+	d := raoh.Int()
+	object := raoh.Object(raoh.Fields().Field("a", d))
+	inner := object.Map(func(a int) int { return a })
+	flat := raoh.Object(raoh.Fields().Flat(inner))
+	empty := raoh.Object(raoh.Fields())
+	tests := []struct {
+		build func()
+		want  string
+	}{
+		{func() { raoh.NewDecoder[any, int](nil) }, "raoh: NewDecoder needs f that is not nil"},
+		{func() { raoh.NewDecoderWithPath[any, int](nil) }, "raoh: NewDecoderWithPath needs f that is not nil"},
+		{func() { raoh.Lazy[int](nil) }, "raoh: Lazy needs f that is not nil"},
+		{func() { d.Map[int](nil) }, "raoh: Decoder.Map needs f that is not nil"},
+		{func() { d.AndThen[int](nil) }, "raoh: Decoder.AndThen needs f that is not nil"},
+		{func() { d.AndThenWithPath[int](nil) }, "raoh: Decoder.AndThenWithPath needs f that is not nil"},
+		{func() { d.Refine(nil, "c", "m") }, "raoh: Decoder.Refine needs ok that is not nil"},
+		{func() { d.RefineWithMeta(nil, "c", "m", func(int) map[string]any { return nil }) }, "raoh: Decoder.RefineWithMeta needs ok that is not nil"},
+		{func() { d.RefineWithMeta(func(int) bool { return true }, "c", "m", nil) }, "raoh: Decoder.RefineWithMeta needs meta that is not nil"},
+		{func() { d.RefineWithPath(nil) }, "raoh: Decoder.RefineWithPath needs check that is not nil"},
+		{func() { d.DefaultFunc(nil) }, "raoh: Decoder.DefaultFunc needs f that is not nil"},
+		{func() { d.FallbackFunc(nil) }, "raoh: Decoder.FallbackFunc needs f that is not nil"},
+		{func() { raoh.List(d).UniqueBy[int](nil) }, "raoh: UniqueBy needs key that is not nil"},
+		{func() { object.Map[int](nil) }, "raoh: Object.Map needs fn that is not nil"},
+		{func() { object.AndThen[int](nil) }, "raoh: Object.AndThen needs fn that is not nil"},
+		{func() { object.AndThenWithPath[int](nil) }, "raoh: Object.AndThenWithPath needs fn that is not nil"},
+		{func() { flat.Map[int](nil) }, "raoh: Object.Map needs fn that is not nil"},
+		{func() { empty.Map[int](nil) }, "raoh: Object.Map needs fn that is not nil"},
+		{func() { d.Pipe(raoh.Decoder[int, int]{}) }, "raoh: Decoder.Pipe needs a next decoder that is not the zero Decoder"},
+		{func() { raoh.List[int](nil) }, "raoh: List needs element that is not nil"},
+		{func() { raoh.Dict[int](nil) }, "raoh: Dict needs value that is not nil"},
+		{func() { raoh.ToSet[int](nil) }, "raoh: ToSet needs d that is not nil"},
+		{func() { raoh.Nullable[int](nil) }, "raoh: Nullable needs d that is not nil"},
+		{func() { raoh.Optional[int](nil) }, "raoh: Optional needs d that is not nil"},
+		{func() { raoh.PresenceOf[int](nil) }, "raoh: PresenceOf needs d that is not nil"},
+		{func() { raoh.OneOf[int](d, nil) }, "raoh: OneOf needs each alternative that is not nil"},
+		{func() { raoh.Strict[int](nil) }, "raoh: Strict needs d that is not nil"},
+		{func() { raoh.Variant[int]("t", nil) }, "raoh: Variant needs d that is not nil"},
+		{func() { raoh.EnumOfWith(map[string]int{"a": 1}, nil) }, "raoh: EnumOfWith needs stringDecoder that is not nil"},
+		{func() { raoh.LiteralWith("a", nil) }, "raoh: LiteralWith needs stringDecoder that is not nil"},
+		{func() { raoh.DiscriminateWith[int]("k", nil, nil) }, "raoh: DiscriminateWith needs tagDecoder that is not nil"},
+		{func() { raoh.DiscriminateWith("k", raoh.String(), map[string]raoh.DecoderOf[int]{"a": nil}) }, "raoh: DiscriminateWith needs each variant that is not nil"},
+		{func() { raoh.DecodeJSONFrom[int](strings.NewReader(""), 1, nil) }, "raoh: DecodeJSONFrom needs d that is not nil"},
+		{func() { raoh.DecodeJSON[int](nil, nil) }, "raoh: DecodeJSON needs d that is not nil"},
+		{func() { raoh.Fields().Field[int]("a", nil) }, "raoh: Field needs src that is not nil"},
+		{func() { raoh.Fields().Flat[int](nil) }, "raoh: Flat needs d that is not nil"},
+	}
+	for _, tt := range tests {
+		if got := panicText(tt.build); got != tt.want {
+			t.Errorf("panic = %q, want %q", got, tt.want)
+		}
+	}
+}
+
+// The zero Decoder has nothing to run, so a decoder built from it, as an
+// argument or as the receiver of a combinator, is refused, and so is a decode
+// with it.
+func TestTheZeroDecoderIsRefusedWhenAnotherIsBuiltFromIt(t *testing.T) {
+	var zero raoh.Decoder[any, int]
+	built := "raoh: a decoder was built from the zero Decoder, which has nothing to run"
+	receiver := func(method string) string {
+		return "raoh: Decoder." + method + " needs a receiver that is not the zero Decoder"
+	}
+	tests := []struct {
+		name  string
+		build func()
+		want  string
+	}{
+		{"List", func() { raoh.List(zero) }, built},
+		{"Dict", func() { raoh.Dict(zero) }, built},
+		{"Nullable", func() { raoh.Nullable(zero) }, built},
+		{"Optional", func() { raoh.Optional(zero) }, built},
+		{"PresenceOf", func() { raoh.PresenceOf(zero) }, built},
+		{"OneOf", func() { raoh.OneOf[int](zero) }, built},
+		{"Field", func() { raoh.Fields().Field("a", zero) }, "raoh: Field needs src that is not nil"},
+		{"Field of Optional", func() { raoh.Fields().Field("a", raoh.OptionalSource[int]{}) }, "raoh: Field needs src that is not nil"},
+		{"Field of PresenceOf", func() { raoh.Fields().Field("a", raoh.PresenceSource[int]{}) }, "raoh: Field needs src that is not nil"},
+		{"Map", func() { zero.Map(func(v int) int { return v }) }, receiver("Map")},
+		{"AndThen", func() { zero.AndThen(func(v int) (int, error) { return v, nil }) }, receiver("AndThen")},
+		{"AndThenWithPath", func() { zero.AndThenWithPath(func(v int, _ raoh.Path) (int, error) { return v, nil }) }, receiver("AndThenWithPath")},
+		{"Pipe", func() { zero.Pipe(raoh.Decoder[int, int]{}) }, receiver("Pipe")},
+		{"Refine", func() { zero.Refine(func(int) bool { return true }, "c", "m") }, receiver("Refine")},
+		{"RefineWithMeta", func() {
+			zero.RefineWithMeta(func(int) bool { return true }, "c", "m", func(int) map[string]any { return nil })
+		}, receiver("RefineWithMeta")},
+		{"RefineWithPath", func() { zero.RefineWithPath(func(int, raoh.Path) error { return nil }) }, receiver("RefineWithPath")},
+		{"Default", func() { zero.Default(1) }, receiver("Default")},
+		{"DefaultFunc", func() { zero.DefaultFunc(func() int { return 1 }) }, receiver("DefaultFunc")},
+		{"Fallback", func() { zero.Fallback(1) }, receiver("Fallback")},
+		{"FallbackFunc", func() { zero.FallbackFunc(func(raoh.Issues) int { return 1 }) }, receiver("FallbackFunc")},
+		{"Decode", func() { zero.Decode(1) }, receiver("Decode")},
+	}
+	for _, tt := range tests {
+		if got := panicText(tt.build); got != tt.want {
+			t.Errorf("%s: panic = %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}
+
+// The types that keep the parts a Decoder is rebuilt from have a zero value
+// too, and a method that derives a decoder from it is refused as well.
+func TestTheZeroValueOfADecoderTypeIsRefusedWhenAnotherIsDerivedFromIt(t *testing.T) {
+	derived := "raoh: a decoder was derived from the zero value of a decoder type, which has nothing to read the input with"
+	var (
+		str  raoh.StringDecoder
+		i    raoh.IntDecoder[int]
+		b    raoh.BoolDecoder
+		f64  raoh.Float64Decoder
+		f32  raoh.Float32Decoder
+		dec  raoh.DecimalDecoder
+		tm   raoh.TemporalDecoder
+		list raoh.ListDecoder[int]
+		dict raoh.DictDecoder[int]
+		conv raoh.Conversion[int]
+	)
+	for name, build := range map[string]func(){
+		"StringDecoder":   func() { str.NonBlank() },
+		"IntDecoder":      func() { i.Min(1) },
+		"BoolDecoder":     func() { b.IsTrue() },
+		"Float64Decoder":  func() { f64.Message("m") },
+		"Float32Decoder":  func() { f32.Message("m") },
+		"DecimalDecoder":  func() { dec.Message("m") },
+		"TemporalDecoder": func() { tm.Message("m") },
+		// The bounds read the kind before they derive, so the kind refuses
+		// the zero value itself.
+		"TemporalDecoder.Before":  func() { tm.Before(time.Time{}) },
+		"TemporalDecoder.After":   func() { tm.After(time.Time{}) },
+		"TemporalDecoder.Between": func() { tm.Between(time.Time{}, time.Time{}) },
+		"ListDecoder":             func() { list.NonEmpty() },
+		"DictDecoder":             func() { dict.NonEmpty() },
+		"Conversion":              func() { conv.Message("m") },
+	} {
+		if got := panicText(build); got != derived {
+			t.Errorf("%s: panic = %q", name, got)
+		}
+	}
+}
+
+// errReader fails every read, to show that a definition is refused before the
+// input is touched.
+type errReader struct{}
+
+func (errReader) Read([]byte) (int, error) { return 0, errors.New("read") }
+
+func TestDecodeJSONFromRefusesTheDecoderBeforeItReads(t *testing.T) {
+	var zero raoh.Decoder[any, int]
+	want := "raoh: a decoder was built from the zero Decoder, which has nothing to run"
+	if got := panicText(func() { raoh.DecodeJSONFrom(errReader{}, 1, zero) }); got != want {
+		t.Errorf("zero Decoder: panic = %q, want %q", got, want)
+	}
+	want = "raoh: DecodeJSONFrom needs d that is not nil"
+	if got := panicText(func() { raoh.DecodeJSONFrom[int](errReader{}, 1, nil) }); got != want {
+		t.Errorf("nil: panic = %q, want %q", got, want)
+	}
+}
+
+func panicText(f func()) (text string) {
+	defer func() {
+		if r := recover(); r != nil {
+			text = fmt.Sprint(r)
+		}
+	}()
+	f()
+	return ""
+}
+
 // Mixing issues into another error hides the issues and nothing else.
 func TestAMixedErrorHidesOnlyItsIssues(t *testing.T) {
 	pathErr := &fs.PathError{Op: "open", Path: "x", Err: os.ErrNotExist}

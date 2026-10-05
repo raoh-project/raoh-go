@@ -2,11 +2,11 @@ package raoh
 
 import (
 	"encoding/hex"
-	"regexp"
+	"fmt"
 	"slices"
 	"strings"
-	"unicode"
-	"unicode/utf8"
+
+	notation199x "github.com/raoh-project/notation-199x/go"
 )
 
 const maxEmailLength = 254
@@ -16,18 +16,25 @@ const maxEmailLength = 254
 // Null or a missing member is required; any other type is type_mismatch.
 // Constraints and transformations run in the order they are written, and the
 // first constraint to fail is the one reported. An empty string is accepted
-// unless NonBlank says otherwise. What counts as white space, a character and
-// the order of strings are as in Raoh for Java; see each method.
+// unless NonBlank says otherwise. What counts as white space, a character, the
+// order of strings, case, normalization and a pattern are the rules of
+// notation-199x, which Raoh for Java follows too, so none of them changes with
+// the Go release.
 type StringDecoder struct {
 	Decoder[any, string]
 	s scalar[string]
 }
 
 // String returns a decoder of a string.
+//
+// A string is a sequence of Unicode scalar values. A Go string holding bytes
+// that are not UTF-8 is none, and is type_mismatch as any other value that is
+// not a string. Text read by DecodeJSON is never such a string: encoding/json
+// puts U+FFFD in place of those bytes.
 func String() StringDecoder {
 	return newString(scalar[string]{read: func(in any) (string, *Issue) {
 		s, ok := plain(in).(string)
-		if !ok {
+		if !ok || notation199x.InvalidUTF8At(s) >= 0 {
 			i := unexpected("string", in)
 			return "", &i
 		}
@@ -52,24 +59,26 @@ func (d StringDecoder) Message(message string) StringDecoder {
 	return newString(d.s.message(message))
 }
 
-// Trim removes white space from both ends: the characters with Unicode's
-// White_Space property, which include U+3000 and U+00A0 and not control
-// characters such as NUL. It is the set NonBlank uses, and the one Raoh for
-// Java uses from 0.8 on.
+// Trim removes white space from both ends: the characters with the Unicode
+// 18.0.0 White_Space property, which include U+3000 and U+00A0 and not control
+// characters such as NUL. It is the set NonBlank uses.
 func (d StringDecoder) Trim() StringDecoder {
-	return newString(d.s.transform(func(v string) string { return strings.TrimFunc(v, unicode.IsSpace) }))
+	return newString(d.s.transform(func(v string) string {
+		return strings.TrimFunc(v, notation199x.IsWhiteSpace)
+	}))
 }
 
-// ToLower converts to lower case with Unicode's full case mapping, as Raoh for
-// Java does with Locale.ROOT: İ becomes i̇, and a final Σ becomes ς.
+// ToLower converts to lower case with the Unicode 18.0.0 default case
+// conversion, untailored: İ becomes i̇, and a capital sigma becomes ς only at the
+// end of a cased run, so ΟΣ becomes ος and Α1Σ becomes α1σ.
 func (d StringDecoder) ToLower() StringDecoder {
-	return newString(d.s.transform(toLowerJava))
+	return newString(d.s.transform(notation199x.Lowercase))
 }
 
-// ToUpper converts to upper case with Unicode's full case mapping, as Raoh for
-// Java does with Locale.ROOT: ß becomes SS.
+// ToUpper converts to upper case with the Unicode 18.0.0 default case
+// conversion, untailored: ß becomes SS.
 func (d StringDecoder) ToUpper() StringDecoder {
-	return newString(d.s.transform(toUpperJava))
+	return newString(d.s.transform(notation199x.Uppercase))
 }
 
 // NonBlank requires a character that is not white space, in the sense Trim
@@ -77,38 +86,38 @@ func (d StringDecoder) ToUpper() StringDecoder {
 func (d StringDecoder) NonBlank() StringDecoder {
 	return d.require(
 		func(v string) bool {
-			return strings.IndexFunc(v, func(r rune) bool { return !unicode.IsSpace(r) }) >= 0
+			return strings.IndexFunc(v, func(r rune) bool { return !notation199x.IsWhiteSpace(r) }) >= 0
 		},
 		func(string) Issue { return NewIssue(CodeBlank) })
 }
 
-// MinLength requires at least n characters, counted as code points:
+// MinLength requires at least n characters, counted as scalar values:
 // too_short with min and actual.
 func (d StringDecoder) MinLength(n int) StringDecoder {
 	return d.require(
-		func(v string) bool { return utf8.RuneCountInString(v) >= n },
+		func(v string) bool { return notation199x.ScalarCount(v) >= n },
 		func(v string) Issue {
-			return NewIssue(CodeTooShort).WithMeta("min", n).WithMeta("actual", utf8.RuneCountInString(v))
+			return NewIssue(CodeTooShort).WithMeta("min", n).WithMeta("actual", notation199x.ScalarCount(v))
 		})
 }
 
-// MaxLength allows at most n characters, counted as code points: too_long
+// MaxLength allows at most n characters, counted as scalar values: too_long
 // with max and actual.
 func (d StringDecoder) MaxLength(n int) StringDecoder {
 	return d.require(
-		func(v string) bool { return utf8.RuneCountInString(v) <= n },
+		func(v string) bool { return notation199x.ScalarCount(v) <= n },
 		func(v string) Issue {
-			return NewIssue(CodeTooLong).WithMeta("max", n).WithMeta("actual", utf8.RuneCountInString(v))
+			return NewIssue(CodeTooLong).WithMeta("max", n).WithMeta("actual", notation199x.ScalarCount(v))
 		})
 }
 
-// Length requires exactly n characters, counted as code points:
+// Length requires exactly n characters, counted as scalar values:
 // invalid_length with expected and actual.
 func (d StringDecoder) Length(n int) StringDecoder {
 	return d.require(
-		func(v string) bool { return utf8.RuneCountInString(v) == n },
+		func(v string) bool { return notation199x.ScalarCount(v) == n },
 		func(v string) Issue {
-			return NewIssue(CodeInvalidLength).WithMeta("expected", n).WithMeta("actual", utf8.RuneCountInString(v))
+			return NewIssue(CodeInvalidLength).WithMeta("expected", n).WithMeta("actual", notation199x.ScalarCount(v))
 		})
 }
 
@@ -153,8 +162,13 @@ func (d StringDecoder) OneOf(allowed ...string) StringDecoder {
 		})
 }
 
-// Email requires the form of an email address, as Raoh for Java checks it:
-// invalid_format.
+// Email requires a mailbox of an ASCII profile of RFC 5321's Mailbox,
+// Dot-string "@" Domain: invalid_format. The local part is RFC 5322 atext atoms
+// joined by single dots, at most 64 octets; the domain is labels joined by
+// single dots, each starting and ending with a letter or digit and holding
+// letters, digits and hyphens, at most 63 octets; at most 254 octets in all. A
+// single-label or all-digit domain (a@localhost, a@123) is accepted. A quoted
+// local part, an address literal and non-ASCII characters are not.
 func (d StringDecoder) Email() StringDecoder {
 	return d.format(isEmail, KeyInvalidFormatEmail)
 }
@@ -179,21 +193,32 @@ func (d StringDecoder) IP() StringDecoder {
 	return d.format(func(v string) bool { return isIPv4(v) || isIPv6(v) }, KeyInvalidFormatIP)
 }
 
-// ULID requires a ULID, 26 characters of Crockford's base 32 in upper case:
-// invalid_format.
+// ULID requires a ULID, 26 characters of Crockford's base 32 in either case
+// whose value fits in 128 bits, so that the first is 0 to 7 and
+// 7ZZZZZZZZZZZZZZZZZZZZZZZZZ is the largest: invalid_format. The string is
+// given unchanged.
 func (d StringDecoder) ULID() StringDecoder {
 	return d.format(func(v string) bool {
-		if len(v) != 26 {
+		if len(v) != 26 || v[0] < '0' || v[0] > '7' {
 			return false
 		}
 		for i := range len(v) {
-			b := v[i]
-			if !isDigit(b) && !(b >= 'A' && b <= 'Z' && b != 'I' && b != 'L' && b != 'O' && b != 'U') {
+			if !isCrockford(v[i]) {
 				return false
 			}
 		}
 		return true
 	}, KeyInvalidFormatULID)
+}
+
+// isCrockford is whether b is a digit of Crockford's base 32, in either case:
+// the letters but I, L, O and U.
+func isCrockford(b byte) bool {
+	if isDigit(b) {
+		return true
+	}
+	b |= 0x20 // lower case
+	return b >= 'a' && b <= 'z' && b != 'i' && b != 'l' && b != 'o' && b != 'u'
 }
 
 // CUID requires a CUID, c followed by 24 lower-case letters or digits:
@@ -212,15 +237,65 @@ func (d StringDecoder) CUID() StringDecoder {
 	}, KeyInvalidFormatCUID)
 }
 
-// Pattern requires the whole string to match the regular expression pattern:
-// invalid_format with pattern. The pattern is in the syntax of package regexp,
-// in which \d, \w and \s match ASCII only, as in Java. It panics when pattern is
-// not a valid regular expression.
+// Pattern requires the whole string to be one of the strings pattern accepts:
+// invalid_format with pattern. pattern is in the pattern language of the Raoh
+// Specification, the one Raoh for Java and Souther read, and not in the syntax
+// of package regexp: a back reference, a lookaround, a property class such as
+// \p{L} and a flag such as (?i) are not in it. \d, \w and \s are ASCII sets.
+//
+// A pattern is admitted within three limits, counted from its text: a
+// repetition count of at most 134,217,727, groups nested at most 200 deep, and
+// at most 250,000 states once its repetitions are written out. So a{249998} is
+// admitted and a{249999} is not.
+//
+// It panics when pattern is not a pattern of the language, or is past a limit,
+// with a message that tells the two apart. A value is matched in one pass over
+// it, so the time a match takes is linear in the length of the value whatever
+// the pattern.
 func (d StringDecoder) Pattern(pattern string) StringDecoder {
-	anchored := regexp.MustCompile(`^(?:` + pattern + `)$`)
-	return d.require(anchored.MatchString, func(string) Issue {
+	read := compilePattern(pattern)
+	return d.require(read.Matches, func(string) Issue {
 		return NewIssue(CodeInvalidFormat).WithMeta("pattern", pattern)
 	})
+}
+
+// compilePattern is what pattern means, or a panic that says why it is not a
+// pattern or which limit it is past.
+func compilePattern(pattern string) *notation199x.Pattern {
+	switch read := notation199x.ReadPattern(pattern).(type) {
+	case *notation199x.Pattern:
+		return read
+	case notation199x.PatternRefused:
+		where := ""
+		if read.Construct != "" {
+			where = fmt.Sprintf(": %q", read.Construct)
+		}
+		panic(fmt.Sprintf("raoh: not a pattern of the Raoh pattern language: %q (%v at byte %d%s)",
+			pattern, read.Why, read.From, where))
+	case notation199x.PatternBeyond:
+		where := ""
+		if read.From != 0 || read.Construct != pattern {
+			where = fmt.Sprintf(" at byte %d: %q", read.From, read.Construct)
+		}
+		panic(fmt.Sprintf("raoh: pattern %q is past the limit of %d %s%s",
+			pattern, read.Limit.Most(), limitName(read.Limit), where))
+	default:
+		panic(fmt.Sprintf("raoh: ReadPattern answered %T", read))
+	}
+}
+
+// limitName is what a limit counts, as a message says it.
+func limitName(limit notation199x.PatternLimit) string {
+	switch limit {
+	case notation199x.RepetitionCount:
+		return "on a repetition count"
+	case notation199x.NestingDepth:
+		return "on groups nested one inside another"
+	case notation199x.MachineStates:
+		return "states once its repetitions are written out"
+	default:
+		return limit.String()
+	}
 }
 
 // UUID returns a decoder that reads the string as a UUID in the RFC 9562 form:
@@ -234,7 +309,7 @@ func (d StringDecoder) UUID() Conversion[UUID] {
 // host: invalid_format when it is not one.
 //
 // The text is an RFC 3986 URI, with the http or https scheme in any case, an
-// authority and a non-empty host, as Raoh for Java accepts it. The host is the
+// authority and a non-empty host, as the Raoh Specification says. The host is the
 // RFC 3986 host, not a DNS name, so a reg-name such as my_host is accepted, and
 // raw non-ASCII characters are not. The value is a [URI], which keeps the text
 // as written.
@@ -250,11 +325,12 @@ func (d StringDecoder) URL() Conversion[URI] {
 //
 // It is the rule URL applies without the check for the http or https scheme
 // and a host. A scheme is still required, so a relative reference such as
-// foo/bar or #top is refused, and so are raw non-ASCII characters. A URI that
-// java.net.URI cannot hold is refused as Raoh for Java refuses it: a: and
-// a:#f, a:// with nothing after it, an IPvFuture host, and an IPv6 host with a
-// port above 2147483647. An IPv6 host is checked as IPv6 checks it, without a
-// zone ID.
+// foo/bar or #top is refused, and so are raw non-ASCII characters. It is the
+// whole RFC 3986 URI production, as the Raoh Specification says: a: and a:#f,
+// a:// with nothing after it, an IPvFuture host such as [v1.abc], and a port of
+// any length are URIs. Raoh for Java refuses these, since java.net.URI, which
+// it gives, cannot hold them. An IPv6 host is checked as IPv6 checks it,
+// without a zone ID.
 //
 // Whether the text is a URI does not depend on package net/url. The value is a
 // [URI] that keeps the text as written; [URI.URL] gives a *url.URL when net/url
@@ -288,6 +364,9 @@ func (c Conversion[T]) Message(message string) Conversion[T] {
 }
 
 func (c Conversion[T]) build() Decoder[any, T] {
+	if c.convert == nil {
+		refuseZeroValue()
+	}
 	str := c.s.build()
 	return Decoder[any, T]{func(in any, at Path) outcome[T] {
 		o := str.run(in, at)
@@ -323,26 +402,71 @@ func parseUUID(v string) (UUID, bool) {
 	return u, true
 }
 
-// isEmail is ^[a-zA-Z0-9._%+\-]{1,64}@[a-zA-Z0-9.\-]{1,255}\.[a-zA-Z]{2,}$ with
-// at most 254 UTF-16 units, as Raoh for Java checks it.
+const (
+	// maxEmailLocalPart is RFC 5321 section 4.5.3.1.1's limit on a local part.
+	maxEmailLocalPart = 64
+	// maxEmailLabel is RFC 1035 section 2.3.4's limit on a label.
+	maxEmailLabel = 63
+)
+
+// isEmail is whether s is a mailbox of the profile Email describes. Every
+// character the profile accepts is ASCII, so once one outside it is refused a
+// count of bytes is a count of octets. It runs in time linear in s and builds
+// nothing.
 func isEmail(s string) bool {
-	if utf16Len(s) > maxEmailLength {
+	if len(s) > maxEmailLength {
 		return false
 	}
-	local, domain, ok := strings.Cut(s, "@")
-	if !ok {
+	at := strings.IndexByte(s, '@')
+	if at < 0 || at > maxEmailLocalPart {
 		return false
 	}
-	dot := strings.LastIndexByte(domain, '.')
-	if dot < 0 {
-		return false
+	return isDotString(s[:at]) && isMailDomain(s[at+1:])
+}
+
+// isDotString is RFC 5321's Dot-string: Atom *("." Atom), an atom being one or
+// more RFC 5322 atext.
+func isDotString(s string) bool {
+	atom := 0
+	for i := range len(s) {
+		switch c := s[i]; {
+		case c == '.':
+			if atom == 0 {
+				return false
+			}
+			atom = 0
+		case isAlpha(c) || isDigit(c) || strings.IndexByte("!#$%&'*+-/=?^_`{|}~", c) >= 0:
+			atom++
+		default:
+			return false
+		}
 	}
-	host, tld := domain[:dot], domain[dot+1:]
-	return len(local) >= 1 && len(local) <= 64 && allBytes(local, func(b byte) bool {
-		return isAlpha(b) || isDigit(b) || strings.IndexByte("._%+-", b) >= 0
-	}) && len(host) >= 1 && len(host) <= 255 && allBytes(host, func(b byte) bool {
-		return isAlpha(b) || isDigit(b) || b == '.' || b == '-'
-	}) && len(tld) >= 2 && allBytes(tld, isAlpha)
+	return atom > 0
+}
+
+// isMailDomain is RFC 5321's Domain: sub-domain *("." sub-domain), a
+// sub-domain being a letter or digit, optionally followed by letters, digits
+// and hyphens that end in a letter or digit.
+func isMailDomain(s string) bool {
+	label, previous := 0, byte('.')
+	for i := range len(s) {
+		switch c := s[i]; {
+		case c == '.':
+			if label == 0 || previous == '-' {
+				return false
+			}
+			label = 0
+		case isAlpha(c) || isDigit(c) || c == '-' && label > 0:
+			label++
+			if label > maxEmailLabel {
+				return false
+			}
+		default:
+			return false
+		}
+		previous = s[i]
+	}
+	return label > 0 && previous != '-'
 }
 
 func allBytes(s string, ok func(byte) bool) bool {

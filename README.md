@@ -1,6 +1,6 @@
 # raoh
 
-Go port of [Raoh](https://github.com/kawasima/raoh), a decoder library for turning untyped
+Go port of [Raoh](https://github.com/raoh-project/raoh-java), a decoder library for turning untyped
 boundary input into typed domain values.
 
 It is built around a parse-don't-validate approach:
@@ -19,7 +19,8 @@ JSON text --raoh.DecodeJSON--> domain values
                           \--> *raoh.Issues (path, code, message, meta)
 ```
 
-The only dependency is the standard library. Go 1.27 or later is required, for generic methods.
+The one dependency is [notation-199x](https://github.com/raoh-project/notation-199x), the rules for
+reading text that Raoh and Souther share. Go 1.27 or later is required, for generic methods.
 
 ## Installation
 
@@ -162,9 +163,11 @@ English catalogue, and `issue.Message(raoh.Japanese)` from another. The only sen
 carries is one its creator gave with `WithMessage(...)`, which every language then shows as
 written.
 
-The codes, message keys and meta keys are the same as in Raoh for Java from 0.8 on, and in its
-Rust and PHP ports, so the same client-side handling works for all of them, and a catalogue
-written for Raoh for Java resolves these issues too. `compat_test.go` holds the decoders to what
+The codes, message keys and meta keys are those of the
+[Raoh Specification](https://github.com/raoh-project/raoh-specification) 0.9, as in Raoh for Java
+0.9 and its Rust and PHP ports, so the same client-side handling works for all of them, and a
+catalogue written for Raoh for Java resolves these issues too. The specification's cases are run on
+this package (see [Development](#development)), and `compat_test.go` holds the decoders to what
 Raoh for Java gives for the same inputs; the cases where it differs on purpose are listed there and
 under [Differences from Raoh for Java](#differences-from-raoh-for-java).
 
@@ -236,8 +239,9 @@ decoder, so `String().MaxLength(40).ToDecimal().Positive()` is one decoder. Text
 convert is `type_mismatch` with `expected` set to `integer`, `long`, `decimal` or `boolean`, and
 `Message` after the conversion is the message of that issue alone. `ToInt()` is a 32-bit integer
 and `ToLong()` a 64-bit one, as in Raoh for Java, and not Go's `int`, which `Int()` reads and
-whose width depends on the platform. `URI()` is `URL()` without the http or https scheme and the
-host: any scheme, but a scheme is required. Both give a `raoh.URI`, which holds the text as it was
+whose width depends on the platform. `URI()` is the whole RFC 3986 `URI` production, and `URL()` is
+that with the http or https scheme and a host: any scheme, but a scheme is required. Both give a
+`raoh.URI`, which holds the text as it was
 written and does not depend on `net/url` for what is a URI, so `http://%41.example/` is accepted
 though `url.Parse` refuses it; `URI.URL()` converts to a `*url.URL` and can fail.
 
@@ -271,10 +275,11 @@ forms Java's `Instant`, `LocalDate`, `LocalTime`, `LocalDateTime` and `OffsetDat
 `Before`, `After` and `Between`. Each gives a `time.Time`. The kinds without an offset give it in
 UTC, as `time.Parse` does for text without one: a date is its midnight, and a clock time is on
 January 1 of year 0. An offset date-time keeps its offset as a fixed zone, and an instant is given
-in UTC. The text accepted is the text Raoh for Java accepts: a year outside 0000 to 9999 takes a
-sign, `T` and `Z` are upper case only, a date that does not exist is refused, and an instant
-refuses second 60 and reads `24:00:00` as the start of the next day. Bounds are compared by the
-fields the kind has, so a date bound is compared by its date alone. In an issue, a bound is
+in UTC. Which text is accepted is the grammar of notation-199x, which Raoh for Java follows too: a
+year outside 0000 to 9999 takes a sign, `T` and `Z` are upper case only, a date that does not exist
+is refused, and an instant refuses second 60 and reads `24:00:00` with nothing after it as the
+start of the next day. Bounds are compared by the fields the kind has, so a date bound is compared
+by its date alone, and an offset date-time by its instant alone. In an issue, a bound is
 written in a message as the Java type's `toString` writes it (`09:00`) and in JSON as Jackson
 writes it (`09:00:00`), as Raoh for Java gives them.
 
@@ -289,7 +294,9 @@ Java has no custom message for `containsAll`; here `.Message` works on it as on 
 
 `raoh.ToSet(d)` turns a decoder of `[]T`, such as `raoh.List(...).MaxSize(3)`, into a decoder of
 `map[T]struct{}`. The constraints of `d` run first, then the elements are gathered, each once. The
-order of the list is not kept, unlike Java's `toSet`.
+order of the list is not kept, unlike Java's `toSet`. The map compares its keys with `==`, so a set
+of floats holds `-0.0` and `0.0` as one element, where the specification and Java's `toSet` hold
+them as two.
 
 `raoh.Dict(d)`: a `map[string]T` from an object used as a map, with `NonEmpty`, `MinSize`,
 `MaxSize` and `Size`, which report `too_small`, `too_big` and `invalid_size` as a list does. They
@@ -299,14 +306,21 @@ Every built-in decoder takes `.Message("...")`, which gives the most recent cons
 before it a custom message. Transformations such as `Trim` cannot fail and are passed over, so
 `raoh.String().Trim().Message("...")` gives the message to the type check.
 
-Whitespace, character counts, string order, case mapping and number formatting follow Raoh for
-Java 0.8: `Trim` and `NonBlank` use Unicode's `White_Space`, lengths count code points, `OneOf`,
-`Discriminate` and `EnumOf` sort by code point, `EnumOf` folds ASCII case only, `ToLower` and
-`ToUpper` use Unicode's full case mapping as `Locale.ROOT` does (`ß` becomes `SS`, a final `Σ`
-becomes `ς`), `Normalize` and `NormalizeAs` give what `java.text.Normalizer` gives on Java 25
-(Unicode 16.0) from tables generated from it, and a fractional bound appears in a message as `Double.toString` writes it, such as
-`1.0E7`. `Email`, `IP`, `URL` and `UUID` accept the text Raoh for Java accepts, decided by the
-same grammar rather than by a parser of the platform.
+White space, character counts, string order, case conversion, normalization, the temporal grammar
+and the pattern language are the rules of notation-199x, which Raoh for Java 0.9 follows too, so
+none of them changes with the Go release: `Trim` and `NonBlank` use the Unicode 18.0.0
+`White_Space` set, lengths count scalar values, `OneOf`, `Discriminate` and `EnumOf` sort by scalar
+value, `ToLower` and `ToUpper` apply the Unicode 18.0.0 default case conversion with no language
+tailoring (`ß` becomes `SS`, and a capital sigma becomes `ς` only at the end of a cased run, so
+`Α1Σ` becomes `α1σ`), and `Normalize` and `NormalizeAs` give the Unicode 18.0.0 forms. `Pattern`
+takes a pattern of the Raoh pattern language, not the syntax of package `regexp`: a back
+reference, a lookaround, a property class and a flag are not in it, and a pattern that is not one,
+or is past one of its limits, panics when the decoder is built. A value is matched in one pass over
+it. `EnumOf` folds ASCII case only, and a fractional bound appears in a message as
+`Double.toString` writes it, such as `1.0E7`. `Email` accepts the specification's ASCII profile of
+RFC 5321's `Mailbox`, and `IP`, `URL`, `URI` and `UUID` are decided by their grammars rather than
+by a parser of the platform. A Go string that holds bytes that are not UTF-8 is not a string, and
+`String()` refuses it with `type_mismatch`; text `DecodeJSON` reads never holds them.
 
 ## Choices
 
@@ -317,9 +331,22 @@ same grammar rather than by a parser of the platform.
 - `raoh.Discriminate("type", raoh.Variant("a", da), raoh.Variant("b", db), ...)`: the variant the
   member `type` names
 
+`EnumOfWith`, `LiteralWith` and `DiscriminateWith` take the decoder that reads the string, such as
+`raoh.String().Trim().ToLower()`, as their second argument. `DiscriminateWith` takes its variants as a
+`map[string]raoh.DecoderOf[T]`, and its tag decoder reads the value of the tag member, not the object.
+`DiscriminateBy` is the same with a tag decoder that is given the whole object. The names of the
+variants and of the enum are not changed by it. `EnumOf` and `Literal` take `.Message(...)` for the
+`invalid_format` of a string that is none of theirs.
+
+`raoh.Strict(d, "kind", "side")` reports `unknown_field` for each member of the input that is not
+one of the names, after the issues of `d`, for any decoder of an object. It is what `.Strict()` does
+for an `Object`, and can be given to each variant of a `Discriminate`, or to the `Discriminate` itself.
+
 ## Defaults and recovery
 
-`d.Default(v)` gives `v` when the input is missing or `null`, and still reports any other problem.
+`d.Default(v)` gives `v` when the input is missing or `null`, which it looks at before `d` runs, and
+gives what `d` gives for any other input, failure included: an object missing a member still reports
+its `required`, and `raoh.Nullable(d).Default(v)` gives `v` for `null`.
 `d.Fallback(v)` gives `v` whatever issues `d` reports. Neither hides a failure of the program.
 `d.DefaultFunc(f)` and `d.FallbackFunc(f)` compute the value instead: `f` is called only when the
 default or the fallback is needed, and the function given to `FallbackFunc` receives the `Issues`
@@ -386,6 +413,8 @@ body, err := json.Marshal(userEncoder.Encode(user))
   `raoh.Optional` and `raoh.PresenceOf`, so what one decodes the other writes back.
   `PropertyWithDefault` writes a default, encoded like any other value, for `nil` instead of
   `null`; `PropertyWithDefaultFunc` makes the default only when `nil` calls for it.
+- An entry of `Object` owns one member, which it writes at most once, and `Object` panics when two
+  entries own the same member, whatever kind each is.
 - `Object`, `List`, `Dict`, `Lazy` and `Discriminate` are the counterparts of the decoders of the
   same name. `Discriminate` picks the variant by the value's dynamic type and writes its tag.
 - `String`, `Int` and the other scalars give a value as it is; `Decimal` gives a `json.Number`
@@ -400,8 +429,10 @@ type none of its variants names, is a mistake in the program and panics.
 
 ## Messages in other languages
 
-`raoh.English` and `raoh.Japanese` hold the catalogues Raoh for Java ships, word for word, plus a
-template for `invalid_format.json`. A catalogue is a stack of layers, as a locale's `.properties`
+`raoh.English` and `raoh.Japanese` hold the catalogues of the Raoh Specification, which Raoh for
+Java ships, word for word, under a layer of this package's own with the template for
+`invalid_format.json`, which the specification has no key for since text that is not JSON is
+outside its input model. A catalogue is a stack of layers, as a locale's `.properties`
 file sits over its parent's: `Japanese` is a layer over `English`, `WithOverrides` puts a layer of
 your own on top, and `FallingBackTo` puts another catalogue beneath. An issue is looked up one
 layer at a time, by message key and then by code, so a layer that translates only
@@ -435,12 +466,15 @@ counterpart. An issue here holds no sentence until one is asked for, so `Render`
 
 In what it reports:
 
-- `Object` checks once that its input is an object and reports one issue at its own path when it
-  is not. Raoh for Java checks in each field, reporting `type_mismatch` at every field's path and
-  reading a non-object as an object without any optional field.
+- `URI` and `URL` accept every RFC 3986 URI the specification does. Raoh for Java refuses the ones
+  `java.net.URI`, which it gives, cannot hold: `a:`, `a:#f`, `a://` and `http://` with nothing
+  after them, an IPvFuture host, and an IPv6 host with a port above 2147483647.
 - A Go float given as input, as `encoding/json` gives every number, is an integer when it holds
   one. In JSON text read by `DecodeJSON`, `1.0` is not an integer, as in Raoh for Java.
 - `DecodeJSON` refuses an object that names a member twice, as `invalid_format.json`.
+- `ToSet` over floats holds `-0.0` and `0.0` as one element, since a Go map compares its keys with
+  `==`. This is the one case of the specification `conformance/conformance.json` declares as a
+  divergence.
 
 In the API:
 
@@ -464,15 +498,35 @@ go test ./...
 `compat_test.go` also covers the temporal decoders, with cases raoh-rust does not have.
 
 `go generate ./...` writes `fields_gen.go`, the field sets and object builders for up to 16
-components, and `casing_table.go`, the code points where Java's case mapping differs from Go's.
+components.
+
+`scripts/conformance.sh` runs the cases of the Raoh Specification at the commit
+`conformance/spec.lock` pins on this package, with the runner in `conformance/`, and checks the
+result with that commit's `raoh-verify` against `conformance/conformance.json`. It needs git, jq and
+Go; `RAOH_SPECIFICATION_DIR` names a checkout to use instead of cloning one. CI runs it.
 
 `scripts/compat/generate.sh` regenerates `testdata/compat/expected.json` and copies the message
-catalogues from the Raoh for Java version `scripts/compat/pom.xml` names.
-`scripts/casing/generate.sh` regenerates the case-mapping data from the Java on the `PATH`. Both
-need Java 25; the first also needs Maven.
+catalogues from the Raoh for Java version `scripts/compat/pom.xml` names. It needs Java 25 and
+Maven.
+
+## Releasing
+
+A release is a tag `vX.Y.Z` on `main`, made by the `Release` workflow and by nothing else. The
+major and minor version are those of the Raoh Specification the module follows; the patch part is
+the module's own. Once `develop` is merged into `main` and `CHANGELOG.md` has a section headed
+`## X.Y.Z`, run the workflow on `main` with the version:
+
+```sh
+gh workflow run release.yml --ref main -f version=X.Y.Z
+```
+
+It refuses a version that is not after the latest release or has no section, runs CI on the commit
+with the conformance report naming the version, and only then tags the commit, publishes the
+section as the release notes, and asks proxy.golang.org for the version so that pkg.go.dev lists
+it. A tag pushed by hand would be public before anything checked it, and a tag once fetched cannot
+be taken back. Between releases, `go get github.com/raoh-project/raoh-go@develop` takes the latest
+commit of `develop`.
 
 ## License
 
-Apache License 2.0. The Unicode data the normalization and case mapping are built from, and
-the Unicode Consortium's test file that holds them to Unicode, are under the Unicode License; see
-[THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+Apache License 2.0.

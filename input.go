@@ -230,12 +230,13 @@ func numberText(v any) (string, bool) {
 // invalid_format.json, with the line and column where it stopped being JSON.
 // Numbers are kept as written and object members in the order written.
 func DecodeJSON[T any](data []byte, d DecoderOf[T]) (T, error) {
+	dec := decoderOf(d, "DecodeJSON", "d")
 	v, issue := parseJSON(data)
 	if issue != nil {
 		var zero T
 		return zero, &Issues{items: []Issue{*issue}}
 	}
-	return d.decoder().Decode(v)
+	return dec.Decode(v)
 }
 
 // ErrInputTooLarge is the error DecodeJSONFrom returns, wrapped, when the
@@ -255,6 +256,7 @@ func DecodeJSONFrom[T any](r io.Reader, limit int64, d DecoderOf[T]) (T, error) 
 	if limit < 0 {
 		panic("raoh: negative limit")
 	}
+	dec := decoderOf(d, "DecodeJSONFrom", "d")
 	data, err := io.ReadAll(io.LimitReader(r, limit))
 	if err != nil {
 		return zero, err
@@ -270,7 +272,7 @@ func DecodeJSONFrom[T any](r io.Reader, limit int64, d DecoderOf[T]) (T, error) 
 			return zero, err
 		}
 	}
-	return DecodeJSON(data, d)
+	return DecodeJSON(data, dec)
 }
 
 func parseJSON(data []byte) (any, *Issue) {

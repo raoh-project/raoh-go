@@ -77,6 +77,9 @@ func viaString[T any](from scalar[string], parse func(string) (T, *Issue)) scala
 }
 
 func (s scalar[T]) build() Decoder[any, T] {
+	if s.read == nil && s.from == nil {
+		refuseZeroValue()
+	}
 	if s.from != nil {
 		str := s.from.build()
 		return Decoder[any, T]{func(in any, at Path) outcome[T] {
@@ -138,4 +141,12 @@ func sortedDistinctFunc[T any](values []T, compare func(a, b T) int) []T {
 		}
 	}
 	return out
+}
+
+// refuseZeroValue panics for a decoder derived from the zero value of one of
+// the decoder types, which has nothing to read the input with. The zero Decoder
+// is refused where it is used; this covers the types that keep the parts a
+// Decoder is rebuilt from.
+func refuseZeroValue() {
+	panic("raoh: a decoder was derived from the zero value of a decoder type, which has nothing to read the input with")
 }
