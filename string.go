@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	notation199x "github.com/raoh-project/199x-notation/go"
+	notation199x "github.com/raoh-project/notation-199x/go"
 )
 
 const maxEmailLength = 254
@@ -18,7 +18,7 @@ const maxEmailLength = 254
 // first constraint to fail is the one reported. An empty string is accepted
 // unless NonBlank says otherwise. What counts as white space, a character, the
 // order of strings, case, normalization and a pattern are the rules of
-// 199x-notation, which Raoh for Java follows too, so none of them changes with
+// notation-199x, which Raoh for Java follows too, so none of them changes with
 // the Go release.
 type StringDecoder struct {
 	Decoder[any, string]

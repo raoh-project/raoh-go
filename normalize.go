@@ -3,7 +3,7 @@ package raoh
 import (
 	"fmt"
 
-	notation199x "github.com/raoh-project/199x-notation/go"
+	notation199x "github.com/raoh-project/notation-199x/go"
 )
 
 // NormalForm is a Unicode normalization form. The zero value is NFC, the form

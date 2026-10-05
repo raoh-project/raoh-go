@@ -19,7 +19,7 @@ JSON text --raoh.DecodeJSON--> domain values
                           \--> *raoh.Issues (path, code, message, meta)
 ```
 
-The one dependency is [199x-notation](https://github.com/raoh-project/199x-notation), the rules for
+The one dependency is [notation-199x](https://github.com/raoh-project/notation-199x), the rules for
 reading text that Raoh and Souther share. Go 1.27 or later is required, for generic methods.
 
 ## Installation
@@ -275,7 +275,7 @@ forms Java's `Instant`, `LocalDate`, `LocalTime`, `LocalDateTime` and `OffsetDat
 `Before`, `After` and `Between`. Each gives a `time.Time`. The kinds without an offset give it in
 UTC, as `time.Parse` does for text without one: a date is its midnight, and a clock time is on
 January 1 of year 0. An offset date-time keeps its offset as a fixed zone, and an instant is given
-in UTC. Which text is accepted is the grammar of 199x-notation, which Raoh for Java follows too: a
+in UTC. Which text is accepted is the grammar of notation-199x, which Raoh for Java follows too: a
 year outside 0000 to 9999 takes a sign, `T` and `Z` are upper case only, a date that does not exist
 is refused, and an instant refuses second 60 and reads `24:00:00` with nothing after it as the
 start of the next day. Bounds are compared by the fields the kind has, so a date bound is compared
@@ -305,7 +305,7 @@ before it a custom message. Transformations such as `Trim` cannot fail and are p
 `raoh.String().Trim().Message("...")` gives the message to the type check.
 
 White space, character counts, string order, case conversion, normalization, the temporal grammar
-and the pattern language are the rules of 199x-notation, which Raoh for Java 0.9 follows too, so
+and the pattern language are the rules of notation-199x, which Raoh for Java 0.9 follows too, so
 none of them changes with the Go release: `Trim` and `NonBlank` use the Unicode 18.0.0
 `White_Space` set, lengths count scalar values, `OneOf`, `Discriminate` and `EnumOf` sort by scalar
 value, `ToLower` and `ToUpper` apply the Unicode 18.0.0 default case conversion with no language
