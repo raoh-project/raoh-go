@@ -4,12 +4,25 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  # The release workflow runs these jobs on the commit it is about to tag.
+  workflow_call:
+    inputs:
+      ref:
+        description: The commit to check
+        type: string
+        required: true
+      version:
+        description: The version the commit is released as, X.Y.Z
+        type: string
+        required: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -30,6 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -40,6 +55,8 @@ jobs:
         working-directory: conformance
         run: go vet ./...
       - run: scripts/conformance.sh
+        env:
+          RAOH_GO_VERSION: ${{ inputs.version }}
       - if: always()
         uses: actions/upload-artifact@v4
         with:

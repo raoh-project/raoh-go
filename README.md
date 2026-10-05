@@ -1,6 +1,6 @@
 # raoh
 
-Go port of [Raoh](https://github.com/kawasima/raoh), a decoder library for turning untyped
+Go port of [Raoh](https://github.com/raoh-project/raoh-java), a decoder library for turning untyped
 boundary input into typed domain values.
 
 It is built around a parse-don't-validate approach:
@@ -508,6 +508,24 @@ Go; `RAOH_SPECIFICATION_DIR` names a checkout to use instead of cloning one. CI 
 `scripts/compat/generate.sh` regenerates `testdata/compat/expected.json` and copies the message
 catalogues from the Raoh for Java version `scripts/compat/pom.xml` names. It needs Java 25 and
 Maven.
+
+## Releasing
+
+A release is a tag `vX.Y.Z` on `main`, made by the `Release` workflow and by nothing else. The
+major and minor version are those of the Raoh Specification the module follows; the patch part is
+the module's own. Once `develop` is merged into `main` and `CHANGELOG.md` has a section headed
+`## X.Y.Z`, run the workflow on `main` with the version:
+
+```sh
+gh workflow run release.yml --ref main -f version=X.Y.Z
+```
+
+It refuses a version that is not after the latest release or has no section, runs CI on the commit
+with the conformance report naming the version, and only then tags the commit, publishes the
+section as the release notes, and asks proxy.golang.org for the version so that pkg.go.dev lists
+it. A tag pushed by hand would be public before anything checked it, and a tag once fetched cannot
+be taken back. Between releases, `go get github.com/raoh-project/raoh-go@develop` takes the latest
+commit of `develop`.
 
 ## License
 

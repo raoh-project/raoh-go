@@ -47,6 +47,18 @@ IMPLEMENTATION_REVISION="$(git -C "$ROOT" rev-parse HEAD)"
 if [[ -n "$(git -C "$ROOT" status --porcelain --untracked-files=all -- . ':(exclude)conformance/target')" ]]; then
     IMPLEMENTATION_REVISION="$IMPLEMENTATION_REVISION-dirty"
 fi
+# The version is the release tag on the commit, vX.Y.Z without the v, and devel on any other commit
+# or on a commit with changes. RAOH_GO_VERSION names it instead, for the release workflow, which
+# runs this before the tag exists.
+if [[ -n "${RAOH_GO_VERSION:-}" ]]; then
+    IMPLEMENTATION_VERSION="$RAOH_GO_VERSION"
+elif [[ "$IMPLEMENTATION_REVISION" != *-dirty ]] &&
+    TAG="$(git -C "$ROOT" tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)" &&
+    [[ -n "$TAG" ]]; then
+    IMPLEMENTATION_VERSION="${TAG#v}"
+else
+    IMPLEMENTATION_VERSION="devel"
+fi
 
 (cd "$SPEC" && go build -o "$OUT/raoh-verify" ./cmd/raoh-verify)
 DIGEST="$("$OUT/raoh-verify" manifest "$SPEC")"
@@ -56,6 +68,7 @@ DIGEST="$("$OUT/raoh-verify" manifest "$SPEC")"
     --revision "$REVISION" \
     --manifest-digest "$DIGEST" \
     --implementation-revision "$IMPLEMENTATION_REVISION" \
+    --implementation-version "$IMPLEMENTATION_VERSION" \
     --messages "$ROOT/messages" \
     --out "$OUT/runner-result.json")
 

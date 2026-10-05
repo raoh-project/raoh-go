@@ -1,0 +1,117 @@
+name: Release
+
+# Releases the commit at the tip of main as version vX.Y.Z of the module. A Go module is released by
+# its tag alone: once anyone fetches a tag through proxy.golang.org, the checksum database records
+# the commit, and deleting or moving the tag does not take it back. So this workflow checks the
+# commit first and makes the tag itself, last, rather than being started by a tag that is already
+# public.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to release, X.Y.Z without the v
+        required: true
+        type: string
+
+# One release at a time. A second run waits for the first, and then finds the tag the first made if
+# it asked for the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.check.outputs.sha }}
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - name: The run is on main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run the release on main, not ${GITHUB_REF}"
+          exit 1
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: The version is new and the changelog has it
+        id: check
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::$VERSION is not X.Y.Z"
+            exit 1
+          fi
+          tag="v$VERSION"
+          git fetch --quiet --tags --force origin
+          if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
+            echo "::error::$tag exists"
+            exit 1
+          fi
+          latest="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)"
+          if [[ -n "$latest" && "$(printf '%s\n%s\n' "$latest" "$tag" | sort -V | tail -n 1)" != "$tag" ]]; then
+            echo "::error::$tag is not after $latest, the latest release"
+            exit 1
+          fi
+          if ! grep -qxF "## $VERSION" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no heading '## $VERSION'"
+            exit 1
+          fi
+          echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  # Everything CI checks of a commit, on the commit the tag will name, with the conformance report
+  # naming the version.
+  ci:
+    needs: check
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.check.outputs.sha }}
+      version: ${{ inputs.version }}
+
+  release:
+    needs: [check, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.check.outputs.sha }}
+      - name: Tag the commit and publish the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ needs.check.outputs.tag }}
+          SHA: ${{ needs.check.outputs.sha }}
+        run: |
+          # The section of CHANGELOG.md under "## X.Y.Z", up to the next heading of that level.
+          awk -v heading="## $VERSION" '
+            $0 == heading { inside = 1; next }
+            inside && /^## / { exit }
+            inside { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" --target "$SHA" --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+      # The proxy fetches a version the first time it is asked for it, and pkg.go.dev lists it from
+      # there. Asking once here lists it now rather than after the first go get.
+      - name: Ask proxy.golang.org for the version
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS "https://proxy.golang.org/github.com/raoh-project/raoh-go/@v/$TAG.info"; then
+              exit 0
+            fi
+            sleep $((attempt * 10))
+          done
+          echo "::warning::proxy.golang.org did not give $TAG; it will fetch it on the first go get"
