@@ -14,11 +14,14 @@ on:
         required: true
         type: string
 
-# One release at a time. A second run waits for the first, and then finds the tag the first made if
-# it asked for the same version.
+# One release at a time, and none left out. A group holds one run waiting by default, and a run that
+# comes after it takes its place, so a release asked for while another waited would be dropped;
+# queue: max holds every run, up to a hundred. A run that waited for one asking the same version
+# finds the tag it made, and stops.
 concurrency:
   group: release
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read
