@@ -1,6 +1,6 @@
 # raoh
 
-Go port of [Raoh](https://github.com/kawasima/raoh), a decoder library for turning untyped
+Go port of [Raoh](https://github.com/raoh-project/raoh-java), a decoder library for turning untyped
 boundary input into typed domain values.
 
 It is built around a parse-don't-validate approach:
@@ -19,7 +19,7 @@ JSON text --raoh.DecodeJSON--> domain values
                           \--> *raoh.Issues (path, code, message, meta)
 ```
 
-The one dependency is [199x-notation](https://github.com/raoh-project/199x-notation), the rules for
+The one dependency is [notation-199x](https://github.com/raoh-project/notation-199x), the rules for
 reading text that Raoh and Souther share. Go 1.27 or later is required, for generic methods.
 
 ## Installation
@@ -164,7 +164,7 @@ carries is one its creator gave with `WithMessage(...)`, which every language th
 written.
 
 The codes, message keys and meta keys are those of the
-[Raoh Specification](https://github.com/raoh-project/raoh-specification) 0.9.0, as in Raoh for Java
+[Raoh Specification](https://github.com/raoh-project/raoh-specification) 0.9, as in Raoh for Java
 0.9 and its Rust and PHP ports, so the same client-side handling works for all of them, and a
 catalogue written for Raoh for Java resolves these issues too. The specification's cases are run on
 this package (see [Development](#development)), and `compat_test.go` holds the decoders to what
@@ -275,7 +275,7 @@ forms Java's `Instant`, `LocalDate`, `LocalTime`, `LocalDateTime` and `OffsetDat
 `Before`, `After` and `Between`. Each gives a `time.Time`. The kinds without an offset give it in
 UTC, as `time.Parse` does for text without one: a date is its midnight, and a clock time is on
 January 1 of year 0. An offset date-time keeps its offset as a fixed zone, and an instant is given
-in UTC. Which text is accepted is the grammar of 199x-notation, which Raoh for Java follows too: a
+in UTC. Which text is accepted is the grammar of notation-199x, which Raoh for Java follows too: a
 year outside 0000 to 9999 takes a sign, `T` and `Z` are upper case only, a date that does not exist
 is refused, and an instant refuses second 60 and reads `24:00:00` with nothing after it as the
 start of the next day. Bounds are compared by the fields the kind has, so a date bound is compared
@@ -294,7 +294,9 @@ Java has no custom message for `containsAll`; here `.Message` works on it as on 
 
 `raoh.ToSet(d)` turns a decoder of `[]T`, such as `raoh.List(...).MaxSize(3)`, into a decoder of
 `map[T]struct{}`. The constraints of `d` run first, then the elements are gathered, each once. The
-order of the list is not kept, unlike Java's `toSet`.
+order of the list is not kept, unlike Java's `toSet`. The map compares its keys with `==`, so a set
+of floats holds `-0.0` and `0.0` as one element, where the specification and Java's `toSet` hold
+them as two.
 
 `raoh.Dict(d)`: a `map[string]T` from an object used as a map, with `NonEmpty`, `MinSize`,
 `MaxSize` and `Size`, which report `too_small`, `too_big` and `invalid_size` as a list does. They
@@ -305,7 +307,7 @@ before it a custom message. Transformations such as `Trim` cannot fail and are p
 `raoh.String().Trim().Message("...")` gives the message to the type check.
 
 White space, character counts, string order, case conversion, normalization, the temporal grammar
-and the pattern language are the rules of 199x-notation, which Raoh for Java 0.9 follows too, so
+and the pattern language are the rules of notation-199x, which Raoh for Java 0.9 follows too, so
 none of them changes with the Go release: `Trim` and `NonBlank` use the Unicode 18.0.0
 `White_Space` set, lengths count scalar values, `OneOf`, `Discriminate` and `EnumOf` sort by scalar
 value, `ToLower` and `ToUpper` apply the Unicode 18.0.0 default case conversion with no language
@@ -470,6 +472,9 @@ In what it reports:
 - A Go float given as input, as `encoding/json` gives every number, is an integer when it holds
   one. In JSON text read by `DecodeJSON`, `1.0` is not an integer, as in Raoh for Java.
 - `DecodeJSON` refuses an object that names a member twice, as `invalid_format.json`.
+- `ToSet` over floats holds `-0.0` and `0.0` as one element, since a Go map compares its keys with
+  `==`. This is the one case of the specification `conformance/conformance.json` declares as a
+  divergence.
 
 In the API:
 
@@ -503,6 +508,24 @@ Go; `RAOH_SPECIFICATION_DIR` names a checkout to use instead of cloning one. CI 
 `scripts/compat/generate.sh` regenerates `testdata/compat/expected.json` and copies the message
 catalogues from the Raoh for Java version `scripts/compat/pom.xml` names. It needs Java 25 and
 Maven.
+
+## Releasing
+
+A release is a tag `vX.Y.Z` on `main`, made by the `Release` workflow and by nothing else. The
+major and minor version are those of the Raoh Specification the module follows; the patch part is
+the module's own. Once `develop` is merged into `main` and `CHANGELOG.md` has a section headed
+`## X.Y.Z`, run the workflow on `main` with the version:
+
+```sh
+gh workflow run release.yml --ref main -f version=X.Y.Z
+```
+
+It refuses a version that is not after the latest release or has no section, runs CI on the commit
+with the conformance report naming the version, and only then tags the commit, publishes the
+section as the release notes, and asks proxy.golang.org for the version so that pkg.go.dev lists
+it. A tag pushed by hand would be public before anything checked it, and a tag once fetched cannot
+be taken back. Between releases, `go get github.com/raoh-project/raoh-go@develop` takes the latest
+commit of `develop`.
 
 ## License
 

@@ -1,7 +1,7 @@
 // Package raoh decodes untyped boundary input into typed domain values,
 // reporting every problem it finds with the JSON Pointer of where it was.
 //
-// It is the Go port of Raoh (https://github.com/kawasima/raoh). A [Decoder]
+// It is the Go port of Raoh (https://github.com/raoh-project/raoh-java). A [Decoder]
 // turns an input into a value, or reports every issue in it as [Issues].
 // Decode returns the value and a nil error, or the zero value and an error.
 // When the input was invalid, that error is an *Issues, so

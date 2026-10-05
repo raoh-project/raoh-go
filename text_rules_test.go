@@ -9,7 +9,7 @@ import (
 	"github.com/raoh-project/raoh-go"
 )
 
-// The text rules are those of 199x-notation, which Raoh for Java follows too: Unicode 18.0.0,
+// The text rules are those of notation-199x, which Raoh for Java follows too: Unicode 18.0.0,
 // whatever Go release the package is built with.
 func TestTheTextRulesAreUnicode18(t *testing.T) {
 	for _, tc := range []struct {
@@ -83,7 +83,7 @@ func TestAPatternIsOneOfTheRaohLanguage(t *testing.T) {
 	raoh.String().Pattern(`a{249998}`)
 }
 
-// Which text is a temporal is the grammar of 199x-notation, and the value is the moment or the day
+// Which text is a temporal is the grammar of notation-199x, and the value is the moment or the day
 // the admitted text names.
 func TestATemporalIsReadOffTheTextTheGrammarAdmits(t *testing.T) {
 	for _, tc := range []struct {

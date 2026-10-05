@@ -24,16 +24,17 @@ func main() {
 	revision := flag.String("revision", "", "the commit of raoh-specification the cases are read at")
 	digest := flag.String("manifest-digest", "", "the manifest digest raoh-verify gives for that commit")
 	implRevision := flag.String("implementation-revision", "", "the commit of raoh-go")
+	implVersion := flag.String("implementation-version", "devel", "the version of raoh-go, X.Y.Z when the commit is a release")
 	messages := flag.String("messages", "../messages", "the directory of raoh-go's message catalogues")
 	out := flag.String("out", "runner-result.json", "where to write the runner result")
 	flag.Parse()
-	if err := run(*spec, *revision, *digest, *implRevision, *messages, *out); err != nil {
+	if err := run(*spec, *revision, *digest, *implRevision, *implVersion, *messages, *out); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(spec, revision, digest, implRevision, messages, out string) error {
+func run(spec, revision, digest, implRevision, implVersion, messages, out string) error {
 	version, err := specificationVersion(spec)
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func run(spec, revision, digest, implRevision, messages, out string) error {
 		"format":        "raoh-runner-result/v1",
 		"specification": map[string]any{"version": version, "revision": revision, "manifest_digest": digest},
 		"implementation": map[string]any{
-			"name": "raoh-go", "version": "0.0.0", "revision": implRevision,
+			"name": "raoh-go", "version": implVersion, "revision": implRevision,
 		},
 		"environment": map[string]any{
 			"language": "go", "language_version": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH,

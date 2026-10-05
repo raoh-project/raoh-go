@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	notation199x "github.com/raoh-project/199x-notation/go"
+	notation199x "github.com/raoh-project/notation-199x/go"
 	"github.com/raoh-project/raoh-go/internal/javatime"
 )
 
 // Which text is a date, a time, a date-time, a date-time with an offset or an
-// instant is the grammar of 199x-notation, which Raoh for Java follows too.
+// instant is the grammar of notation-199x, which Raoh for Java follows too.
 // Once a text is admitted, its value is read off it here: the grammar has
 // already put each field where it is, so nothing here decides what is a
 // temporal, and a text the grammar admits always has a value.
